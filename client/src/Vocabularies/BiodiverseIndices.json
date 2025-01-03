@@ -1,0 +1,10 @@
+[
+    "calc_richness",
+    "calc_simpson_shannon",
+    "calc_endemism_whole",
+    "calc_pd","calc_pe",
+    "calc_phylo_rpd1",
+    "calc_phylo_rpd2",
+    "calc_phylo_rpe1",
+    "calc_phylo_rpe2"
+]

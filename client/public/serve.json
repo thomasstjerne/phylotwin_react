@@ -1,0 +1,7 @@
+{
+    "rewrites": [
+      { "source": "run", "destination": "/index.html" },
+      { "source": "run/**", "destination": "/index.html" },
+      { "source": "myruns", "destination": "/index.html" }
+    ]
+  }

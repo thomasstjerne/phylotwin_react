@@ -1,0 +1,10 @@
+{
+    "phylogenetic": {
+        "indices"     : "\"calc_pd,calc_pe,calc_phylo_rpd2,calc_phylo_rpe2\"",
+        "leaflet_var" : "\"PD,SES_PD,PD_P,PE_WE,SES_PE_WE,CANAPE\""
+    },
+    "nonPhylogenetic": {
+        "indices"     : "\"calc_richness,calc_hurlbert_es\"",
+        "leaflet_var" : "\"RICHNESS_ALL,Redundancy,ES_5,ES_10,ES_50,ES_100,ES_200,ES_500,ES_1000,ES_2000,ES_5000\""
+    }
+}
