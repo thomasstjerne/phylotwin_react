@@ -84,9 +84,7 @@ const App = ({ children, step, setStep, user }) => {
           textAlign: "center",
         }}
       >
-        The work is supported by a grant “PD (Phylogenetic Diversity) in the
-        Cloud” to GBIF Supplemental funds from the GEO-Microsoft Planetary
-        Computer Programme.
+        BioDT WP6
       </Footer>
     </Layout>
   );
