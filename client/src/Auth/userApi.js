@@ -1,6 +1,20 @@
 import base64 from "base-64";
 import config from "../config";
 import axios from "axios";
+
+const decode = (jwt) => {
+  try {
+    const base64Url = jwt.split('.')[1];
+    const base64Str = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64Str).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch(e) {
+    return null;
+  }
+};
+
 export const JWT_STORAGE_NAME = "phylonext_auth_token";
 
 export const axiosWithAuth = axios.create();
@@ -51,16 +65,19 @@ export const logout = () => {
 };
 
 export const getTokenUser = () => {
-  const jwt = sessionStorage.getItem(JWT_STORAGE_NAME);
-  if (jwt) {
-    const user = JSON.parse(base64.decode(jwt.split(".")[1]));
-    // is the token still valid - if not then delete it. This of course is only to ensure the client knows that the token has expired. any authenticated requests would fail anyhow
-    if (new Date(user.exp * 1000).toISOString() < new Date().toISOString()) {
-      logout();
-    }
-    return user;
+  // Development mode bypass
+  if (process.env.REACT_APP_DEV_MODE === 'true') {
+    return {
+      username: process.env.REACT_APP_DEV_USER || 'dev_user',
+      token: process.env.REACT_APP_DEV_TOKEN || 'mock_token'
+    };
   }
 
+  // Original production code
+  const jwt = localStorage.getItem(JWT_STORAGE_NAME) || sessionStorage.getItem(JWT_STORAGE_NAME);
+  if (jwt) {
+    return decode(jwt);
+  }
   return null;
 };
 

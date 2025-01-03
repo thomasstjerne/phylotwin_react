@@ -8,9 +8,15 @@ module.exports = function(app) {
     app.use('/auth', router);
 };
 
-
-
 router.get('/login', function(req, res) {
+    // Bypass authentication in development mode
+    if(process.env.NODE_ENV === 'development' && process.env.DEV_AUTH_BYPASS === 'true') {
+        return res.json({
+            username: process.env.DEV_USER || "dev_user",
+            token: process.env.DEV_TOKEN || "mock_token"
+        });
+    }
+    
     User.login(req.headers.authorization)
         .then((user) => {
             res.json(user)
@@ -19,15 +25,20 @@ router.get('/login', function(req, res) {
 })
 
 router.post('/whoami', function(req, res) {
+    // Bypass authentication in development mode
+    if(process.env.NODE_ENV === 'development' && process.env.DEV_AUTH_BYPASS === 'true') {
+        return res.json({
+            username: process.env.DEV_USER || "dev_user",
+            token: process.env.DEV_TOKEN || "mock_token"
+        });
+    }
+
     User.getFromToken(req.headers.authorization)
-    
-    
         .then((user) => {
             if (user) {
                 res.setHeader('token', user?.token);
                 res.json(user)
             } else {
-               // removeTokenCookie(res);
                 res.removeHeader('token');
                 throw "No user"
             }
