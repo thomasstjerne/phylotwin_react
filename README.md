@@ -16,10 +16,6 @@ Frontend will be available at http://localhost:3000
 Backend API at                http://localhost:5000  
 
 
-# Changes to React code will hot reload automatically
-# Backend changes will trigger nodemon to restart the server
-
-
 ## Previous version of the GUI
 
 The first version of the GUI was developed by Thomas Stjernegaard Jeppesen at GBIF
