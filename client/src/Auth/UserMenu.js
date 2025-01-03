@@ -9,6 +9,7 @@ import withContext from "../Components/hoc/withContext";
 // Components
 import LoginForm from "./LoginForm"
 const hashCode = function (str) {
+  if (!str) return 0;
   let hash = 0,
     i,
     chr;
