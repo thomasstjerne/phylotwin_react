@@ -3,4 +3,6 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install
 COPY . .
-CMD ["node", "index.js"]
+# Use nodemon for auto-reloading
+RUN npm install -g nodemon
+CMD ["nodemon", "server.js"]
