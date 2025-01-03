@@ -12,15 +12,21 @@ docker compose up --build
 docker compose logs -f
 ```
 
-Frontend will be available at http://localhost:3000
-Backend API at                http://localhost:5000
+Frontend will be available at http://localhost:3000  
+Backend API at                http://localhost:5000  
 
 
-## The first version of the GUI was developed by Thomas Stjernegaard Jeppesen at GBIF
+# Changes to React code will hot reload automatically
+# Backend changes will trigger nodemon to restart the server
 
-### React web app - frontend
+
+## Previous version of the GUI
+
+The first version of the GUI was developed by Thomas Stjernegaard Jeppesen at GBIF
+
+#### React web app - frontend
 https://github.com/gbif/phylonext-ui
 
-### Backend
+#### Backend
 https://github.com/gbif/phylonext-ws
 
