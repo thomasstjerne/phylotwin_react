@@ -1,28 +1,57 @@
-import React from 'react'
-// import { MapContainer } from 'react-leaflet/MapContainer'
-import { MapContainer, TileLayer, Rectangle, Popup } from 'react-leaflet'
-import { useMap } from 'react-leaflet/hooks'
+import React, { useEffect, useRef } from 'react';
+import { useMap, FeatureGroup } from 'react-leaflet';
+import { EditControl } from 'react-leaflet-draw';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw/dist/leaflet.draw.css';
 
+const Map = ({ value, onChange }) => {
+  const map = useMap();
+  const featureGroupRef = useRef(null);
 
-import DrawTools from './DrawTools';
-const css = {
-    width: '100%',
-    height: '400px',
-    overflow: 'hidden',
-    position: 'relative',
-    marginBottom: '24px'
-  }
-const LeafletMap = ({value, onChange}) => {
+  // Clear existing drawings when component unmounts or value changes
+  useEffect(() => {
+    return () => {
+      if (featureGroupRef.current) {
+        featureGroupRef.current.clearLayers();
+      }
+    };
+  }, []);
 
+  const onCreated = (e) => {
+    const type = e.layerType;
+    const layer = e.layer;
+    if (type === 'rectangle' || type === 'polygon') {
+      const bounds = layer.getBounds();
+      if (onChange) {
+        onChange([bounds]);
+      }
+    }
+  };
 
-    return   <div style={{minWidth: "300px"}}> <MapContainer style={css}  center={[0, 0]} zoom={1} scrollWheelZoom={false}>
-        <DrawTools value={value} onChange={onChange}/>
-    <TileLayer
-      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-    />
+  const onDeleted = (e) => {
+    if (onChange) {
+      onChange(null);
+    }
+  };
 
-  </MapContainer></div> 
-}
+  return (
+    <FeatureGroup ref={featureGroupRef}>
+      <EditControl
+        position="topright"
+        onCreated={onCreated}
+        onDeleted={onDeleted}
+        draw={{
+          rectangle: true,
+          circle: false,
+          circlemarker: false,
+          marker: false,
+          polyline: false,
+          polygon: true,
+        }}
+      />
+    </FeatureGroup>
+  );
+};
 
-export default LeafletMap;
+export default Map;

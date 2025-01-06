@@ -9,7 +9,6 @@ import Workflow from "../Workflow";
 import 'antd/dist/reset.css';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
-import '../styles/kepler.css';
 import "../App.css";
 
 const App = () => {

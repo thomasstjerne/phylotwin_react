@@ -242,6 +242,28 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
             fullWidth
             sx={{ mb: 3 }}
           />
+
+          {/* Start Analysis Button */}
+          <Box sx={{ 
+            position: 'sticky', 
+            bottom: 0, 
+            bgcolor: 'background.paper',
+            borderTop: 1,
+            borderColor: 'divider',
+            p: 2,
+            mt: 2,
+            mx: -2
+          }}>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              size="large"
+              type="submit"
+            >
+              Start Analysis
+            </Button>
+          </Box>
         </Box>
       )}
     </Drawer>

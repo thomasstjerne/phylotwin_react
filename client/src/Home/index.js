@@ -3,14 +3,14 @@ import axios from "axios"
 import { useNavigate } from "react-router-dom";
 import PageContent from "../Layout/PageContent";
 import { marked } from "marked"
-import { Image, Row, Col, Typography, Button } from "antd";
+import { Image, Row, Col, Typography } from "antd";
+import UserMenu from "../Components/UserMenu";
 
 const { Title, Text } = Typography;
 
 function App() {
   const [markdown, setMarkdown] = useState(null);
   const [error, setError] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const getAbout = async () => {
@@ -44,9 +44,7 @@ function App() {
       )}
       <Row gutter={[0, 24]}>
         <Col span={24} style={{ textAlign: 'center' }}>
-          <Button type="primary" size="large" onClick={() => navigate('/run')}>
-            Start Analysis
-          </Button>
+          <UserMenu />
         </Col>
         <Col flex="auto"></Col>
         <Col>

@@ -3,15 +3,16 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Box, Button, AppBar, Toolbar } from '@mui/material';
 import SettingsPanel from './SettingsPanel';
 import HypothesisPanel from './HypothesisPanel';
+import UserMenu from '../Components/UserMenu';
 
 const Layout = () => {
-  const [viewMode, setViewMode] = useState('map');
   const [activePanel, setActivePanel] = useState('settings');
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true);
   const location = useLocation();
 
   // Only show the navigation and settings panel on the workflow page
   const isWorkflowPage = location.pathname.startsWith('/run');
+  console.log("Current pathname:", location.pathname, "isWorkflowPage:", isWorkflowPage);  // for debugging
 
   if (!isWorkflowPage) {
     return <Outlet />;
@@ -45,51 +46,48 @@ const Layout = () => {
             </Button>
           </Box>
           <Box>
-            <Button 
-              color="inherit"
-              onClick={() => setViewMode('map')}
-              variant={viewMode === 'map' ? 'contained' : 'text'}
-              sx={{ mr: 1 }}
-            >
-              Map
-            </Button>
-            <Button 
-              color="inherit"
-              onClick={() => setViewMode('table')}
-              variant={viewMode === 'table' ? 'contained' : 'text'}
-            >
-              Table
-            </Button>
+            <UserMenu />
           </Box>
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
-        {activePanel === 'settings' ? (
-          <SettingsPanel 
-            isOpen={isSettingsPanelOpen} 
-            onClose={() => setIsSettingsPanelOpen(false)}
-            activePanel={activePanel}
-            viewMode={viewMode}
-          />
-        ) : (
-          <HypothesisPanel
-            isOpen={isSettingsPanelOpen}
-            onClose={() => setIsSettingsPanelOpen(false)}
-          />
-        )}
-        
-        <Box 
-          component="main" 
-          sx={{ 
-            flexGrow: 1, 
-            p: 3, 
-            overflow: 'auto',
-            marginLeft: isSettingsPanelOpen ? '340px' : 0,
-            transition: 'margin 225ms cubic-bezier(0.4, 0, 0.6, 1) 0ms'
-          }}
-        >
-          <Outlet context={{ viewMode, activePanel }} />
+      <Box sx={{ 
+        position: 'relative', 
+        flexGrow: 1, 
+        overflow: 'hidden'
+      }}>
+        {/* Main content area (future map) that takes full width */}
+        <Box sx={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0
+        }}>
+          <Outlet context={{ isSettingsPanelOpen, activePanel }} />
+        </Box>
+
+        {/* Overlay panels */}
+        <Box sx={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          height: '100%',
+          zIndex: 1
+        }}>
+          {activePanel === 'settings' ? (
+            <SettingsPanel 
+              isOpen={isSettingsPanelOpen} 
+              onClose={() => setIsSettingsPanelOpen(false)}
+              activePanel={activePanel}
+            />
+          ) : (
+            <HypothesisPanel
+              isOpen={isSettingsPanelOpen}
+              onClose={() => setIsSettingsPanelOpen(false)}
+            />
+          )}
         </Box>
       </Box>
     </Box>
