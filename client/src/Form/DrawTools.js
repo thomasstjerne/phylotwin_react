@@ -16,49 +16,36 @@ const DrawTools = ({value, onChange}) => {
 
     
 
-	const _onEdited = e => {
-		let numEdited = 0;
+	const handleEdited = (e) => {
 		e.layers.eachLayer(layer => {
 			onChange(layer.getLatLngs())
 		});
-		// console.log(`_onEdited: edited ${numEdited} layers`, e);
-
-		// this._onChange();
 	};
 
-	const _onCreated = e => {
+	const handleCreated = (e) => {
 		let layer = e.layer;
-		setRect(e.layer)
+		setRect(layer)
 		console.log("coords", layer.getLatLngs());
-        onChange(layer.getLatLngs())
-		
+		onChange(layer.getLatLngs())
 	};
 
-	const _onDeleted = e => {
-		let numDeleted = 0;
-        setRect(null)
-		e.layers.eachLayer(layer => {
-			numDeleted += 1;
-		});
-		console.log(`onDeleted: removed ${numDeleted} layers`, e);
-
-		// this._onChange();
+	const handleDeleted = (e) => {
+		setRect(null)
+		e.layers.eachLayer(() => {})
 	};
 
-
-
-	const _onDrawStart = e => {
-		console.log("_onDrawStart", e);
+	const handleDrawStart = (e) => {
+		console.log("Draw started", e)
 	};
 
 	return (
 		<FeatureGroup>
 			<EditControl
-				onDrawStart={_onDrawStart}
+				onDrawStart={handleDrawStart}
 				position="topleft"
-				onEdited={_onEdited}
-				onCreated={_onCreated}
-				onDeleted={_onDeleted}
+				onEdited={handleEdited}
+				onCreated={handleCreated}
+				onDeleted={handleDeleted}
 				draw={{
 					polyline: false,
 					rectangle: rect ? false : {

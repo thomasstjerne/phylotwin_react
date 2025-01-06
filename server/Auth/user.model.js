@@ -1,50 +1,41 @@
-
 'use strict';
 const config = require('../config');
-const  request = require('request-promise');
+const axios = require('axios');
 
 module.exports = {
-    
     login: login,
     getFromToken: getFromToken
 };
 
 async function login(auth) {
-    let loginRequest = {
-        url: `${config.GBIF_API}user/login`,
-        method: 'GET',
-        headers: {
-            authorization: auth
-        },
-        json: true
-    };
     try {
-        let response = await request(loginRequest);
-        return response;
+        const response = await axios({
+            url: `${config.GBIF_API}user/login`,
+            method: 'GET',
+            headers: {
+                authorization: auth
+            }
+        });
+        return response.data;
     } catch (error) {
-        throw error
+        throw error.response?.data || error;
     }
-    
 }
 
 async function getFromToken(auth) {
-    let options = {
-        method: 'POST',
-        url: `${config.GBIF_REGISTRY_API}user/whoami`,
-        headers: {
-            authorization: auth
-        },
-        resolveWithFullResponse: true,
-        json: true
-        
-    };
     try {
-        let response = await request(options);
-        return {...response?.body, token: response?.headers?.token || ''};
-
+        const response = await axios({
+            method: 'POST',
+            url: `${config.GBIF_REGISTRY_API}user/whoami`,
+            headers: {
+                authorization: auth
+            }
+        });
+        return {
+            ...response.data,
+            token: response.headers?.token || ''
+        };
     } catch (error) {
-        // console.log(error)
-        throw error;  
+        throw error.response?.data || error;
     }
-    
 } 

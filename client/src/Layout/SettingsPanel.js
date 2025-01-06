@@ -66,7 +66,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
         <Box sx={{ p: 2, overflow: 'auto' }}>
           {/* Spatial Resolution */}
           <FormControl component="fieldset" sx={{ mb: 3 }}>
-            <FormLabel>Spatial Resolution</FormLabel>
+            <FormLabel>Spatial resolution</FormLabel>
             <RadioGroup
               row
               value={spatialResolution}
@@ -86,11 +86,11 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
           {/* Spatial Filters */}
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>Spatial Filters</Typography>
+              <Typography>Spatial filters</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <FormControl fullWidth sx={{ mb: 2 }}>
-                <FormLabel>Area Selection Mode</FormLabel>
+                <FormLabel>Area selection mode</FormLabel>
                 <RadioGroup
                   value={areaSelectionMode}
                   onChange={(e) => setAreaSelectionMode(e.target.value)}
@@ -101,7 +101,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
               </FormControl>
 
               <FormControl fullWidth sx={{ mb: 2 }}>
-                <FormLabel>Country Selection</FormLabel>
+                <FormLabel>Country selection</FormLabel>
                 <Select
                   multiple
                   value={selectedCountries}
@@ -124,7 +124,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                 fullWidth
                 sx={{ mb: 2 }}
               >
-                Upload Custom Polygon
+                Upload custom polygon
                 <input
                   type="file"
                   hidden
@@ -138,11 +138,11 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
           {/* Taxonomic Filters */}
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>Taxonomic Filters</Typography>
+              <Typography>Taxonomic filters</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <FormControl fullWidth sx={{ mb: 2 }}>
-                <FormLabel>Phylogenetic Tree</FormLabel>
+                <FormLabel>Phylogenetic tree</FormLabel>
                 <Select
                   value={selectedPhyloTree}
                   onChange={(e) => setSelectedPhyloTree(e.target.value)}
@@ -166,7 +166,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                 fullWidth
                 sx={{ mb: 2 }}
               >
-                Upload Species Keys
+                Upload species keys
                 <input
                   type="file"
                   hidden
@@ -179,7 +179,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
 
           {/* Outlier Removal */}
           <FormControl component="fieldset" sx={{ my: 3 }}>
-            <FormLabel>Outlier Removal Sensitivity</FormLabel>
+            <FormLabel>Outlier removal sensitivity</FormLabel>
             <RadioGroup
               row
               value={outlierSensitivity}
@@ -198,7 +198,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
 
           {/* Collection Year Range */}
           <Box sx={{ mb: 3 }}>
-            <FormLabel>Collection Year Range</FormLabel>
+            <FormLabel>Collection year</FormLabel>
             <Slider
               value={yearRange}
               onChange={(e, newValue) => setYearRange(newValue)}
@@ -214,7 +214,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
 
           {/* Diversity Indices */}
           <FormControl fullWidth sx={{ mb: 3 }}>
-            <FormLabel>Diversity Indices</FormLabel>
+            <FormLabel>Diversity indices</FormLabel>
             <Select
               multiple
               value={selectedDiversityIndices}
@@ -232,7 +232,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
           </FormControl>
 
           <TextField
-            label="Number of Randomizations"
+            label="Number of randomizations"
             type="number"
             value={randomizations}
             onChange={(e) => setRandomizations(e.target.value)}
