@@ -1,108 +1,70 @@
-import { Breadcrumb, Layout, Menu, Steps, Button, Row, Col } from "antd";
-import { LoadingOutlined } from "@ant-design/icons";
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation, useMatch } from "react-router-dom";
-import withContext from "../Components/hoc/withContext";
-import Logo from "./Logo";
-import UserMenu from "../Auth/UserMenu";
-const { Step } = Steps;
+import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { Box, Button, AppBar, Toolbar } from '@mui/material';
+import SettingsPanel from './SettingsPanel';
 
-const { Header, Content, Footer } = Layout;
+const Layout = () => {
+  const [viewMode, setViewMode] = useState('map');
+  const [activePanel, setActivePanel] = useState('settings');
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true);
 
-const App = ({ children, step, setStep, user }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
- /*  const match = useMatch("/run/:id");
-  const [current, setCurrent] = useState("");
-  useEffect(() => {
-    console.log(location);
-    setCurrent(location?.pathname);
-  }, [location]); */
-  
- 
   return (
-    <Layout className="layout">
-      <Header>
-        <Row>
-          <Col span={1} >
-            <Logo />
-          </Col>
-          <Col flex="auto" style={{ padding: "24px" }}>
-            {" "}
-            {location?.pathname.startsWith("/run") && (
-              <Steps size="small" current={step}>
-                <Step title="Configure" /* description="Input parameters" */ />
-                <Step title={step === 1 ? "Running Pipeline" : "Run pipeline"} />
-                <Step title="Results" />
-              </Steps>
-            )}
-          </Col>
-          <Col>
-            <Button
-              style={{ marginRight: "8px" }}
-              disabled={([0, 1].includes(step) && location?.pathname !== "/myruns" && location?.pathname !== "/") || !user}
-              type={location?.pathname !== "/run" ? "primary" : "default"}
-              onClick={() => {
-                setStep(0)
-                navigate("/run");
-              }}
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <AppBar position="static">
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Box>
+            <Button 
+              color="inherit"
+              onClick={() => setActivePanel('settings')}
+              variant={activePanel === 'settings' ? 'contained' : 'text'}
             >
-              Run pipeline
+              Settings
             </Button>
-            <Button onClick={() => navigate("/")}>About</Button>
-            <UserMenu />
-          </Col>
-        </Row>
+            <Button 
+              color="inherit"
+              onClick={() => setActivePanel('hypothesis')}
+              variant={activePanel === 'hypothesis' ? 'contained' : 'text'}
+            >
+              Hypothesis test
+            </Button>
+          </Box>
+          <Box>
+            <Button 
+              color="inherit"
+              onClick={() => setViewMode('map')}
+              variant={viewMode === 'map' ? 'contained' : 'text'}
+            >
+              Map
+            </Button>
+            <Button 
+              color="inherit"
+              onClick={() => setViewMode('table')}
+              variant={viewMode === 'table' ? 'contained' : 'text'}
+            >
+              Table
+            </Button>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
-        {/*         <Menu
-          theme="dark"
-          mode="horizontal"
-          selectedKeys={[current]}
-          onClick={onClick}
-          defaultSelectedKeys={["2"]}
-          items={match ? [...items, { key: `/run/${match?.params?.id}`, label: `Run ${match?.params?.id}` }] : items}
-        /> */}
-      </Header>
-      <Content
-        style={{
-          padding: "0 50px",
-        }}
-      >
-        {/*       <Breadcrumb
-        style={{
-          margin: '16px 0',
-        }}
-      >
-        <Breadcrumb.Item>Home</Breadcrumb.Item>
-        <Breadcrumb.Item>List</Breadcrumb.Item>
-        <Breadcrumb.Item>App</Breadcrumb.Item>
-      </Breadcrumb> */}
-        <div className="site-layout-content">{children}</div>
-      </Content>
-      <Footer
-        style={{
-          textAlign: "center",
-        }}
-      >
-        BioDT WP6
-      </Footer>
-    </Layout>
+      <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
+        <SettingsPanel 
+          isOpen={isSettingsPanelOpen} 
+          onClose={() => setIsSettingsPanelOpen(false)}
+          activePanel={activePanel}
+        />
+        
+        <Box sx={{ flexGrow: 1, p: 3 }}>
+          <Outlet />
+          {viewMode === 'map' ? (
+            <div>Map View</div>
+          ) : (
+            <div>Table View</div>
+          )}
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
-const mapContextToProps = ({
-  step,
-  setStep,
-  runID,
-  setRunID,
-  currentTask,
-  user
-}) => ({
-  step,
-  setStep,
-  runID,
-  setRunID,
-  currentTask,
-  user
-});
-export default withContext(mapContextToProps)(App);
+export default Layout;
