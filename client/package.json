@@ -27,7 +27,11 @@
     "react-router-dom": "*",
     "react-scripts": "*",
     "save-svg-as-png": "*",
-    "web-vitals": "*"
+    "web-vitals": "*",
+    "@mui/material": "^5.14.18",
+    "@mui/icons-material": "^5.14.18",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0"
   },
   "scripts": {
     "start": "react-scripts start",
