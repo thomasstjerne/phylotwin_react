@@ -1,3 +1,5 @@
+package-lock.json
+
 # IDE and OS dependent
 .vscode
 .DS_Store
