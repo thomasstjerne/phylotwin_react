@@ -7,8 +7,7 @@ import Workflow from "../Workflow";
 
 // Import styles
 import 'antd/dist/reset.css';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-draw/dist/leaflet.draw.css';
+import 'ol/ol.css';
 import "../App.css";
 
 const App = () => {

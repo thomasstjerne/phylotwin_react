@@ -17,13 +17,12 @@
     "d3": "^7.9.0",
     "graphviz-react": "^1.2.5",
     "history": "^5.3.0",
-    "leaflet": "^1.9.4",
-    "leaflet-draw": "^1.0.4",
     "lodash": "^4.17.21",
     "marked": "^11.1.1",
     "minimatch": "^9.0.3",
     "moment": "^2.30.1",
     "nth-check": "^2.1.1",
+    "ol": "^10.3.1",
     "phylotree": "^2.0.1",
     "postcss": "^8.4.32",
     "process": "^0.11.10",
@@ -32,8 +31,6 @@
     "react-dom": "^19.0.0",
     "react-iframe": "^1.8.5",
     "react-jss": "^10.10.0",
-    "react-leaflet": "^4.2.1",
-    "react-leaflet-draw": "0.19.8",
     "react-palm": "^3.3.8",
     "react-redux": "^9.2.0",
     "react-router-dom": "^6.21.1",
@@ -85,8 +82,6 @@
     "semver": "^7.5.4",
     "shell-quote": "^1.8.1",
     "terser": "^5.26.0",
-    "react-leaflet": "^4.2.1",
-    "@testing-library/react": "^14.1.2",
-    "react-leaflet-draw": "0.19.8"
+    "@testing-library/react": "^14.1.2"
   }
 }
