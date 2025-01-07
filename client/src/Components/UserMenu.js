@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import { LogoutOutlined, BarsOutlined } from "@ant-design/icons";
+import { LogoutOutlined, BarsOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import { Menu, Dropdown, Avatar, Modal, Button } from "antd";
 import { useAuth } from '../Auth/AuthContext';
 import LoginForm from "./LoginForm";
@@ -31,16 +31,22 @@ const MenuContent = () => {
   return (
     <Menu selectedKeys={[]}>
       <Menu.Item
+        key="newrun"
+        onClick={() => navigate('/run')}
+      >
+        <PlayCircleOutlined /> Start new run
+      </Menu.Item>
+      <Menu.Item
+        key="history"
+        onClick={() => navigate('/myruns')}
+      >
+        <BarsOutlined /> Run history
+      </Menu.Item>
+      <Menu.Item
         key="logout"
         onClick={handleLogout}
       >
         <LogoutOutlined /> Logout
-      </Menu.Item>
-      <Menu.Item
-        key="myruns"
-        onClick={() => navigate('/myruns')}
-      >
-        <BarsOutlined /> Pipeline Runs
       </Menu.Item>
     </Menu>
   );
