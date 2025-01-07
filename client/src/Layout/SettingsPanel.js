@@ -271,7 +271,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
               value={outlierSensitivity}
               onChange={(e) => setOutlierSensitivity(e.target.value)}
             >
-              {['none', 'low', 'medium', 'high'].map((value) => (
+              {['none', 'low', 'high'].map((value) => (
                 <FormControlLabel
                   key={value}
                   value={value}
