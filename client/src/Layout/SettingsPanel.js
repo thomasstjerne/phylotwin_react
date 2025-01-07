@@ -21,6 +21,9 @@ import {
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import InfoIcon from '@mui/icons-material/Info';
+import countries from '../Vocabularies/country.json';
 
 const drawerWidth = 340;
 
@@ -29,17 +32,21 @@ const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
   const [spatialResolution, setSpatialResolution] = useState('3');
-  const [areaSelectionMode, setAreaSelectionMode] = useState('polygon');
+  const [areaSelectionMode, setAreaSelectionMode] = useState(null);
   const [selectedCountries, setSelectedCountries] = useState([]);
+  const [uploadedFile, setUploadedFile] = useState(null);
   const [selectedPhyloTree, setSelectedPhyloTree] = useState('');
   const [outlierSensitivity, setOutlierSensitivity] = useState('none');
   const [yearRange, setYearRange] = useState([1900, 2025]);
   const [selectedDiversityIndices, setSelectedDiversityIndices] = useState([]);
   const [randomizations, setRandomizations] = useState(1000);
 
-  const handleFileUpload = (event, type) => {
+  const handleFileUpload = (event) => {
     const file = event.target.files[0];
-    // Handle file upload logic here
+    if (file) {
+      // Store the file for later processing
+      setUploadedFile(file);
+    }
   };
 
   return (
@@ -92,49 +99,102 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
               <Typography>Spatial filters</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <FormLabel>Area selection mode</FormLabel>
-                <RadioGroup
-                  value={areaSelectionMode}
-                  onChange={(e) => setAreaSelectionMode(e.target.value)}
-                >
-                  <FormControlLabel value="polygon" control={<Radio />} label="Hand-drawn polygon" />
-                  <FormControlLabel value="box" control={<Radio />} label="Coordinate box" />
-                </RadioGroup>
-              </FormControl>
-
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <FormLabel>Country selection</FormLabel>
-                <Select
-                  multiple
-                  value={selectedCountries}
-                  onChange={(e) => setSelectedCountries(e.target.value)}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {selected.map((value) => (
-                        <Chip key={value} label={value} />
-                      ))}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Map Selection */}
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={areaSelectionMode === 'map'}
+                      onChange={(e) => setAreaSelectionMode(e.target.checked ? 'map' : null)}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body1">Select on map</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Draw a polygon or box directly on the map
+                      </Typography>
                     </Box>
-                  )}
-                >
-                  {/* Add country options here */}
-                </Select>
-              </FormControl>
-
-              <Button
-                variant="outlined"
-                component="label"
-                fullWidth
-                sx={{ mb: 2 }}
-              >
-                Upload custom polygon
-                <input
-                  type="file"
-                  hidden
-                  accept=".gpkg,.geojson"
-                  onChange={(e) => handleFileUpload(e, 'polygon')}
+                  }
                 />
-              </Button>
+
+                {/* Custom Polygon Upload */}
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={areaSelectionMode === 'upload'}
+                      onChange={(e) => setAreaSelectionMode(e.target.checked ? 'upload' : null)}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body1">Upload polygon</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Import GeoPackage or GeoJSON file
+                      </Typography>
+                    </Box>
+                  }
+                />
+                {areaSelectionMode === 'upload' && (
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<UploadFileIcon />}
+                    sx={{ ml: 3 }}
+                  >
+                    Choose file
+                    <input
+                      type="file"
+                      hidden
+                      accept=".gpkg,.geojson"
+                      onChange={(e) => handleFileUpload(e, 'polygon')}
+                    />
+                  </Button>
+                )}
+
+                {/* Country Selection */}
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={areaSelectionMode === 'country'}
+                      onChange={(e) => setAreaSelectionMode(e.target.checked ? 'country' : null)}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body1">Select countries</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Choose one or more countries from the list
+                      </Typography>
+                    </Box>
+                  }
+                />
+                {areaSelectionMode === 'country' && (
+                  <FormControl sx={{ ml: 3 }}>
+                    <Select
+                      multiple
+                      value={selectedCountries}
+                      onChange={(e) => setSelectedCountries(e.target.value)}
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {selected.map((value) => (
+                            <Chip key={value} label={value} onDelete={() => {
+                              setSelectedCountries(selectedCountries.filter(country => country !== value));
+                            }} />
+                          ))}
+                        </Box>
+                      )}
+                      sx={{ minWidth: 200 }}
+                    >
+                      {countries.map((country) => (
+                        <MenuItem key={country.id} value={country.name}>
+                          {country.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+              </Box>
             </AccordionDetails>
           </Accordion>
 
