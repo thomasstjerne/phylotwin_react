@@ -79,25 +79,6 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
 
       {activePanel === 'settings' && (
         <Box sx={{ p: 2, overflow: 'auto' }}>
-          {/* Spatial Resolution */}
-          <FormControl component="fieldset" sx={{ mb: 3 }}>
-            <FormLabel>Spatial resolution</FormLabel>
-            <RadioGroup
-              row
-              value={spatialResolution}
-              onChange={(e) => setSpatialResolution(e.target.value)}
-            >
-              {[3, 4, 5, 6].map((value) => (
-                <FormControlLabel
-                  key={value}
-                  value={value.toString()}
-                  control={<Radio />}
-                  label={value}
-                />
-              ))}
-            </RadioGroup>
-          </FormControl>
-
           {/* Spatial Filters */}
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -105,6 +86,25 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
             </AccordionSummary>
             <AccordionDetails>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Spatial Resolution */}
+                <FormControl component="fieldset" sx={{ mb: 3 }}>
+                  <FormLabel>Spatial resolution</FormLabel>
+                  <RadioGroup
+                    row
+                    value={spatialResolution}
+                    onChange={(e) => setSpatialResolution(e.target.value)}
+                  >
+                    {[3, 4, 5, 6].map((value) => (
+                      <FormControlLabel
+                        key={value}
+                        value={value.toString()}
+                        control={<Radio />}
+                        label={value}
+                      />
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+
                 {/* Map Selection */}
                 <FormControlLabel
                   control={
@@ -309,80 +309,89 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
             </Box>
           </Box>
 
-          {/* Diversity Indices */}
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <FormLabel>Diversity indices</FormLabel>
-              <Tooltip title="Select one or more diversity indices to calculate" placement="right">
-                <IconButton size="small" sx={{ ml: 1 }}>
-                  <InfoIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-            <Select
-              multiple
-              value={selectedDiversityIndices}
-              onChange={(e) => setSelectedDiversityIndices(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-              renderValue={(selected) => (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {selected.map((indexId) => {
-                    const index = diversityIndices.groups
-                      .flatMap(group => group.indices)
-                      .find(index => index.id === indexId);
-                    return (
-                      <Chip 
-                        key={indexId} 
-                        label={index?.displayName}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onDelete={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const newSelected = selectedDiversityIndices.filter(id => id !== indexId);
-                          setSelectedDiversityIndices(newSelected);
-                        }}
-                      />
-                    );
-                  })}
-                </Box>
-              )}
-              sx={{ minWidth: 200 }}
-            >
-              {diversityIndices.groups.map((group) => [
-                <ListSubheader key={group.id}>
-                  <Box sx={{ pt: 1 }}>
-                    <Typography variant="subtitle2">{group.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {group.description}
-                    </Typography>
+          {/* Diversity Estimation */}
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography>Diversity estimation</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Diversity Indices */}
+                <FormControl fullWidth sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <FormLabel>Diversity indices</FormLabel>
+                    <Tooltip title="Select one or more diversity indices to calculate" placement="right">
+                      <IconButton size="small" sx={{ ml: 1 }}>
+                        <InfoIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
-                </ListSubheader>,
-                ...group.indices.map((index) => (
-                  <MenuItem 
-                    key={index.id} 
-                    value={index.id}
-                    sx={{ pl: 4 }}
+                  <Select
+                    multiple
+                    value={selectedDiversityIndices}
+                    onChange={(e) => setSelectedDiversityIndices(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {selected.map((indexId) => {
+                          const index = diversityIndices.groups
+                            .flatMap(group => group.indices)
+                            .find(index => index.id === indexId);
+                          return (
+                            <Chip 
+                              key={indexId} 
+                              label={index?.displayName}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onDelete={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const newSelected = selectedDiversityIndices.filter(id => id !== indexId);
+                                setSelectedDiversityIndices(newSelected);
+                              }}
+                            />
+                          );
+                        })}
+                      </Box>
+                    )}
+                    sx={{ minWidth: 200 }}
                   >
-                    <Box>
-                      <Typography variant="body2">{index.displayName}</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {index.description}
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                ))
-              ])}
-            </Select>
-          </FormControl>
+                    {diversityIndices.groups.map((group) => [
+                      <ListSubheader key={group.id}>
+                        <Box sx={{ pt: 1 }}>
+                          <Typography variant="subtitle2">{group.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {group.description}
+                          </Typography>
+                        </Box>
+                      </ListSubheader>,
+                      ...group.indices.map((index) => (
+                        <MenuItem 
+                          key={index.id} 
+                          value={index.id}
+                          sx={{ pl: 4 }}
+                        >
+                          <Box>
+                            <Typography variant="body2">{index.displayName}</Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {index.description}
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))
+                    ])}
+                  </Select>
+                </FormControl>
 
-          <TextField
-            label="Number of randomizations"
-            type="number"
-            value={randomizations}
-            onChange={(e) => setRandomizations(e.target.value)}
-            fullWidth
-            sx={{ mb: 3 }}
-          />
+                <TextField
+                  label="Number of randomizations"
+                  type="number"
+                  value={randomizations}
+                  onChange={(e) => setRandomizations(e.target.value)}
+                  fullWidth
+                />
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
           {/* Start Analysis Button */}
           <Box sx={{ 
