@@ -180,12 +180,21 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                       multiple
                       value={selectedCountries}
                       onChange={(e) => setSelectedCountries(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
                       renderValue={(selected) => (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {selected.map((value) => (
-                            <Chip key={value} label={value} onDelete={() => {
-                              setSelectedCountries(selectedCountries.filter(country => country !== value));
-                            }} />
+                            <Chip 
+                              key={value} 
+                              label={value} 
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onDelete={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const newSelected = selectedCountries.filter(country => country !== value);
+                                setSelectedCountries(newSelected);
+                              }} 
+                            />
                           ))}
                         </Box>
                       )}
@@ -314,6 +323,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
               multiple
               value={selectedDiversityIndices}
               onChange={(e) => setSelectedDiversityIndices(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
               renderValue={(selected) => (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                   {selected.map((indexId) => {
@@ -323,11 +333,13 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                     return (
                       <Chip 
                         key={indexId} 
-                        label={index?.displayName} 
-                        onDelete={() => {
-                          setSelectedDiversityIndices(
-                            selectedDiversityIndices.filter(id => id !== indexId)
-                          );
+                        label={index?.displayName}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onDelete={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const newSelected = selectedDiversityIndices.filter(id => id !== indexId);
+                          setSelectedDiversityIndices(newSelected);
                         }}
                       />
                     );
