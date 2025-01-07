@@ -17,13 +17,16 @@ import {
   MenuItem,
   Slider,
   Button,
-  Chip
+  Chip,
+  Checkbox,
+  Tooltip
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import InfoIcon from '@mui/icons-material/Info';
 import countries from '../Vocabularies/country.json';
+import phylogeneticTrees from '../Vocabularies/phylogeneticTrees.json';
 
 const drawerWidth = 340;
 
@@ -205,12 +208,32 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
             </AccordionSummary>
             <AccordionDetails>
               <FormControl fullWidth sx={{ mb: 2 }}>
-                <FormLabel>Phylogenetic tree</FormLabel>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <FormLabel>Phylogenetic tree</FormLabel>
+                  <Tooltip title="Select a pre-configured phylogenetic tree to use in the analysis" placement="right">
+                    <IconButton size="small" sx={{ ml: 1 }}>
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
                 <Select
                   value={selectedPhyloTree}
                   onChange={(e) => setSelectedPhyloTree(e.target.value)}
+                  displayEmpty
                 >
-                  {/* Add phylogenetic tree options here */}
+                  <MenuItem value="" disabled>
+                    <em>Select a phylogenetic tree</em>
+                  </MenuItem>
+                  {phylogeneticTrees.map((tree) => (
+                    <MenuItem key={tree.id} value={tree.id}>
+                      <Box>
+                        <Typography variant="body1">{tree.displayName}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {tree.description}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
 

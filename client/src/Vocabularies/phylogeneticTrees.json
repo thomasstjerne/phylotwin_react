@@ -1,0 +1,32 @@
+[
+  {
+    "id": "mammals_2020",
+    "displayName": "Mammals Phylogenetic Tree (2020)",
+    "fileName": "mammals_phylo_2020.nwk",
+    "description": "Comprehensive mammalian phylogenetic tree based on molecular data"
+  },
+  {
+    "id": "birds_2021",
+    "displayName": "Birds Phylogenetic Tree (2021)",
+    "fileName": "birds_phylo_2021.nwk",
+    "description": "Global phylogeny of birds with complete species coverage"
+  },
+  {
+    "id": "amphibians_2019",
+    "displayName": "Amphibians Phylogenetic Tree (2019)",
+    "fileName": "amphibians_phylo_2019.nwk",
+    "description": "Time-calibrated phylogeny of amphibians"
+  },
+  {
+    "id": "reptiles_2022",
+    "displayName": "Reptiles Phylogenetic Tree (2022)",
+    "fileName": "reptiles_phylo_2022.nwk",
+    "description": "Updated phylogenetic tree of reptilian species"
+  },
+  {
+    "id": "fish_2021",
+    "displayName": "Fish Phylogenetic Tree (2021)",
+    "fileName": "fish_phylo_2021.nwk",
+    "description": "Comprehensive phylogeny of ray-finned fishes"
+  }
+] 
