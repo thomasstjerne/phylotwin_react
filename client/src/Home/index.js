@@ -3,10 +3,30 @@ import axios from "axios"
 import { useNavigate } from "react-router-dom";
 import PageContent from "../Layout/PageContent";
 import { marked } from "marked"
-import { Image, Row, Col, Typography } from "antd";
+import { Image, Row, Col, Typography, Space, Card } from "antd";
 import UserMenu from "../Components/UserMenu";
+import styled from '@emotion/styled';
 
-const { Title, Text } = Typography;
+const { Title, Text, Link } = Typography;
+
+const PartnerLogo = styled(Image)`
+  filter: grayscale(100%);
+  transition: filter 0.3s ease;
+  cursor: pointer;
+  height: 60px;
+  object-fit: contain;
+
+  &:hover {
+    filter: grayscale(0%);
+  }
+`;
+
+const StyledCard = styled(Card)`
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+`;
 
 function App() {
   const [markdown, setMarkdown] = useState(null);
@@ -28,34 +48,79 @@ function App() {
   
   return (
     <PageContent>
-      {error ? (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <Title level={1}>Welcome to PhyloNext</Title>
-          <Text>A powerful tool for phylogenetic analysis and visualization</Text>
-        </div>
-      ) : (
-        markdown && (
-          <span
-            dangerouslySetInnerHTML={{
-              __html: marked(markdown),
-            }}
+      <Row gutter={[24, 24]} align="middle" style={{ marginBottom: 48 }}>
+        <Col>
+        <Image
+            width={300}
+            src="/assets/logo_BioDT.svg"
+            preview={false}
           />
-        )
-      )}
-      <Row gutter={[0, 24]}>
-        <Col span={24} style={{ textAlign: 'center' }}>
+          <Image
+            width={100}
+            src="/assets/PhyloDiv_Icon.png"
+            preview={false}
+          />
+        </Col>
+        <Col flex="auto">
+          <Title level={1} style={{ margin: 0 }}>PhyloNext v2</Title>
+          <Text>A powerful tool for phylogenetic analysis and visualization</Text>
+        </Col>
+        <Col>
           <UserMenu />
         </Col>
-        <Col flex="auto"></Col>
-        <Col>
-          <Image
-            width={1000}
-            src="/assets/PhyloNext_Workflow.webp"
-            fallback="data:image/png;base64,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"
-          />
-        </Col>
-        <Col flex="auto"></Col>
       </Row>
+
+      <StyledCard>
+        {error ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <Text>Failed to load content</Text>
+          </div>
+        ) : (
+          markdown && (
+            <span
+              dangerouslySetInnerHTML={{
+                __html: marked(markdown),
+              }}
+            />
+          )
+        )}
+      </StyledCard>
+
+      <StyledCard title="Resources" style={{ marginTop: 24 }}>
+        <Space direction="vertical">
+          <Text>
+            Publication:{' '}
+            <Link href="https://doi.org/10.3897/rio.10.e124988" target="_blank">
+              Mikryukov V, Abarenkov K, Jeppesen TS, Schigel D, Frøslev T (2024) Prototype Biodiversity Digital Twin: Phylogenetic Diversity. Research Ideas and Outcomes 10: e124988.
+            </Link>
+          </Text>
+        </Space>
+      </StyledCard>
+
+      <StyledCard title="Involved Partners" style={{ marginTop: 24 }}>
+        <Row gutter={[48, 24]} justify="center" align="middle">
+          <Col>
+            <Link href="https://gbif.org" target="_blank">
+              <PartnerLogo
+                preview={false}
+                width={300}
+                src="/assets/logo_GBIF.png"
+                alt="GBIF"
+              />
+            </Link>
+          </Col>
+          <Col>
+            <Link href="https://ut.ee" target="_blank">
+              <PartnerLogo
+                preview={false}
+                width={190}
+                src="/assets/logo_UniversityOfTartu.png"
+                alt="University of Tartu"
+              />
+            </Link>
+          </Col>
+        </Row>
+      </StyledCard>
     </PageContent>
   );
 }

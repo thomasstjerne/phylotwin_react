@@ -1,2 +1,6 @@
-# PhyloNext v2 - BioDT
+# Phylogenetic Diversity and Digital Twin Models
+
+The Prototype Biodiversity Digital Twin (BioDT) for Phylogenetic Diversity (PD) is an advanced modelling tool designed to calculate and visualise biodiversity metrics from global, dynamic data sources. Traditional measures of biodiversity often focus on taxonomic richness, which generally counts the number of species within a geographic area. However, this approach does not capture the evolutionary relationships between species. Phylogenetic diversity metrics address this by for example considering the branch lengths in a phylogenetic tree, offering a comprehensive view of biodiversity that is more comprehensive for effective conservation planning and biodiversity management. This tool aims to facilitate researchers, monitoring initiatives, policy-makers, and the public in understanding and managing biodiversity.
+
+This BioDT pDT leverages the PhyloNext pipeline to integrate global phylogenetic and species occurrence databases, such as the Open Tree of Life (OToL)  and the Global Biodiversity Information Facility (GBIF). By significantly reducing computation time and enhancing user interaction, this tool allows for dynamic visualisation and hypothesis testing, making it invaluable for different user groups. 
 
