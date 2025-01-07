@@ -1,10 +1,86 @@
-[
-    "calc_richness",
-    "calc_simpson_shannon",
-    "calc_endemism_whole",
-    "calc_pd","calc_pe",
-    "calc_phylo_rpd1",
-    "calc_phylo_rpd2",
-    "calc_phylo_rpe1",
-    "calc_phylo_rpe2"
-]
+{
+  "groups": [
+    {
+      "id": "basic",
+      "name": "Basic Diversity Metrics",
+      "description": "Fundamental measures of species diversity",
+      "indices": [
+        {
+          "id": "richness",
+          "displayName": "Species Richness",
+          "description": "Number of unique species in the area",
+          "commandName": "calc_richness"
+        },
+        {
+          "id": "shannon",
+          "displayName": "Shannon Index",
+          "description": "Measure of species diversity considering both abundance and evenness",
+          "commandName": "calc_simpson_shannon"
+        }
+      ]
+    },
+    {
+      "id": "endemism",
+      "name": "Endemism Metrics",
+      "description": "Measures of species uniqueness and geographic restriction",
+      "indices": [
+        {
+          "id": "endemism",
+          "displayName": "Weighted Endemism",
+          "description": "Measure of species uniqueness weighted by their range size",
+          "commandName": "calc_endemism_whole"
+        }
+      ]
+    },
+    {
+      "id": "phylogenetic",
+      "name": "Phylogenetic Diversity Metrics",
+      "description": "Measures incorporating evolutionary relationships",
+      "indices": [
+        {
+          "id": "pd",
+          "displayName": "Phylogenetic Diversity (PD)",
+          "description": "Sum of branch lengths in the phylogenetic tree",
+          "commandName": "calc_pd"
+        },
+        {
+          "id": "pe",
+          "displayName": "Phylogenetic Endemism (PE)",
+          "description": "Phylogenetic diversity weighted by species ranges",
+          "commandName": "calc_pe"
+        }
+      ]
+    },
+    {
+      "id": "relative",
+      "name": "Relative Phylogenetic Metrics",
+      "description": "Standardized phylogenetic diversity measures",
+      "indices": [
+        {
+          "id": "rpd1",
+          "displayName": "Relative PD Type 1",
+          "description": "Relative phylogenetic diversity using type 1 randomization",
+          "commandName": "calc_phylo_rpd1"
+        },
+        {
+          "id": "rpd2",
+          "displayName": "Relative PD Type 2",
+          "description": "Relative phylogenetic diversity using type 2 randomization",
+          "commandName": "calc_phylo_rpd2"
+        },
+        {
+          "id": "rpe1",
+          "displayName": "Relative PE Type 1",
+          "description": "Relative phylogenetic endemism using type 1 randomization",
+          "commandName": "calc_phylo_rpe1"
+        },
+        {
+          "id": "rpe2",
+          "displayName": "Relative PE Type 2",
+          "description": "Relative phylogenetic endemism using type 2 randomization",
+          "commandName": "calc_phylo_rpe2"
+        }
+      ]
+    }
+  ]
+}

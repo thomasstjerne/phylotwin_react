@@ -19,7 +19,8 @@ import {
   Button,
   Chip,
   Checkbox,
-  Tooltip
+  Tooltip,
+  ListSubheader
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -27,6 +28,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import InfoIcon from '@mui/icons-material/Info';
 import countries from '../Vocabularies/country.json';
 import phylogeneticTrees from '../Vocabularies/phylogeneticTrees.json';
+import diversityIndices from '../Vocabularies/diversityIndices.json';
 
 const drawerWidth = 340;
 
@@ -300,20 +302,64 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
 
           {/* Diversity Indices */}
           <FormControl fullWidth sx={{ mb: 3 }}>
-            <FormLabel>Diversity indices</FormLabel>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <FormLabel>Diversity indices</FormLabel>
+              <Tooltip title="Select one or more diversity indices to calculate" placement="right">
+                <IconButton size="small" sx={{ ml: 1 }}>
+                  <InfoIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
             <Select
               multiple
               value={selectedDiversityIndices}
               onChange={(e) => setSelectedDiversityIndices(e.target.value)}
               renderValue={(selected) => (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {selected.map((value) => (
-                    <Chip key={value} label={value} />
-                  ))}
+                  {selected.map((indexId) => {
+                    const index = diversityIndices.groups
+                      .flatMap(group => group.indices)
+                      .find(index => index.id === indexId);
+                    return (
+                      <Chip 
+                        key={indexId} 
+                        label={index?.displayName} 
+                        onDelete={() => {
+                          setSelectedDiversityIndices(
+                            selectedDiversityIndices.filter(id => id !== indexId)
+                          );
+                        }}
+                      />
+                    );
+                  })}
                 </Box>
               )}
+              sx={{ minWidth: 200 }}
             >
-              {/* Add diversity indices options here */}
+              {diversityIndices.groups.map((group) => [
+                <ListSubheader key={group.id}>
+                  <Box sx={{ pt: 1 }}>
+                    <Typography variant="subtitle2">{group.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {group.description}
+                    </Typography>
+                  </Box>
+                </ListSubheader>,
+                ...group.indices.map((index) => (
+                  <MenuItem 
+                    key={index.id} 
+                    value={index.id}
+                    sx={{ pl: 4 }}
+                  >
+                    <Box>
+                      <Typography variant="body2">{index.displayName}</Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {index.description}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))
+              ])}
             </Select>
           </FormControl>
 
