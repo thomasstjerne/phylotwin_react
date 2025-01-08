@@ -182,11 +182,16 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                     />
                   }
                   label={
-                    <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Select countries</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Choose one or more countries from the list
-                      </Typography>
+                      <Tooltip 
+                        title="Choose one or more countries from the list"
+                        placement="right"
+                      >
+                        <IconButton size="small" sx={{ ml: 1 }}>
+                          <InfoIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                   }
                 />
