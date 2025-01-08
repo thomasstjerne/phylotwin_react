@@ -275,83 +275,93 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
             </AccordionDetails>
           </Accordion>
 
-          {/* Record Filtering Mode */}
-          <FormControl component="fieldset" sx={{ my: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <FormLabel>Record filtering mode</FormLabel>
-              <Tooltip 
-                title={
-                  <Box component="div" sx={{ typography: 'body2' }}>
-                    <p style={{ margin: '0 0 8px 0' }}>
-                      Select the filtering approach based on the Basis of Record types:
-                    </p>
-                    <p style={{ margin: '0 0 4px 0' }}>
-                      • Specimen-focused: Includes preserved specimens, material citations, and machine observations for higher reliability
-                    </p>
-                    <p style={{ margin: '0' }}>
-                      • Observation-enhanced: Adds human observations to provide broader coverage but potentially lower reliability
-                    </p>
+          {/* Data Selection Criteria */}
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography>Data selection criteria</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Record Filtering Mode */}
+                <FormControl component="fieldset">
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <FormLabel>Record filtering mode</FormLabel>
+                    <Tooltip 
+                      title={
+                        <Box component="div" sx={{ typography: 'body2' }}>
+                          <p style={{ margin: '0 0 8px 0' }}>
+                            Select the filtering approach based on the Basis of Record types:
+                          </p>
+                          <p style={{ margin: '0 0 4px 0' }}>
+                            • Specimen-focused: Includes preserved specimens, material citations, and machine observations for higher reliability
+                          </p>
+                          <p style={{ margin: '0' }}>
+                            • Observation-enhanced: Adds human observations to provide broader coverage but potentially lower reliability
+                          </p>
+                        </Box>
+                      } 
+                      placement="right"
+                    >
+                      <IconButton size="small" sx={{ ml: 1 }}>
+                        <InfoIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
-                } 
-                placement="right"
-              >
-                <IconButton size="small" sx={{ ml: 1 }}>
-                  <InfoIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-            <RadioGroup
-              row
-              value={recordFilteringMode}
-              onChange={(e) => setRecordFilteringMode(e.target.value)}
-            >
-              <FormControlLabel
-                value="specimen"
-                control={<Radio />}
-                label="Specimen-focused"
-              />
-              <FormControlLabel
-                value="observation"
-                control={<Radio />}
-                label="Observation-enhanced"
-              />
-            </RadioGroup>
-          </FormControl>
+                  <RadioGroup
+                    row
+                    value={recordFilteringMode}
+                    onChange={(e) => setRecordFilteringMode(e.target.value)}
+                  >
+                    <FormControlLabel
+                      value="specimen"
+                      control={<Radio />}
+                      label="Specimen-focused"
+                    />
+                    <FormControlLabel
+                      value="observation"
+                      control={<Radio />}
+                      label="Observation-enhanced"
+                    />
+                  </RadioGroup>
+                </FormControl>
 
-          {/* Outlier Removal */}
-          <FormControl component="fieldset" sx={{ my: 3 }}>
-            <FormLabel>Outlier removal sensitivity</FormLabel>
-            <RadioGroup
-              row
-              value={outlierSensitivity}
-              onChange={(e) => setOutlierSensitivity(e.target.value)}
-            >
-              {['none', 'low', 'high'].map((value) => (
-                <FormControlLabel
-                  key={value}
-                  value={value}
-                  control={<Radio />}
-                  label={value}
-                />
-              ))}
-            </RadioGroup>
-          </FormControl>
+                {/* Outlier Removal */}
+                <FormControl component="fieldset">
+                  <FormLabel>Outlier removal sensitivity</FormLabel>
+                  <RadioGroup
+                    row
+                    value={outlierSensitivity}
+                    onChange={(e) => setOutlierSensitivity(e.target.value)}
+                  >
+                    {['none', 'low', 'high'].map((value) => (
+                      <FormControlLabel
+                        key={value}
+                        value={value}
+                        control={<Radio />}
+                        label={value}
+                      />
+                    ))}
+                  </RadioGroup>
+                </FormControl>
 
-          {/* Collection Year Range */}
-          <Box sx={{ mb: 3 }}>
-            <FormLabel>Collection year</FormLabel>
-            <Slider
-              value={yearRange}
-              onChange={(e, newValue) => setYearRange(newValue)}
-              valueLabelDisplay="auto"
-              min={1900}
-              max={2025}
-            />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="caption">{yearRange[0]}</Typography>
-              <Typography variant="caption">{yearRange[1]}</Typography>
-            </Box>
-          </Box>
+                {/* Collection Year Range */}
+                <Box>
+                  <FormLabel>Collection year</FormLabel>
+                  <Slider
+                    value={yearRange}
+                    onChange={(e, newValue) => setYearRange(newValue)}
+                    valueLabelDisplay="auto"
+                    min={1900}
+                    max={2025}
+                  />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="caption">{yearRange[0]}</Typography>
+                    <Typography variant="caption">{yearRange[1]}</Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
           {/* Diversity Estimation */}
           <Accordion>
