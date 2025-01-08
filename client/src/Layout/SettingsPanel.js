@@ -139,15 +139,20 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                   control={
                     <Checkbox
                       checked={areaSelectionMode === 'upload'}
-                      onChange={(e) => setAreaSelectionMode(e.target.checked ? 'upload' : null)}
+                      onChange={(e) => handleAreaSelectionModeChange('upload', e.target.checked)}
                     />
                   }
                   label={
-                    <Box>
-                      <Typography variant="body1">Upload polygon</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Import GeoPackage or GeoJSON file
-                      </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="body1">Upload polygon(s)</Typography>
+                      <Tooltip 
+                        title="Import GeoPackage or GeoJSON file"
+                        placement="right"
+                      >
+                        <IconButton size="small" sx={{ ml: 1 }}>
+                          <InfoIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                   }
                 />
@@ -173,7 +178,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                   control={
                     <Checkbox
                       checked={areaSelectionMode === 'country'}
-                      onChange={(e) => setAreaSelectionMode(e.target.checked ? 'country' : null)}
+                      onChange={(e) => handleAreaSelectionModeChange('country', e.target.checked)}
                     />
                   }
                   label={
