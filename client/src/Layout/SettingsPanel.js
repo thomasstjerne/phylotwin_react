@@ -30,6 +30,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import countries from '../Vocabularies/country.json';
 import phylogeneticTrees from '../Vocabularies/phylogeneticTrees.json';
 import diversityIndices from '../Vocabularies/diversityIndices.json';
+import TaxonAutoComplete from '../Components/TaxonAutocomplete';
 
 const drawerWidth = 340;
 
@@ -45,6 +46,13 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
   const [selectedDiversityIndices, setSelectedDiversityIndices] = useState([]);
   const [randomizations, setRandomizations] = useState(1000);
   const [recordFilteringMode, setRecordFilteringMode] = useState('specimen');
+  const [taxonomicFilters, setTaxonomicFilters] = useState({
+    phylum: [],
+    class: [],
+    order: [],
+    family: [],
+    genus: []
+  });
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -58,6 +66,31 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
     const newMode = checked ? mode : null;
     setAreaSelectionMode(newMode);
     dispatch({ type: 'SET_AREA_SELECTION_MODE', payload: newMode });
+  };
+
+  const handleTaxonChange = (rank, newValues) => {
+    setTaxonomicFilters(prev => ({
+      ...prev,
+      [rank.toLowerCase()]: newValues
+    }));
+    
+    // Clear lower ranks when a higher rank changes
+    const ranks = ['phylum', 'class', 'order', 'family', 'genus'];
+    const currentRankIndex = ranks.indexOf(rank.toLowerCase());
+    if (currentRankIndex !== -1) {
+      const clearedFilters = {};
+      ranks.forEach((r, index) => {
+        if (index > currentRankIndex) {
+          clearedFilters[r] = [];
+        }
+      });
+      if (Object.keys(clearedFilters).length > 0) {
+        setTaxonomicFilters(prev => ({
+          ...prev,
+          ...clearedFilters
+        }));
+      }
+    }
   };
 
   return (
@@ -269,13 +302,42 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                 </Select>
               </FormControl>
 
-              {['Phylum', 'Class', 'Order', 'Family', 'Genus'].map((rank) => (
-                <TextField
-                  key={rank}
-                  label={rank}
-                  fullWidth
-                  sx={{ mb: 2 }}
-                />
+              {[
+                { rank: 'PHYLUM', label: 'Phylum' },
+                { rank: 'CLASS', label: 'Class' },
+                { rank: 'ORDER', label: 'Order' },
+                { rank: 'FAMILY', label: 'Family' },
+                { rank: 'GENUS', label: 'Genus' }
+              ].map(({ rank, label }) => (
+                <Box key={rank} sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: -0.3 }}>
+                    <FormLabel>{label}</FormLabel>
+                    <Tooltip 
+                      title="Select one or more taxa. Suggestions are filtered by higher rank selections and exclude extinct taxa." 
+                      placement="right"
+                    >
+                      <IconButton size="small" sx={{ ml: 1 }}>
+                        <InfoIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                  <TaxonAutoComplete
+                    value={taxonomicFilters[label.toLowerCase()]}
+                    onChange={(newValues) => handleTaxonChange(label, newValues)}
+                    rank={rank}
+                    higherTaxonKey={
+                      rank !== 'PHYLUM' 
+                        ? taxonomicFilters[
+                            Object.keys(taxonomicFilters)[
+                              Object.keys(taxonomicFilters).findIndex(
+                                k => k.toUpperCase() === rank
+                              ) - 1
+                            ]
+                          ].map(v => v.key)
+                        : undefined
+                    }
+                  />
+                </Box>
               ))}
 
               <Button
