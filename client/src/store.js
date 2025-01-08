@@ -4,7 +4,8 @@ import { createStore, combineReducers } from 'redux';
 const initialMapState = {
     center: [20, 0],
     zoom: 2,
-    drawnItems: []
+    drawnItems: [],
+    areaSelectionMode: null
 };
 
 // Map reducer
@@ -16,6 +17,8 @@ const mapReducer = (state = initialMapState, action) => {
             return { ...state, zoom: action.payload };
         case 'UPDATE_DRAWN_ITEMS':
             return { ...state, drawnItems: action.payload };
+        case 'SET_AREA_SELECTION_MODE':
+            return { ...state, areaSelectionMode: action.payload };
         default:
             return state;
     }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import {
   Box,
   Drawer,
@@ -33,6 +34,7 @@ import diversityIndices from '../Vocabularies/diversityIndices.json';
 const drawerWidth = 340;
 
 const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
+  const dispatch = useDispatch();
   const [spatialResolution, setSpatialResolution] = useState('3');
   const [areaSelectionMode, setAreaSelectionMode] = useState(null);
   const [selectedCountries, setSelectedCountries] = useState([]);
@@ -50,6 +52,12 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
       // Store the file for later processing
       setUploadedFile(file);
     }
+  };
+
+  const handleAreaSelectionModeChange = (mode, checked) => {
+    const newMode = checked ? mode : null;
+    setAreaSelectionMode(newMode);
+    dispatch({ type: 'SET_AREA_SELECTION_MODE', payload: newMode });
   };
 
   return (
@@ -108,15 +116,20 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                   control={
                     <Checkbox
                       checked={areaSelectionMode === 'map'}
-                      onChange={(e) => setAreaSelectionMode(e.target.checked ? 'map' : null)}
+                      onChange={(e) => handleAreaSelectionModeChange('map', e.target.checked)}
                     />
                   }
                   label={
-                    <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Select on map</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Draw a polygon or box directly on the map
-                      </Typography>
+                      <Tooltip 
+                        title="Draw a polygon (or multiple polygons) directly on the map. To finish drawing, click the first point again. To activate freehand drawing, hold the Shift key. Polygons can be edited by clicking on them and dragging points."
+                        placement="right"
+                      >
+                        <IconButton size="small" sx={{ ml: 1 }}>
+                          <InfoIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                   }
                 />
