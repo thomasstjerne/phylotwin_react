@@ -45,6 +45,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
   const [yearRange, setYearRange] = useState([1900, 2025]);
   const [selectedDiversityIndices, setSelectedDiversityIndices] = useState([]);
   const [randomizations, setRandomizations] = useState(1000);
+  const [recordFilteringMode, setRecordFilteringMode] = useState('specimen');
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -273,6 +274,49 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
               </Button>
             </AccordionDetails>
           </Accordion>
+
+          {/* Record Filtering Mode */}
+          <FormControl component="fieldset" sx={{ my: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <FormLabel>Record filtering mode</FormLabel>
+              <Tooltip 
+                title={
+                  <Box component="div" sx={{ typography: 'body2' }}>
+                    <p style={{ margin: '0 0 8px 0' }}>
+                      Select the filtering approach based on the Basis of Record types:
+                    </p>
+                    <p style={{ margin: '0 0 4px 0' }}>
+                      • Specimen-focused: Includes preserved specimens, material citations, and machine observations for higher reliability
+                    </p>
+                    <p style={{ margin: '0' }}>
+                      • Observation-enhanced: Adds human observations to provide broader coverage but potentially lower reliability
+                    </p>
+                  </Box>
+                } 
+                placement="right"
+              >
+                <IconButton size="small" sx={{ ml: 1 }}>
+                  <InfoIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+            <RadioGroup
+              row
+              value={recordFilteringMode}
+              onChange={(e) => setRecordFilteringMode(e.target.value)}
+            >
+              <FormControlLabel
+                value="specimen"
+                control={<Radio />}
+                label="Specimen-focused"
+              />
+              <FormControlLabel
+                value="observation"
+                control={<Radio />}
+                label="Observation-enhanced"
+              />
+            </RadioGroup>
+          </FormControl>
 
           {/* Outlier Removal */}
           <FormControl component="fieldset" sx={{ my: 3 }}>
