@@ -1,32 +1,62 @@
 [
   {
-    "id": "mammals_2020",
-    "displayName": "Mammals Phylogenetic Tree (2020)",
-    "fileName": "mammals_phylo_2020.nwk",
-    "description": "Comprehensive mammalian phylogenetic tree based on molecular data"
+    "id": "seed_plants_2023",
+    "displayName": "Seed plants",
+    "fileName": "Tietje_2023_Seed_plants_TACT.nwk",
+    "description": "Tietje et al. (2023), DOI:10.1111/nph.19151; Smith & Brown (2018), DOI:10.1002/ajb2.1019"
   },
   {
-    "id": "birds_2021",
-    "displayName": "Birds Phylogenetic Tree (2021)",
-    "fileName": "birds_phylo_2021.nwk",
-    "description": "Global phylogeny of birds with complete species coverage"
+    "id": "ferns_2022",
+    "displayName": "Ferns (FTOL)",
+    "fileName": "Ferns_FTOL_1-7-0.nwk",
+    "description": "The Fern Tree of Life (FTOL), Nitta et al. (2022), DOI:10.3389/fpls.2022.909768"
   },
   {
-    "id": "amphibians_2019",
-    "displayName": "Amphibians Phylogenetic Tree (2019)",
-    "fileName": "amphibians_phylo_2019.nwk",
-    "description": "Time-calibrated phylogeny of amphibians"
+    "id": "mushrooms_2019",
+    "displayName": "Mushroom-forming fungi",
+    "fileName": "Varga_2019_Mushrooms.nwk",
+    "description": "Varga et al. (2019), DOI:10.1038/s41559-019-0834-1"
   },
   {
-    "id": "reptiles_2022",
-    "displayName": "Reptiles Phylogenetic Tree (2022)",
-    "fileName": "reptiles_phylo_2022.nwk",
-    "description": "Updated phylogenetic tree of reptilian species"
+    "id": "mammals_2019",
+    "displayName": "Mammals (VertLife)",
+    "fileName": "VertLife_Mammals.nwk",
+    "description": "VertLife - Upham et al. (2019), DOI:10.1371/journal.pbio.3000494"
   },
   {
-    "id": "fish_2021",
-    "displayName": "Fish Phylogenetic Tree (2021)",
-    "fileName": "fish_phylo_2021.nwk",
-    "description": "Comprehensive phylogeny of ray-finned fishes"
+    "id": "birds_2012",
+    "displayName": "Birds (VertLife)",
+    "fileName": "VertLife_Birds.nwk",
+    "description": "VertLife - Jetz et al. (2012), DOI:10.1038/nature11631"
+  },
+  {
+    "id": "squamates_2016",
+    "displayName": "Squamates (VertLife)",
+    "fileName": "VertLife_Squamates.nwk",
+    "description": "VertLife - Tonini et al. (2016), DOI:10.1016/j.biocon.2016.03.039"
+  },
+  {
+    "id": "amphibians_2018",
+    "displayName": "Amphibians (VertLife)",
+    "fileName": "VertLife_Amphibians.nwk",
+    "description": "VertLife - Jetz & Pyron (2018), DOI:10.1038/s41559-018-0515-5"
+  },
+  {
+    "id": "ray_finned_fishes_2018",
+    "displayName": "Ray-finned fishes (FishTree)",
+    "fileName": "FishTree.nwk",
+    "description": "The Fish Tree of Life - Rabosky et al. (2018), DOI:10.1038/s41586-018-0273-1"
+  },
+  {
+    "id": "butterflies_2023",
+    "displayName": "Butterflies",
+    "fileName": "Kawahara_2023_Butterflies.nwk",
+    "description": "Kawahara et al. (2023), DOI:10.1093/bioinformatics/btac031"
+  },
+  {
+    "id": "bees_2024",
+    "displayName": "Bees (BeeTree)",
+    "fileName": "Henriquez-Piskulich_2024_BeetreeOfLife.nwk",
+    "description": "Henríquez-Piskulich et al. (2024), DOI:10.1016/j.ympev.2023.107963"
   }
-] 
+]
