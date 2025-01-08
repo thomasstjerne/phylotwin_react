@@ -20,7 +20,17 @@ const Layout = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <AppBar position="static">
+      <AppBar 
+        position="static" 
+        sx={{ 
+          '& .MuiToolbar-root': {
+            minHeight: '48px',
+            '@media (min-width: 600px)': {
+              minHeight: '48px'
+            }
+          }
+        }}
+      >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box>
             <Button 
@@ -30,7 +40,8 @@ const Layout = () => {
                 setIsSettingsPanelOpen(true);
               }}
               variant={activePanel === 'settings' ? 'contained' : 'text'}
-              sx={{ mr: 1 }}
+              sx={{ mr: 1, py: 0.5 }}
+              size="small"
             >
               Settings
             </Button>
@@ -41,6 +52,8 @@ const Layout = () => {
                 setIsSettingsPanelOpen(true);
               }}
               variant={activePanel === 'hypothesis' ? 'contained' : 'text'}
+              sx={{ py: 0.5 }}
+              size="small"
             >
               Hypothesis test
             </Button>
@@ -56,7 +69,7 @@ const Layout = () => {
         flexGrow: 1, 
         overflow: 'hidden'
       }}>
-        {/* Main content area (future map) that takes full width */}
+        {/* Main content area (map) that takes full width */}
         <Box sx={{ 
           position: 'absolute',
           top: 0,
