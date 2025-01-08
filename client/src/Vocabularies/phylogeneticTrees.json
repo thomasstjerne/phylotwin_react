@@ -18,6 +18,18 @@
     "description": "Varga et al. (2019), DOI:10.1038/s41559-019-0834-1"
   },
   {
+    "id": "gtdb_bacteria",
+    "displayName": "Bacteria (GTDB, r220)",
+    "fileName": "GTDB_bacteria_r220.nwk",
+    "description": "Parks et al. (2021), DOI:10.1093/nar/gkab776"
+  },
+  {
+    "id": "gtdb_archaea",
+    "displayName": "Archaea (GTDB, r220)",
+    "fileName": "GTDB_archaea_r220.nwk",
+    "description": "Parks et al. (2021), DOI:10.1093/nar/gkab776"
+  },
+  {
     "id": "mammals_2019",
     "displayName": "Mammals (VertLife)",
     "fileName": "VertLife_Mammals.nwk",
