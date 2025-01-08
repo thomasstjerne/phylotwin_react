@@ -32,9 +32,6 @@ import diversityIndices from '../Vocabularies/diversityIndices.json';
 
 const drawerWidth = 340;
 
-// Access the token from environment variables
-const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
-
 const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
   const [spatialResolution, setSpatialResolution] = useState('3');
   const [areaSelectionMode, setAreaSelectionMode] = useState(null);
