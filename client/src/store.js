@@ -4,7 +4,10 @@ import { createStore, combineReducers } from 'redux';
 const initialMapState = {
     center: [20, 0],
     zoom: 2,
-    drawnItems: [],
+    drawnItems: {
+        type: 'FeatureCollection',
+        features: []
+    },
     areaSelectionMode: null
 };
 
@@ -17,8 +20,26 @@ const mapReducer = (state = initialMapState, action) => {
             return { ...state, zoom: action.payload };
         case 'UPDATE_DRAWN_ITEMS':
             return { ...state, drawnItems: action.payload };
+        case 'CLEAR_DRAWN_ITEMS':
+            return { 
+                ...state, 
+                drawnItems: {
+                    type: 'FeatureCollection',
+                    features: []
+                }
+            };
         case 'SET_AREA_SELECTION_MODE':
-            return { ...state, areaSelectionMode: action.payload };
+            // Clear drawn items when changing mode
+            return { 
+                ...state, 
+                areaSelectionMode: action.payload,
+                ...(action.payload !== 'map' && {
+                    drawnItems: {
+                        type: 'FeatureCollection',
+                        features: []
+                    }
+                })
+            };
         default:
             return state;
     }

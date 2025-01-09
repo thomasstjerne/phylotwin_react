@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -7,6 +8,7 @@ import VectorSource from 'ol/source/Vector';
 import OSM from 'ol/source/OSM';
 import { Draw, Modify, Snap } from 'ol/interaction';
 import { get } from 'ol/proj';
+import GeoJSON from 'ol/format/GeoJSON';
 import { useSelector } from 'react-redux';
 import 'ol/ol.css';
 
@@ -17,8 +19,33 @@ const MapComponent = () => {
   const drawRef = useRef(null);
   const snapRef = useRef(null);
   const modifyRef = useRef(null);
+  const dispatch = useDispatch();
 
   const areaSelectionMode = useSelector(state => state.map.areaSelectionMode);
+
+  // Function to convert features to GeoJSON
+  const featuresToGeoJSON = () => {
+    if (!vectorSourceRef.current) return null;
+    
+    const features = vectorSourceRef.current.getFeatures();
+    if (features.length === 0) return null;
+
+    const geoJSONFormat = new GeoJSON();
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: features.map(feature => {
+        // Transform geometry from EPSG:3857 (Web Mercator) to EPSG:4326 (WGS84)
+        const geometry = feature.getGeometry().clone().transform('EPSG:3857', 'EPSG:4326');
+        return {
+          type: 'Feature',
+          geometry: geoJSONFormat.writeGeometryObject(geometry),
+          properties: {}
+        };
+      })
+    };
+
+    return featureCollection;
+  };
 
   useEffect(() => {
     if (!mapInstanceRef.current) {
@@ -103,12 +130,24 @@ const MapComponent = () => {
       mapInstanceRef.current.addInteraction(snapRef.current);
 
       // Handle draw events
-      drawRef.current.on('drawend', (event) => {
-        // You can dispatch an action here to update your Redux store with the new feature
-        console.log('Feature drawn:', event.feature.getGeometry().getCoordinates());
+      drawRef.current.on('drawend', () => {
+        // Convert all features to GeoJSON and update Redux store
+        const geoJSON = featuresToGeoJSON();
+        if (geoJSON) {
+          dispatch({ type: 'UPDATE_DRAWN_ITEMS', payload: geoJSON });
+        }
+      });
+
+      // Handle modify events
+      modifyRef.current.on('modifyend', () => {
+        // Convert all features to GeoJSON and update Redux store
+        const geoJSON = featuresToGeoJSON();
+        if (geoJSON) {
+          dispatch({ type: 'UPDATE_DRAWN_ITEMS', payload: geoJSON });
+        }
       });
     }
-  }, [areaSelectionMode]);
+  }, [areaSelectionMode, dispatch]);
 
   return (
     <div 
