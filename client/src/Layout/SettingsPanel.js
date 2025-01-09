@@ -57,15 +57,19 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Store the file for later processing
       setUploadedFile(file);
+      handleAreaSelectionModeChange('upload');
     }
   };
 
-  const handleAreaSelectionModeChange = (mode, checked) => {
-    const newMode = checked ? mode : null;
+  const handleAreaSelectionModeChange = (mode) => {
+    const newMode = mode === areaSelectionMode ? null : mode;
     setAreaSelectionMode(newMode);
     dispatch({ type: 'SET_AREA_SELECTION_MODE', payload: newMode });
+    
+    if (newMode !== 'upload') {
+      setUploadedFile(null);
+    }
   };
 
   const handleTaxonChange = (rank, newValues) => {
@@ -144,90 +148,89 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                   </RadioGroup>
                 </FormControl>
 
-                {/* Map Selection */}
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={areaSelectionMode === 'map'}
-                      onChange={(e) => handleAreaSelectionModeChange('map', e.target.checked)}
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Select on map</Typography>
-                      <Tooltip 
-                        title="Draw a polygon (or multiple polygons) directly on the map. To finish drawing, click the first point again. To activate freehand drawing, hold the Shift key. Polygons can be edited by clicking on them and dragging points."
-                        placement="right"
-                      >
-                        <IconButton size="small" sx={{ ml: 1 }}>
-                          <InfoIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  }
-                />
-
-                {/* Custom Polygon Upload */}
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={areaSelectionMode === 'upload'}
-                      onChange={(e) => handleAreaSelectionModeChange('upload', e.target.checked)}
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Upload polygon(s)</Typography>
-                      <Tooltip 
-                        title="Import GeoPackage or GeoJSON file"
-                        placement="right"
-                      >
-                        <IconButton size="small" sx={{ ml: 1 }}>
-                          <InfoIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  }
-                />
-                {areaSelectionMode === 'upload' && (
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    startIcon={<UploadFileIcon />}
-                    sx={{ ml: 3 }}
+                {/* Area Selection Mode */}
+                <FormControl component="fieldset">
+                  <FormLabel>Area selection mode</FormLabel>
+                  <RadioGroup
+                    value={areaSelectionMode || ''}
+                    onChange={(e) => handleAreaSelectionModeChange(e.target.value)}
                   >
-                    Choose file
-                    <input
-                      type="file"
-                      hidden
-                      accept=".gpkg,.geojson"
-                      onChange={(e) => handleFileUpload(e, 'polygon')}
+                    {/* Map Selection */}
+                    <FormControlLabel
+                      value="map"
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1">Select on map</Typography>
+                          <Tooltip 
+                            title="Draw a polygon (or multiple polygons) directly on the map. To finish drawing, click the first point again. To activate freehand drawing, hold the Shift key. Polygons can be edited by clicking on them and dragging points."
+                            placement="right"
+                          >
+                            <IconButton size="small" sx={{ ml: 1 }}>
+                              <InfoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      }
                     />
-                  </Button>
-                )}
 
-                {/* Country Selection */}
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={areaSelectionMode === 'country'}
-                      onChange={(e) => handleAreaSelectionModeChange('country', e.target.checked)}
+                    {/* Custom Polygon Upload */}
+                    <FormControlLabel
+                      value="upload"
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1">Upload polygon(s)</Typography>
+                          <Tooltip 
+                            title="Import GeoPackage or GeoJSON file"
+                            placement="right"
+                          >
+                            <IconButton size="small" sx={{ ml: 1 }}>
+                              <InfoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      }
                     />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Select countries</Typography>
-                      <Tooltip 
-                        title="Choose one or more countries from the list"
-                        placement="right"
+                    {areaSelectionMode === 'upload' && (
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<UploadFileIcon />}
+                        sx={{ ml: 3, mt: 1 }}
                       >
-                        <IconButton size="small" sx={{ ml: 1 }}>
-                          <InfoIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  }
-                />
+                        {uploadedFile ? uploadedFile.name : 'Choose file'}
+                        <input
+                          type="file"
+                          hidden
+                          accept=".gpkg,.geojson"
+                          onChange={handleFileUpload}
+                        />
+                      </Button>
+                    )}
+
+                    {/* Country Selection */}
+                    <FormControlLabel
+                      value="country"
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1">Select countries</Typography>
+                          <Tooltip 
+                            title="Choose one or more countries from the list"
+                            placement="right"
+                          >
+                            <IconButton size="small" sx={{ ml: 1 }}>
+                              <InfoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      }
+                    />
+                  </RadioGroup>
+                </FormControl>
+
+                {/* Country Selection Dropdown */}
                 {areaSelectionMode === 'country' && (
                   <FormControl sx={{ ml: 3 }}>
                     <Select
