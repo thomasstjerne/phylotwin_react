@@ -1,7 +1,7 @@
 {
   "groups": [
     {
-      "id": "basic",
+      "id": "basic_group",
       "name": "Basic diversity metrics",
       "description": "Fundamental measures of species diversity",
       "indices": [
@@ -23,7 +23,7 @@
     },
 
     {
-      "id": "phylogenetic",
+      "id": "phylogenetic_group",
       "name": "Phylogenetic diversity metrics",
       "description": "Measures incorporating evolutionary relationships",
       "indices": [
@@ -80,7 +80,7 @@
     },
 
     {
-      "id": "endemism",
+      "id": "endemism_group",
       "name": "Endemism metrics",
       "description": "Measures of species uniqueness and geographic restriction",
       "indices": [

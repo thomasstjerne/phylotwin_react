@@ -76,6 +76,32 @@ Frontend is at http://localhost:3000
 Backend API is at http://localhost:5000  
 
 
+## Debugging
+
+To set development mode and enable detailed logs:
+```bash
+export NODE_ENV=development
+```
+
+Production mode logs only errors and warnings:
+```bash
+export NODE_ENV=production
+```
+
+
+To see the logs in the browser:
+- Open developer tools
+- Go to the Console tab
+- You'll see all client-side logs when submitting the form
+
+In the server terminal, one may find detailed logs about:
+- Job initialization
+- File contents
+- Nextflow command being executed
+- Process output and errors
+
+
+
 ## Previous version of the GUI
 
 The first version of the GUI was developed by Thomas Stjernegaard Jeppesen at GBIF

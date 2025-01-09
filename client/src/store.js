@@ -11,6 +11,30 @@ const initialMapState = {
     areaSelectionMode: null
 };
 
+// Initial state for settings
+// Note: For diversity indices, we use the 'id' field from the diversityIndices.json vocabulary
+// See client/src/Vocabularies/diversityIndices.json for all available options
+const initialSettingsState = {
+    spatialResolution: 4,
+    selectedCountries: [],
+    selectedPhyloTree: null,
+    taxonomicFilters: {
+        phylum: null,
+        classs: null,
+        order: null,
+        family: null,
+        genus: null
+    },
+    // Record filtering modes:
+    // - 'specimen': Includes PRESERVED_SPECIMEN, MATERIAL_SAMPLE, MATERIAL_CITATION, MACHINE_OBSERVATION
+    // - 'observation': Additionally includes HUMAN_OBSERVATION and other observation types
+    recordFilteringMode: 'specimen',
+    yearRange: [1950, 2024],
+    // Using 'id' values from diversityIndices.json
+    selectedDiversityIndices: ['richness', 'pd'],  // Default: species richness and phylogenetic diversity
+    randomizations: 100
+};
+
 // Map reducer
 const mapReducer = (state = initialMapState, action) => {
     switch (action.type) {
@@ -45,8 +69,33 @@ const mapReducer = (state = initialMapState, action) => {
     }
 };
 
+// Settings reducer
+const settingsReducer = (state = initialSettingsState, action) => {
+    switch (action.type) {
+        case 'UPDATE_SPATIAL_RESOLUTION':
+            return { ...state, spatialResolution: action.payload };
+        case 'UPDATE_SELECTED_COUNTRIES':
+            return { ...state, selectedCountries: action.payload };
+        case 'UPDATE_SELECTED_PHYLO_TREE':
+            return { ...state, selectedPhyloTree: action.payload };
+        case 'UPDATE_TAXONOMIC_FILTERS':
+            return { ...state, taxonomicFilters: { ...state.taxonomicFilters, ...action.payload } };
+        case 'UPDATE_RECORD_FILTERING_MODE':
+            return { ...state, recordFilteringMode: action.payload };
+        case 'UPDATE_YEAR_RANGE':
+            return { ...state, yearRange: action.payload };
+        case 'UPDATE_DIVERSITY_INDICES':
+            return { ...state, selectedDiversityIndices: action.payload };
+        case 'UPDATE_RANDOMIZATIONS':
+            return { ...state, randomizations: action.payload };
+        default:
+            return state;
+    }
+};
+
 const reducers = combineReducers({
-    map: mapReducer
+    map: mapReducer,
+    settings: settingsReducer
 });
 
 const store = createStore(

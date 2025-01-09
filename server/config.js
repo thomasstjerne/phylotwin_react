@@ -6,11 +6,25 @@ const PhyloTwinPipelineDataDir = `${userHomeDir}/.nextflow/assets/vmikk/phylotwi
 const OUTPUT_PATH = `${userHomeDir}/phylotwin_data/runs`;
 const PERSISTANT_ACCESS_PATH = `${userHomeDir}/phylotwin_data/persistant`
 
-const env = process.env.NODE_ENV || 'local';
+const env = process.env.NODE_ENV || 'development';
 
 console.log('ENV: ' + env);
 
 const config = {
+  development: {
+    INPUT_PATH:  `${userHomeDir}/phylotwin_data/occurrence.parquet`,
+    OUTPUT_PATH: OUTPUT_PATH,
+    TEST_DATA:    PhyloTwinTestDataDir, 
+    PIPELINE_DATA: PhyloTwinPipelineDataDir,
+    EXPRESS_PORT: 9000,
+    NEXTFLOW: `${userHomeDir}/nextflow`,
+    GBIF_API: 'https://api.gbif-uat.org/v1/',
+    GBIF_REGISTRY_API: 'https://registry-api.gbif-uat.org/',
+    CONCURRENT_RUNS_ALLOWED: 3,
+    PERSISTANT_ACCESS_PATH: PERSISTANT_ACCESS_PATH,
+    PERSISTANT_ACCESS_URI: "http://download.gbif.org/phylotwin/",
+    DB_LOCATION : `${userHomeDir}/phylotwin_data/db.json`
+  },
   local: {
     INPUT_PATH:  `${userHomeDir}/phylotwin_data/occurrence.parquet`,
     OUTPUT_PATH: OUTPUT_PATH,
@@ -41,4 +55,10 @@ const config = {
   },
 };
 
-module.exports = config[env];
+// Ensure we have a valid environment
+if (!config[env]) {
+  console.warn(`Warning: Environment "${env}" not found in config. Falling back to development.`);
+  module.exports = config.development;
+} else {
+  module.exports = config[env];
+}
