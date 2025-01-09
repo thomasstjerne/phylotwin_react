@@ -8,6 +8,24 @@
 
 ### Local development
 
+Install Java using SDKMAN (required for Nextflow):
+
+```bash
+curl -s https://get.sdkman.io | bash
+sdk install java 17.0.10-tem
+```
+
+Install Nextflow and pull the core pipeline:
+
+```bash
+# Install Nextflow
+curl -s https://get.nextflow.io | bash
+
+# Pull the core pipeline
+nextflow pull vmikk/phylotwin -r main
+```
+
+
 Install Node.js and npm:  
 
 ```bash
