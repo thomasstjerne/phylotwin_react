@@ -34,160 +34,106 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Constants
-const NEXTFLOW = config.NEXTFLOW;
-const jobs = new Map();
+// Process parameters from frontend
+const processParams = (body) => {
+  const params = {};
 
-const ALLOWED_PARAMS = [
-  "phytree", "phylabels", "taxgroup", "phylum", "classis", "order",
-  "family", "genus", "country", "latmin", "latmax", "lonmin", "lonmax",
-  "minyear", "maxyear", "noextinct", "roundcoords", "h3resolution",
-  "dbscan", "dbscannoccurrences", "dbscanepsilon", "dbscanminpts",
-  "wgsrpd", "regions", "indices", "randname", "iterations", "terrestrial",
-  "rmcountrycentroids", "rmcountrycapitals", "rmurban", "basisofrecordinclude",
-  "basisofrecordexclude", "leaflet_var", "randconstrain", "polygon"
-];
-
-const FILE_MAPPINGS = {
-  terrestrial: "Land_Buffered_025_dgr.RData",
-  rmcountrycentroids: "CC_CountryCentroids_buf_1000m.RData",
-  rmcountrycapitals: "CC_Capitals_buf_10000m.RData",
-  rmurban: "CC_Urban.RData",
-  wgsrpd: "WGSRPD.RData"
-};
-
-// Helper functions
-async function zipRun(runid) {
-  try {
-    await new Promise((resolve, reject) => {
-      child_process.exec(
-        `zip -r ${config.OUTPUT_PATH}/${runid}/${runid}.zip output/*`,
-        { cwd: `${config.OUTPUT_PATH}/${runid}` },
-        (err) => err ? reject(err) : resolve()
-      );
-    });
-  } catch (error) {
-    console.error('Error zipping run:', error);
-    throw error;
+  // 1. Spatial filters
+  if (body.spatialResolution) {
+    params.resolution = body.spatialResolution;
   }
-}
+  
+  if (body.selectedCountries?.length > 0) {
+    params.country = body.selectedCountries;
+  }
 
-function processStdout(data) {
-  const lines = data.reduce((acc, e) => [...acc, ...e.split("\n")], []);
-  const idx = lines.findIndex(e => e.startsWith("executor >"));
-  if (idx > -1) {
-    const index = idx - 1;
-    let first = lines.slice(0, idx);
-    let rest = lines.slice(index);
-    let executor = "";
-    const process = new Map();
-    let resultLine = "\n";
-    
-    rest.forEach((p) => {
-      if (p.startsWith("executor >")) {
-        executor = p;
-      } else if (p.indexOf("process > ") > -1 && !p.startsWith('Error')) {
-        let splitted = p.split(" process > ");
-        process.set(splitted[1].split(" ")[0], p);
-      } else if (p) {
-        resultLine += `${p}\n`;
+  // 2. Taxonomic filters
+  if (body.selectedPhyloTree) {
+    params.tree = body.selectedPhyloTree;
+  }
+
+  // Add taxonomic rank filters if present
+  ['phylum', 'class', 'order', 'family', 'genus'].forEach(rank => {
+    if (body.taxonomicFilters?.[rank]?.length > 0) {
+      // Note: class parameter needs three 's'
+      const paramName = rank === 'class' ? 'classs' : rank;
+      params[paramName] = body.taxonomicFilters[rank];
+    }
+  });
+
+  // 3. Data selection criteria
+  if (body.recordFilteringMode) {
+    params.basis_of_record = body.recordFilteringMode === 'specimen' 
+      ? "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION"
+      : "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION,HUMAN_OBSERVATION";
+  }
+
+  if (body.yearRange) {
+    params.minyear = body.yearRange[0];
+    params.maxyear = body.yearRange[1];
+  }
+
+  // 4. Diversity indices
+  if (body.selectedDiversityIndices?.length > 0) {
+    const mainIndices = [];
+    const biodiverseIndices = [];
+
+    body.selectedDiversityIndices.forEach(index => {
+      if (index.module === 'main') {
+        mainIndices.push(index.commandName);
+      } else if (index.module === 'biodiverse') {
+        biodiverseIndices.push(index.commandName);
       }
     });
 
-    return [...first.filter((l) => !!l && l !== "\n").map(l => `${l}\n`), executor, ...process.values(), resultLine];
-  }
-  return data;
-}
-
-function killJob(jobId) {
-  if (jobs.has(jobId)) {
-    console.log("Job found");
-    const job = jobs.get(jobId);
-    if (typeof job?.processRef?.kill === 'function') {
-      console.log("Sending SIGINT to process");
-      job?.processRef?.kill('SIGINT');
-      return "Job killed";
+    if (mainIndices.length > 0) {
+      params.div = mainIndices;
+    }
+    if (biodiverseIndices.length > 0) {
+      params.bd_indices = biodiverseIndices;
     }
   }
-  return "Job not found";
-}
 
-async function removeJobData(jobId) {
-  const jobDir = `${config.OUTPUT_PATH}/${jobId}`;
-  await fs.rm(jobDir, { recursive: true, force: true });
-}
+  if (body.randomizations) {
+    params.rnd = body.randomizations;
+  }
+
+  return params;
+};
 
 // Routes
-router.get("/running", (req, res) => {
-  try {
-    const running = [...jobs.keys()];
-    res.json(running);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 router.post("/", 
   auth.appendUser(),
   upload.fields([
     { name: 'polygon', maxCount: 1 },
-    { name: 'randconstrain', maxCount: 1 }
+    { name: 'specieskeys', maxCount: 1 }
   ]),
   async (req, res) => {
     try {
       const jobDir = `${config.OUTPUT_PATH}/${req.id}`;
-      const workingDir = `${jobDir}/work`;
       const outputDir = `${jobDir}/output`;
       
       await fs.mkdir(outputDir, { recursive: true });
       
       let body = JSON.parse(req.body.data);
       
+      // Handle uploaded files
       if(_.get(req, 'files.polygon[0].filename')) {
         body.polygon = `${outputDir}/${req.files.polygon[0].filename}`;
       }
       
-      if(_.get(req, 'files.randconstrain[0].filename')) {
-        body.randconstrain = `${outputDir}/${req.files.randconstrain[0].filename}`;
+      if(_.get(req, 'files.specieskeys[0].filename')) {
+        body.specieskeys = `${outputDir}/${req.files.specieskeys[0].filename}`;
       }
-      
-      const fileParams = Object.keys(FILE_MAPPINGS).reduce((acc, curr) => {
-        acc[curr] = _.get(body, curr) === true ? `${config.PIPELINE_DATA}/${FILE_MAPPINGS[curr]}` : false;
-        return acc;
-      }, {});
 
-      if (body.phytree) {
-        await fs.writeFile(
-          `${outputDir}/input_tree.nwk`,
-          body.phytree,
-          "utf-8"
-        );
-        await pushJob({
-          username: req?.user?.userName,
-          req_id: req.id,
-          params: { ...body, phytree: `${outputDir}/input_tree.nwk`, ...fileParams },
-          res,
-        });
-      } else if (body.prepared_phytree) {
-        await fs.copyFile(
-          `${config.TEST_DATA}/phy_trees/${body.prepared_phytree}`,
-          `${outputDir}/input_tree.nwk`
-        );
-        await pushJob({
-          username: req?.user?.userName,
-          req_id: req.id,
-          params: { ...body, phytree: `${outputDir}/input_tree.nwk`, ...fileParams },
-          phylabels: "OTT",
-          res,
-        });
-      } else {
-        await pushJob({
-          username: req?.user?.userName,
-          req_id: req.id,
-          params: { ...body, ...fileParams },
-          res,
-        });
-      }
+      // Process parameters
+      const processedParams = processParams(body);
+      
+      await startJob({
+        username: req?.user?.userName,
+        req_id: req.id,
+        params: processedParams
+      });
       
       res.status(200).json({ jobid: req.id });
     } catch (error) {
@@ -195,19 +141,5 @@ router.post("/",
       res.status(500).json({ error: error.message });
     }
 });
-
-// Job queue processing
-const jobQueue = async.queue(async function(task, callback) {
-  try {
-    const { username, req_id, params } = task;
-    
-    // Process job...
-    // Add your job processing logic here
-    
-    callback();
-  } catch (error) {
-    callback(error);
-  }
-}, config.CONCURRENT_RUNS_ALLOWED || 3);
 
 module.exports = router;

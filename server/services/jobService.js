@@ -8,13 +8,22 @@ const NEXTFLOW = config.NEXTFLOW;
 const jobs = new Map();
 
 const ALLOWED_PARAMS = [
-  "phytree", "phylabels", "taxgroup", "phylum", "classis", "order",
-  "family", "genus", "country", "latmin", "latmax", "lonmin", "lonmax",
-  "minyear", "maxyear", "noextinct", "roundcoords", "h3resolution",
-  "dbscan", "dbscannoccurrences", "dbscanepsilon", "dbscanminpts",
-  "wgsrpd", "regions", "indices", "randname", "iterations", "terrestrial",
-  "rmcountrycentroids", "rmcountrycapitals", "rmurban", "basisofrecordinclude",
-  "basisofrecordexclude", "leaflet_var", "randconstrain", "polygon"
+  "tree",           // phylogenetic tree file
+  "resolution",     // spatial resolution (H3)
+  "country",        // country codes
+  "polygon",        // custom polygon file or drawn polygon
+  "phylum",         // taxonomic filters
+  "classs",         // taxonomic filters (note the three 's')
+  "order",          // taxonomic filters
+  "family",         // taxonomic filters
+  "genus",          // taxonomic filters
+  "specieskeys",    // species keys file
+  "basis_of_record", // record filtering mode
+  "minyear",        // collection year range
+  "maxyear",        // collection year range
+  "div",            // diversity indices (main module)
+  "bd_indices",     // diversity indices (biodiverse module)
+  "rnd"             // number of randomizations
 ];
 
 // Helper functions
@@ -110,11 +119,8 @@ async function startJob(options) {
 
     const nextflowParams = [
       'run',
-      'vmikk/phylonext',
-      '-r',
-      'main',
-      '-w',
-      workingDir,
+      'vmikk/phylotwin',
+      '-resume',
       '-profile',
       'docker',
       '--input',
