@@ -11,8 +11,13 @@
 Install Java using SDKMAN (required for Nextflow):
 
 ```bash
+# Install SDKMAN
 curl -s https://get.sdkman.io | bash
+
+# .. Open a new terminal
+# and install Java
 sdk install java 17.0.10-tem
+java -version
 ```
 
 Install Nextflow and pull the core pipeline:
