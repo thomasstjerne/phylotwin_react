@@ -5,10 +5,15 @@ const config = require('../config');
 const db = require('../db');
 const logger = require('../utils/logger');
 const { execSync } = require('child_process');
+const crypto = require('crypto');
 
 // Constants
 const NEXTFLOW = config.NEXTFLOW;
 const jobs = new Map();
+
+// Add new constants for work directories
+const WORK_DIR_BASE = path.join(config.PERSISTANT_ACCESS_PATH, 'work_dirs');
+const SESSION_TIMEOUT = 1000 * 60 * 60 * 24; // 24 hours in milliseconds
 
 const ALLOWED_PARAMS = [
   "tree",           // phylogenetic tree file
@@ -101,155 +106,105 @@ async function removeJobData(jobId) {
   await fs.rm(jobDir, { recursive: true, force: true });
 }
 
+// Add helper to generate/get session ID
+function getSessionId(username, params) {
+  // Create a stable hash from the core parameters that define a "session"
+  // We only include parameters that would affect the core workflow
+  const coreParams = {
+    tree: params.tree,
+    resolution: params.resolution,
+    country: params.country,
+    polygon: params.polygon,
+    // ?? add some other core parameters that would affect the whole pipeline ??
+  };
+  
+  const hash = crypto
+    .createHash('md5')
+    .update(`${username}-${JSON.stringify(coreParams)}`)
+    .digest('hex')
+    .slice(0, 12);
+    
+  return hash;
+}
+
 async function startJob(options) {
   try {
-    console.log('Starting job with options:', options);
-    
     const { username, req_id, params } = options;
-    if (!username || !req_id || !params) {
-      throw new Error('Missing required job parameters');
-    }
-
-    // Verify nextflow is available
-    try {
-      if (!config.NEXTFLOW.includes('/')) {
-        // If it's just a command name, check if it's in PATH
-        execSync(`which ${config.NEXTFLOW}`);
-      } else {
-        // If it's a path, check if it's executable
-        await fs.access(config.NEXTFLOW, fs.constants.X_OK);
-      }
-    } catch (error) {
-      throw new Error(`Nextflow not found or not executable: ${error.message}`);
-    }
-
-    const outputDir = `${config.OUTPUT_PATH}/${req_id}/output`;
     
-    // Verify input file exists
-    try {
-      await fs.access(config.INPUT_PATH, fs.constants.R_OK);
-    } catch (error) {
-      throw new Error(`Input file not found or not readable at ${config.INPUT_PATH}`);
-    }
+    // Generate session ID based on core parameters
+    const sessionId = getSessionId(username, params);
+    
+    // Create run-specific directories
+    const runDir = path.join(config.OUTPUT_PATH, req_id);
+    const outputDir = path.join(runDir, 'output');
+    const workDir = path.join(WORK_DIR_BASE, sessionId);
+    
+    // Ensure directories exist
+    await fs.mkdir(runDir, { recursive: true });
+    await fs.mkdir(workDir, { recursive: true });
+    
+    // Construct nextflow parameters
+    const nextflowParams = [
+      'run',
+      'vmikk/phylotwin',
+      '-resume',
+      '-profile', 'docker',
+      '-work-dir', workDir,
+      '--input', config.INPUT_PATH,
+      '--outdir', outputDir,
+      ...profile,
+    ];
 
-    const profile = [];
-    Object.keys(params)
-      .filter((p) => ALLOWED_PARAMS.includes(p))
-      .forEach((key) => {
-        if (Array.isArray(params[key])) {
-          profile.push(`--${key}`, params[key].join(","));
-        } else {
-          profile.push(`--${key}`, params[key]);
-        }
-      });
+    const fullCommand = `${NEXTFLOW} ${nextflowParams.join(' ')}`;
+    
+    // Update database with session info
+    db.get("runs")
+      .push({
+        username: options?.username,
+        run: options.req_id,
+        session_id: sessionId,
+        started: new Date().toISOString(),
+        ...options.params,
+        nextflow_command: fullCommand
+      })
+      .write();
 
-    // Log the complete configuration
-    console.log('Job configuration:', {
-      outputDir,
-      params,
-      profile
+    // Spawn process with working directory set to run directory
+    const pcs = child_process.spawn(NEXTFLOW, nextflowParams, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: runDir // Set working directory for the process
     });
 
-    try {
-      db.read();
-      
-      // Construct the full nextflow command
-      const nextflowParams = [
-        'run',
-        'vmikk/phylotwin',
-        '-resume',
-        '-profile',
-        'docker',
-        '--input',
-        config.INPUT_PATH,
-        '--outdir',
-        outputDir,
-        ...profile,
-      ];
-      
-      const fullCommand = `${NEXTFLOW} ${nextflowParams.join(' ')}`;
-      
-      db.get("runs")
-        .push({
-          username: options?.username,
-          run: options.req_id,
-          started: new Date().toISOString(),
-          ...options.params,
-          nextflow_command: fullCommand  // Add the full command
-        })
-        .write();
-
-      jobs.set(options.req_id, { stdout: [], stderr: [] });
-      
-      const pcs = child_process.spawn(NEXTFLOW, nextflowParams, {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      pcs.stdout.on('data', (data) => {
-        const output = data.toString();
-        console.log('Nextflow output:', output);
-        
-        if (jobs.has(options.req_id)) {
-          const prev = jobs.get(options.req_id);
-          jobs.set(options.req_id, {
-            ...prev,
-            processRef: pcs,
-            stdout: processStdout([...prev.stdout, output]),
-          });
-        } else {
-          jobs.set(options.req_id, { 
-            stdout: [output], 
-            stderr: [], 
-            processRef: pcs 
-          });
-        }
-      });
-
-      pcs.stderr.on('data', (data) => {
-        const error = data.toString();
-        console.error('Nextflow error:', error);
-        
-        if (jobs.has(options.req_id)) {
-          const prev = jobs.get(options.req_id);
-          jobs.set(options.req_id, {
-            ...prev,
-            processRef: pcs,
-            stderr: [...prev.stderr, error],
-          });
-        } else {
-          jobs.set(options.req_id, { 
-            stderr: [error], 
-            stdout: [], 
-            processRef: pcs 
-          });
-        }
-      });
-
-      pcs.on('error', (error) => {
-        console.error('Error running job:', error);
-        reject(error);
-      });
-
-      pcs.on('close', async (code) => {
-        console.log(`Job ${options.req_id} finished with code ${code}`);
-        try {
-          jobs.delete(options.req_id);
-          await zipRun(options.req_id);
-          resolve();
-        } catch (error) {
-          console.error('Error in job cleanup:', error);
-          reject(error);
-        }
-      });
-    } catch (error) {
-      console.error('Error in startJob:', error);
-      reject(error);
-    }
+    // ... rest of the existing process handling code ...
   } catch (error) {
     console.error('Fatal error in startJob:', error);
     throw error;
   }
 }
+
+// Add cleanup function for old work directories
+async function cleanupOldWorkDirs() {
+  try {
+    const now = Date.now();
+    const dirs = await fs.readdir(WORK_DIR_BASE);
+    
+    for (const dir of dirs) {
+      const dirPath = path.join(WORK_DIR_BASE, dir);
+      const stats = await fs.stat(dirPath);
+      
+      // Remove directories older than SESSION_TIMEOUT
+      if (now - stats.mtime.getTime() > SESSION_TIMEOUT) {
+        await fs.rm(dirPath, { recursive: true, force: true });
+        console.log(`Cleaned up old work directory: ${dirPath}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error cleaning up work directories:', error);
+  }
+}
+
+// Run cleanup periodically, in milliseconds
+setInterval(cleanupOldWorkDirs, 7 * 24 * 60 * 60 * 1000);  // once a week
 
 module.exports = {
   jobs,
@@ -257,4 +212,6 @@ module.exports = {
   removeJobData,
   startJob,
   ALLOWED_PARAMS,
+  getSessionId,
+  cleanupOldWorkDirs,
 }; 

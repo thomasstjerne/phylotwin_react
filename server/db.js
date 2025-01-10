@@ -17,7 +17,8 @@ const db = low(adapter);
 // Set defaults if database is empty
 db.defaults({ 
   runs: [],
-  schema_version: 1  // Adding schema version for future migrations
+  schema_version: 2,
+  sessions: {}
 })
 .write();
 
