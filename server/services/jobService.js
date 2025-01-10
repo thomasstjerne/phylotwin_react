@@ -4,6 +4,7 @@ const path = require('path');
 const config = require('../config');
 const db = require('../db');
 const logger = require('../utils/logger');
+const { execSync } = require('child_process');
 
 // Constants
 const NEXTFLOW = config.NEXTFLOW;
@@ -109,11 +110,17 @@ async function startJob(options) {
       throw new Error('Missing required job parameters');
     }
 
-    // Verify nextflow exists
+    // Verify nextflow is available
     try {
-      await fs.access(config.NEXTFLOW, fs.constants.X_OK);
+      if (!config.NEXTFLOW.includes('/')) {
+        // If it's just a command name, check if it's in PATH
+        execSync(`which ${config.NEXTFLOW}`);
+      } else {
+        // If it's a path, check if it's executable
+        await fs.access(config.NEXTFLOW, fs.constants.X_OK);
+      }
     } catch (error) {
-      throw new Error(`Nextflow not found or not executable at ${config.NEXTFLOW}`);
+      throw new Error(`Nextflow not found or not executable: ${error.message}`);
     }
 
     const outputDir = `${config.OUTPUT_PATH}/${req_id}/output`;

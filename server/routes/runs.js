@@ -62,7 +62,16 @@ router.post('/',
     { name: 'specieskeys', maxCount: 1 }
   ]),
   async (req, res) => {
-    console.log('POST /runs handler executing');
+    console.log('POST /runs handler executing', {
+      hasUser: !!req.user,
+      userName: req.user?.userName,
+      isDev: process.env.NODE_ENV === 'development'
+    });
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     try {
       // Check if output directory is accessible
       const baseOutputDir = config.OUTPUT_PATH;

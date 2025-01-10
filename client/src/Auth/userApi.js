@@ -8,7 +8,8 @@ export const JWT_STORAGE_NAME = "phylonext_auth_token";
 
 // Create axios instance with auth header
 export const axiosWithAuth = axios.create({
-  baseURL: config.phylonextWebservice
+  baseURL: config.phylonextWebservice,
+  withCredentials: true
 });
 
 // Decode JWT token
@@ -28,9 +29,14 @@ const decode = (jwt) => {
 // Intercept requests to add auth token
 axiosWithAuth.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(JWT_STORAGE_NAME);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // In development mode, add a dev token
+    if (process.env.NODE_ENV === 'development') {
+        config.headers.Authorization = 'Bearer dev_token';
+    } else {
+        const token = localStorage.getItem(JWT_STORAGE_NAME);
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
     }
     return config;
   },

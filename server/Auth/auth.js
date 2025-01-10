@@ -10,19 +10,25 @@ const appendUser = () => async (req, res, next) => {
     try {
         console.log('Auth middleware executing', {
             hasAuthHeader: !!req.headers.authorization,
-            isDev: process.env.NODE_ENV === 'development'
+            isDev: process.env.NODE_ENV === 'development',
+            devAuthBypass: process.env.DEV_AUTH_BYPASS
         });
 
         // Development mode bypass
-        if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTH_BYPASS === 'true') {
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Development mode detected, using dev user');
             req.user = {
-                userName: process.env.DEV_USER || 'dev_user',
-                token: process.env.DEV_TOKEN || 'mock_token'
+                userName: 'dev_user',
+                token: 'dev_token'
             };
             return next();
         }
 
         // Normal auth flow
+        if (!req.headers.authorization) {
+            throw new Error('No authorization header present');
+        }
+
         const user = await User.getFromToken(req.headers.authorization);
         if (user) {
             req.user = user;
@@ -34,7 +40,7 @@ const appendUser = () => async (req, res, next) => {
         next();
     } catch (error) {
         console.error('Auth error:', error);
-        next(error);
+        res.status(401).json({ error: 'Authentication failed', details: error.message });
     }
 };
 
