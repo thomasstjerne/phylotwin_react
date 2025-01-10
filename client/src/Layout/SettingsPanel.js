@@ -100,8 +100,14 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
   };
 
   const handleSelectedCountriesChange = (value) => {
-    setSelectedCountries(value);
-    updateReduxStore('UPDATE_SELECTED_COUNTRIES', value);
+    // Convert full country names to ISO codes before updating state
+    const selectedA2Codes = value.map(countryName => {
+      const country = countries.find(c => c.Country === countryName);
+      return country?.A2;
+    }).filter(Boolean);
+    
+    setSelectedCountries(selectedA2Codes);
+    updateReduxStore('UPDATE_SELECTED_COUNTRIES', selectedA2Codes);
   };
 
   const handlePhyloTreeChange = (event) => {
@@ -427,34 +433,43 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
 
                 {/* Country Selection Dropdown */}
                 {areaSelectionMode === 'country' && (
-                  <FormControl sx={{ ml: 3 }}>
+                  <FormControl fullWidth>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <FormLabel>Countries</FormLabel>
+                      <Tooltip title="Select one or more countries" placement="right">
+                        <IconButton size="small" sx={{ ml: 1 }}>
+                          <InfoIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                     <Select
                       multiple
-                      value={selectedCountries}
+                      value={selectedCountries.map(a2code => {
+                        const country = countries.find(c => c.A2 === a2code);
+                        return country?.Country || a2code;
+                      })}
                       onChange={(e) => handleSelectedCountriesChange(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
                       renderValue={(selected) => (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {selected.map((value) => (
+                          {selected.map((countryName) => (
                             <Chip 
-                              key={value} 
-                              label={value} 
+                              key={countryName} 
+                              label={countryName}
                               onMouseDown={(e) => e.stopPropagation()}
                               onDelete={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                const newSelected = selectedCountries.filter(country => country !== value);
+                                const newSelected = selected.filter(name => name !== countryName);
                                 handleSelectedCountriesChange(newSelected);
-                              }} 
+                              }}
                             />
                           ))}
                         </Box>
                       )}
-                      sx={{ minWidth: 200 }}
                     >
                       {countries.map((country) => (
-                        <MenuItem key={country.id} value={country.name}>
-                          {country.name}
+                        <MenuItem key={country.A2} value={country.Country}>
+                          {country.Country}
                         </MenuItem>
                       ))}
                     </Select>
