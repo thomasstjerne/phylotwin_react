@@ -19,11 +19,11 @@ const initialSettingsState = {
     selectedCountries: [],
     selectedPhyloTree: null,
     taxonomicFilters: {
-        phylum: null,
-        classs: null,
-        order: null,
-        family: null,
-        genus: null
+        phylum: [],
+        class: [],
+        order: [],
+        family: [],
+        genus: []
     },
     // Record filtering modes:
     // - 'specimen': Includes PRESERVED_SPECIMEN, MATERIAL_SAMPLE, MATERIAL_CITATION, MACHINE_OBSERVATION
@@ -33,6 +33,13 @@ const initialSettingsState = {
     // Using 'id' values from diversityIndices.json
     selectedDiversityIndices: ['richness', 'pd'],  // Default: species richness and phylogenetic diversity
     randomizations: 100
+};
+
+// Initial state for auth
+const initialAuthState = {
+    user: null,
+    token: null,
+    isAuthenticated: false
 };
 
 // Map reducer
@@ -93,9 +100,31 @@ const settingsReducer = (state = initialSettingsState, action) => {
     }
 };
 
+// Auth reducer
+const authReducer = (state = initialAuthState, action) => {
+    switch (action.type) {
+        case 'SET_USER':
+            return {
+                ...state,
+                user: action.payload,
+                isAuthenticated: !!action.payload
+            };
+        case 'SET_TOKEN':
+            return {
+                ...state,
+                token: action.payload
+            };
+        case 'LOGOUT':
+            return initialAuthState;
+        default:
+            return state;
+    }
+};
+
 const reducers = combineReducers({
     map: mapReducer,
-    settings: settingsReducer
+    settings: settingsReducer,
+    auth: authReducer
 });
 
 const store = createStore(

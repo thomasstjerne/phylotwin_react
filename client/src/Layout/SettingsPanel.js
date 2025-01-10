@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from "react-router-dom";
+import store from '../store';
 import {
   Box,
   Drawer,
@@ -31,28 +33,102 @@ import countries from '../Vocabularies/country.json';
 import phylogeneticTrees from '../Vocabularies/phylogeneticTrees.json';
 import diversityIndices from '../Vocabularies/diversityIndices.json';
 import TaxonAutoComplete from '../Components/TaxonAutocomplete';
+import logger from '../utils/logger';
+import { axiosWithAuth } from "../Auth/userApi";
+import config from "../config";
+import { AppContext } from '../Components/hoc/ContextProvider';
+import { JWT_STORAGE_NAME } from '../Auth/userApi';
 
 const drawerWidth = 340;
 
-const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
+const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
   const dispatch = useDispatch();
-  const [spatialResolution, setSpatialResolution] = useState('3');
+  const appContext = React.useContext(AppContext);
+  
+  // Debug mounting and prop updates
+  useEffect(() => {
+    console.log('SettingsPanel mounted');
+  }, []);
+
+  // Get initial values from Redux store
+  const reduxState = useSelector(state => state.settings);
+  const reduxUser = useSelector(state => state.auth?.user);
+  const user = appContext.user || reduxUser;
+  
+  // Debug auth state
+  useEffect(() => {
+    console.log('Auth state:', {
+      user,
+      hasToken: !!localStorage.getItem(JWT_STORAGE_NAME),
+      reduxAuthState: store.getState().auth,
+      contextUser: appContext.user
+    });
+  }, [user, appContext.user]);
+
+  const [internalLoading, setInternalLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [spatialResolution, setSpatialResolution] = useState(reduxState.spatialResolution || '3');
   const [areaSelectionMode, setAreaSelectionMode] = useState(null);
-  const [selectedCountries, setSelectedCountries] = useState([]);
+  const [selectedCountries, setSelectedCountries] = useState(reduxState.selectedCountries || []);
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [selectedPhyloTree, setSelectedPhyloTree] = useState('');
+  const [selectedPhyloTree, setSelectedPhyloTree] = useState(reduxState.selectedPhyloTree || '');
   const [outlierSensitivity, setOutlierSensitivity] = useState('none');
-  const [yearRange, setYearRange] = useState([1900, 2025]);
-  const [selectedDiversityIndices, setSelectedDiversityIndices] = useState([]);
-  const [randomizations, setRandomizations] = useState(1000);
-  const [recordFilteringMode, setRecordFilteringMode] = useState('specimen');
+  const [yearRange, setYearRange] = useState(reduxState.yearRange || [1900, 2025]);
+  const [selectedDiversityIndices, setSelectedDiversityIndices] = useState(reduxState.selectedDiversityIndices || []);
+  const [randomizations, setRandomizations] = useState(reduxState.randomizations || 1000);
+  const [recordFilteringMode, setRecordFilteringMode] = useState(reduxState.recordFilteringMode || 'specimen');
   const [taxonomicFilters, setTaxonomicFilters] = useState({
-    phylum: [],
-    class: [],
-    order: [],
-    family: [],
-    genus: []
+    phylum: reduxState.taxonomicFilters?.phylum || [],
+    class: reduxState.taxonomicFilters?.class || [],
+    order: reduxState.taxonomicFilters?.order || [],
+    family: reduxState.taxonomicFilters?.family || [],
+    genus: reduxState.taxonomicFilters?.genus || []
   });
+  
+  // Get all relevant data from Redux store
+  const drawnItems = useSelector(state => state.map.drawnItems);
+
+  // Update Redux store when settings change
+  const updateReduxStore = useCallback((type, payload) => {
+    dispatch({ type, payload });
+  }, [dispatch]);
+
+  // Handle settings changes
+  const handleSpatialResolutionChange = (value) => {
+    setSpatialResolution(value);
+    updateReduxStore('UPDATE_SPATIAL_RESOLUTION', value);
+  };
+
+  const handleSelectedCountriesChange = (value) => {
+    setSelectedCountries(value);
+    updateReduxStore('UPDATE_SELECTED_COUNTRIES', value);
+  };
+
+  const handlePhyloTreeChange = (event) => {
+    const value = event.target.value;
+    setSelectedPhyloTree(value);
+    dispatch({ type: 'UPDATE_SELECTED_PHYLO_TREE', payload: value });
+  };
+
+  const handleYearRangeChange = (value) => {
+    setYearRange(value);
+    updateReduxStore('UPDATE_YEAR_RANGE', value);
+  };
+
+  const handleDiversityIndicesChange = (value) => {
+    setSelectedDiversityIndices(value);
+    updateReduxStore('UPDATE_DIVERSITY_INDICES', value);
+  };
+
+  const handleRandomizationsChange = (value) => {
+    setRandomizations(value);
+    updateReduxStore('UPDATE_RANDOMIZATIONS', parseInt(value));
+  };
+
+  const handleRecordFilteringModeChange = (value) => {
+    setRecordFilteringMode(value);
+    updateReduxStore('UPDATE_RECORD_FILTERING_MODE', value);
+  };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -73,28 +149,133 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
   };
 
   const handleTaxonChange = (rank, newValues) => {
-    setTaxonomicFilters(prev => ({
-      ...prev,
-      [rank.toLowerCase()]: newValues
-    }));
-    
-    // Clear lower ranks when a higher rank changes
     const ranks = ['phylum', 'class', 'order', 'family', 'genus'];
     const currentRankIndex = ranks.indexOf(rank.toLowerCase());
+    
+    // Update the current rank
+    const updatedFilters = {
+      ...taxonomicFilters,
+      [rank.toLowerCase()]: newValues
+    };
+
+    // Clear lower ranks if we have a current rank
     if (currentRankIndex !== -1) {
-      const clearedFilters = {};
       ranks.forEach((r, index) => {
         if (index > currentRankIndex) {
-          clearedFilters[r] = [];
+          updatedFilters[r] = [];
         }
       });
-      if (Object.keys(clearedFilters).length > 0) {
-        setTaxonomicFilters(prev => ({
-          ...prev,
-          ...clearedFilters
-        }));
-      }
     }
+
+    // Update both local state and Redux
+    setTaxonomicFilters(updatedFilters);
+    updateReduxStore('UPDATE_TAXONOMIC_FILTERS', updatedFilters);
+  };
+
+  // Memoize handleStartAnalysis to prevent unnecessary re-renders
+  const handleStartAnalysis = useCallback(async () => {
+    console.log('handleStartAnalysis called', { user });
+    if (!user) {
+      logger.warn('No user found. Please log in.');
+      throw new Error('Please log in to start analysis');
+    }
+
+    try {
+      setInternalLoading(true);
+      
+      // Validate required parameters
+      if (!selectedPhyloTree) {
+        throw new Error('Please select a phylogenetic tree');
+      }
+      
+      if (!areaSelectionMode) {
+        throw new Error('Please select an area selection mode');
+      }
+      
+      // Additional validation based on area selection mode
+      if (areaSelectionMode === 'country' && (!selectedCountries || selectedCountries.length === 0)) {
+        throw new Error('Please select at least one country');
+      }
+      
+      // Create form data
+      const formData = new FormData();
+      
+      // Prepare the main data object with all required parameters
+      const data = {
+        spatialResolution,
+        selectedCountries,
+        selectedPhyloTree,
+        taxonomicFilters,
+        recordFilteringMode,
+        yearRange,
+        selectedDiversityIndices,
+        randomizations,
+        areaSelectionMode
+      };
+
+      // If using map selection, add polygon data
+      if (areaSelectionMode === 'map' && drawnItems?.features?.length > 0) {
+        const geoJSONBlob = new Blob(
+          [JSON.stringify(drawnItems, null, 2)],
+          { type: 'application/geo+json' }
+        );
+        formData.append('polygon', geoJSONBlob, 'drawn_polygons.geojson');
+      }
+
+      // Add the main data as JSON
+      formData.append('data', JSON.stringify(data));
+
+      // Send request to server
+      const apiUrl = `${config.phylonextWebservice}/api/phylonext/runs`;
+      console.log('Sending request to:', apiUrl);
+      console.log('Request data:', data);
+      
+      const res = await axiosWithAuth.post(
+        apiUrl,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      const jobid = res?.data?.jobid;
+      if (!jobid) {
+        throw new Error('No job ID received from server');
+      }
+
+      setStep(1);
+      navigate(`/run/${jobid}`);
+    } catch (error) {
+      logger.error('Error submitting form:', error);
+      setError(error.message || 'Failed to start analysis');
+    } finally {
+      setInternalLoading(false);
+    }
+  }, [user, drawnItems, areaSelectionMode, spatialResolution, selectedCountries, 
+      selectedPhyloTree, taxonomicFilters, recordFilteringMode, yearRange, 
+      selectedDiversityIndices, randomizations, navigate, setStep]);
+
+  const handleAnalysisClick = () => {
+    handleStartAnalysis().catch(err => {
+      logger.error('Error in handleAnalysisClick:', err);
+      setError(err.message || 'Failed to start analysis');
+    });
+  };
+
+  // Use either external or internal loading state
+  const isLoading = internalLoading;
+
+  const getHigherTaxonKey = (currentRank) => {
+    const ranks = ['phylum', 'class', 'order', 'family', 'genus'];
+    const currentIndex = ranks.indexOf(currentRank.toLowerCase());
+    
+    if (currentIndex <= 0) return undefined; // No higher rank for phylum
+    
+    const higherRank = ranks[currentIndex - 1];
+    const higherTaxon = taxonomicFilters[higherRank]?.[0];
+    return higherTaxon?.key;
   };
 
   return (
@@ -135,7 +316,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                   <RadioGroup
                     row
                     value={spatialResolution}
-                    onChange={(e) => setSpatialResolution(e.target.value)}
+                    onChange={(e) => handleSpatialResolutionChange(e.target.value)}
                   >
                     {[3, 4, 5, 6].map((value) => (
                       <FormControlLabel
@@ -236,7 +417,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                     <Select
                       multiple
                       value={selectedCountries}
-                      onChange={(e) => setSelectedCountries(e.target.value)}
+                      onChange={(e) => handleSelectedCountriesChange(e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                       renderValue={(selected) => (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -249,7 +430,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 const newSelected = selectedCountries.filter(country => country !== value);
-                                setSelectedCountries(newSelected);
+                                handleSelectedCountriesChange(newSelected);
                               }} 
                             />
                           ))}
@@ -286,7 +467,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                 </Box>
                 <Select
                   value={selectedPhyloTree}
-                  onChange={(e) => setSelectedPhyloTree(e.target.value)}
+                  onChange={handlePhyloTreeChange}
                   displayEmpty
                 >
                   <MenuItem value="" disabled>
@@ -325,20 +506,10 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                     </Tooltip>
                   </Box>
                   <TaxonAutoComplete
-                    value={taxonomicFilters[label.toLowerCase()]}
-                    onChange={(newValues) => handleTaxonChange(label, newValues)}
+                    value={taxonomicFilters[label.toLowerCase()] || []}
+                    onChange={(newValues) => handleTaxonChange(label, newValues || [])}
                     rank={rank}
-                    higherTaxonKey={
-                      rank !== 'PHYLUM' 
-                        ? taxonomicFilters[
-                            Object.keys(taxonomicFilters)[
-                              Object.keys(taxonomicFilters).findIndex(
-                                k => k.toUpperCase() === rank
-                              ) - 1
-                            ]
-                          ].map(v => v.key)
-                        : undefined
-                    }
+                    higherTaxonKey={getHigherTaxonKey(label)}
                   />
                 </Box>
               ))}
@@ -395,7 +566,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                   <RadioGroup
                     row
                     value={recordFilteringMode}
-                    onChange={(e) => setRecordFilteringMode(e.target.value)}
+                    onChange={(e) => handleRecordFilteringModeChange(e.target.value)}
                   >
                     <FormControlLabel
                       value="specimen"
@@ -434,7 +605,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                   <FormLabel>Collection year</FormLabel>
                   <Slider
                     value={yearRange}
-                    onChange={(e, newValue) => setYearRange(newValue)}
+                    onChange={(e, newValue) => handleYearRangeChange(newValue)}
                     valueLabelDisplay="auto"
                     min={1900}
                     max={2025}
@@ -468,7 +639,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                   <Select
                     multiple
                     value={selectedDiversityIndices}
-                    onChange={(e) => setSelectedDiversityIndices(e.target.value)}
+                    onChange={(e) => handleDiversityIndicesChange(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                     renderValue={(selected) => (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -485,7 +656,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 const newSelected = selectedDiversityIndices.filter(id => id !== indexId);
-                                setSelectedDiversityIndices(newSelected);
+                                handleDiversityIndicesChange(newSelected);
                               }}
                             />
                           );
@@ -525,7 +696,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
                   label="Number of randomizations"
                   type="number"
                   value={randomizations}
-                  onChange={(e) => setRandomizations(e.target.value)}
+                  onChange={(e) => handleRandomizationsChange(e.target.value)}
                   fullWidth
                 />
               </Box>
@@ -543,14 +714,20 @@ const SettingsPanel = ({ isOpen, onClose, activePanel }) => {
             mt: 2,
             mx: -2
           }}>
+            {error && (
+              <Typography color="error" sx={{ mb: 1 }}>
+                {error}
+              </Typography>
+            )}
             <Button
               variant="contained"
               color="primary"
               fullWidth
               size="large"
-              type="submit"
+              onClick={handleAnalysisClick}
+              disabled={!selectedPhyloTree || isLoading}
             >
-              Start Analysis
+              {isLoading ? 'Starting Analysis...' : 'Start Analysis'}
             </Button>
           </Box>
         </Box>

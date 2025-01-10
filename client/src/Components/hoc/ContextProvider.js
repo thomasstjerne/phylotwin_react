@@ -1,73 +1,89 @@
-import React from "react";
-import {
-  authenticate as logUserIn,
-  logout as logUserOut,
-  getTokenUser,
-  JWT_STORAGE_NAME,
-} from "../../Auth/userApi";
-
-import {getTrees} from '../../Api'
+import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { getTokenUser, authenticate, JWT_STORAGE_NAME } from '../../Auth/userApi';
+import { getTrees } from '../../Api';
+import { setUserInRedux } from '../../Auth/authService';
 
 // Initializing and exporting AppContext - common for whole application
 export const AppContext = React.createContext({});
 
+const ContextProvider = ({ children }) => {
+  const dispatch = useDispatch();
+  const [user, setUser] = useState(getTokenUser());
+  const [loading, setLoading] = useState(false);
+  const [runID, setRunID] = useState(null);
+  const [step, setStep] = useState(0);
+  const [currentTask, setCurrentTask] = useState(null);
+  const [preparedTrees, setPreparedTrees] = useState([]);
 
-class ContextProvider extends React.Component {
+  // Sync user state with Redux when it changes
+  useEffect(() => {
+    if (user) {
+      setUserInRedux(user);
+    }
+  }, [user]);
 
-  state = {
-    runID: null,
-    step: 0,
-    currentTask: null,
-    user: getTokenUser(),
-    preparedTrees: [],
-    login: (values) => {
-      return this.login(values);
-    },
-    logout: () => {
-      this.logout();
-    },
-    setRunID: runID => this.setState({runID }),
-    setStep: step => this.setState({step}),
-    setCurrentTask: currentTask => this.setState({currentTask})
+  // Load initial data
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const [treesResponse] = await Promise.all([getTrees()]);
+        setPreparedTrees(treesResponse?.data || []);
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      }
+    };
 
-  };
+    loadInitialData();
+  }, []);
 
-  componentDidMount() {
-    
-    Promise.all([getTrees()])
-    .then(responses => {
-      this.setState({preparedTrees: responses[0]?.data})
-    })
-
-
-  }
-  login = ({ username, password, remember }) => {
-    return logUserIn(username, password, remember).then((user) => {
-      const jwt = user.token;
+  const login = async (username, password, remember) => {
+    setLoading(true);
+    try {
+      const response = await authenticate(username, password);
+      const jwt = response.token;
+      
       sessionStorage.setItem(JWT_STORAGE_NAME, jwt);
       if (remember) {
         localStorage.setItem(JWT_STORAGE_NAME, jwt);
       }
-      this.setState({ user: { ...user } });
-      return user;
-      // this.getUserItems(user);
-    });
+      
+      const userData = getTokenUser();
+      setUser(userData);
+      setUserInRedux(userData); // Explicitly update Redux
+      return response;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  logout = () => {
-    logUserOut();
-    this.setState({ user: null });
+  const logout = () => {
+    localStorage.removeItem(JWT_STORAGE_NAME);
+    sessionStorage.removeItem(JWT_STORAGE_NAME);
+    setUser(null);
+    setUserInRedux(null); // Clear Redux state
   };
 
-  
+  // Create context value object
+  const contextValue = {
+    runID,
+    step,
+    currentTask,
+    user,
+    preparedTrees,
+    login,
+    logout,
+    setRunID,
+    setStep,
+    setCurrentTask,
+    loading
+  };
 
-  render() {
-    return (
-      <AppContext.Provider value={this.state}>
-        {this.props.children}
-      </AppContext.Provider>
-    );
-  }
-}
+  return (
+    <AppContext.Provider value={contextValue}>
+      {children}
+    </AppContext.Provider>
+  );
+};
 
 export default ContextProvider;

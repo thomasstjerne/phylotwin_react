@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const config = require('./config');
 const fs = require('fs');
 const path = require('path');
+const cors = require('cors');
 
 // Initialize required directories
 const initDirectories = () => {
@@ -26,6 +27,8 @@ const initDirectories = () => {
 // Initialize directories before starting the server
 initDirectories();
 
+// Middleware
+app.use(cors());
 app.use(addRequestId);
 app.use(bodyParser.json({
     limit: '1mb'
@@ -35,21 +38,26 @@ app.use(bodyParser.json({
 app.use(function (req, res, next) {
     // Website you wish to allow to connect
     res.setHeader('Access-Control-Allow-Origin', '*');
-
     // Request methods you wish to allow
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-
     // Request headers you wish to allow
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
-
-    // Pass to next layer of middleware
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
     next();
 });
 
-require('./Auth/auth.controller')(app);
-require('./runs')(app);
-require('./results')(app);
-require('./citation')(app);
+// Routes
+app.use('/api/auth', require('./Auth/auth.controller'));
+app.use('/api/phylonext/runs', require('./routes/runs'));
+app.use('/api/phylonext/jobs', require('./routes/jobs'));
+
+// Error handling
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(err.status || 500).json({
+        message: err.message || 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+});
 
 http.listen(config.EXPRESS_PORT, function() {
     console.log('Express server listening on port ' + config.EXPRESS_PORT);

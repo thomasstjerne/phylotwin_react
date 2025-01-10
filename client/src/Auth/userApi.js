@@ -1,7 +1,17 @@
-import base64 from "base-64";
-import config from "../config";
-import axios from "axios";
+import axios from 'axios';
+import base64 from 'base-64';
+import config from '../config';
+import { setUserInRedux, setTokenInRedux, logoutFromRedux } from './authService';
 
+// Constants
+export const JWT_STORAGE_NAME = "phylonext_auth_token";
+
+// Create axios instance with auth header
+export const axiosWithAuth = axios.create({
+  baseURL: config.phylonextWebservice
+});
+
+// Decode JWT token
 const decode = (jwt) => {
   try {
     const base64Url = jwt.split('.')[1];
@@ -15,53 +25,86 @@ const decode = (jwt) => {
   }
 };
 
-export const JWT_STORAGE_NAME = "phylonext_auth_token";
-
-export const axiosWithAuth = axios.create();
-
-axiosWithAuth.interceptors.response.use(
-  (res) => { 
-    // extend login
-    if(res?.headers?.token){
-      axiosWithAuth.defaults.headers.common["Authorization"] = `Bearer ${res?.headers?.token}`;
-      storeToken(res?.headers?.token)
+// Intercept requests to add auth token
+axiosWithAuth.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem(JWT_STORAGE_NAME);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return res;
-  });
-  
-const storeToken = (jwt) => {
-  sessionStorage.setItem(JWT_STORAGE_NAME, jwt);
-  localStorage.setItem(JWT_STORAGE_NAME, jwt);    
-}
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Authentication functions
 export const authenticate = async (username, password) => {
-  return axios(`${config.authWebservice}/login`, {
+  const response = await axios.post(`${config.authWebservice}/login`, {}, {
     headers: {
       Authorization: `Basic ${base64.encode(username + ":" + password)}`,
     },
-  })
-    .then((res) => {
-      //  localStorage.setItem('col_plus_auth_token', res.data)
-      if(res?.data?.token){
-        axiosWithAuth.defaults.headers.common["Authorization"] = `Bearer ${res?.data?.token}`;
-      }
-      return res?.data;
-    })
-   
+  });
+
+  const { token, user } = response.data;
+  
+  // Store token
+  localStorage.setItem(JWT_STORAGE_NAME, token);
+  sessionStorage.setItem(JWT_STORAGE_NAME, token);
+  
+  // Update Redux store
+  setUserInRedux(user);
+  setTokenInRedux(token);
+  
+  return response.data;
 };
+
+export const login = authenticate; // Alias for authenticate
 
 export const refreshLogin = async () => {
   try {
-    await axiosWithAuth.post(`${config.authWebservice}/whoami`)
-  } catch (err) {
-    logout()
+    const response = await axiosWithAuth.post(`${config.authWebservice}/whoami`);
+    if (response?.data?.token) {
+      localStorage.setItem(JWT_STORAGE_NAME, response.data.token);
+      setTokenInRedux(response.data.token);
+    }
+    return response.data;
+  } catch (error) {
+    logout();
+    throw error;
   }
-}
+};
+
+export const checkAuthStatus = async () => {
+  try {
+    const token = localStorage.getItem(JWT_STORAGE_NAME);
+    if (!token) {
+      return null;
+    }
+
+    const response = await axios.get(`${config.authWebservice}/check`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    // Update Redux store with user data
+    setUserInRedux(response.data.user);
+    setTokenInRedux(token);
+
+    return response.data;
+  } catch (error) {
+    localStorage.removeItem(JWT_STORAGE_NAME);
+    sessionStorage.removeItem(JWT_STORAGE_NAME);
+    return null;
+  }
+};
 
 export const logout = () => {
   localStorage.removeItem(JWT_STORAGE_NAME);
   sessionStorage.removeItem(JWT_STORAGE_NAME);
-  // Unset Authorization header after logout
-  axiosWithAuth.defaults.headers.common["Authorization"] = "";
+  logoutFromRedux();
 };
 
 export const getTokenUser = () => {
@@ -73,7 +116,6 @@ export const getTokenUser = () => {
     };
   }
 
-  // Original production code
   const jwt = localStorage.getItem(JWT_STORAGE_NAME) || sessionStorage.getItem(JWT_STORAGE_NAME);
   if (jwt) {
     return decode(jwt);
@@ -81,15 +123,9 @@ export const getTokenUser = () => {
   return null;
 };
 
-// use sessionstorage for the session, but save in local storage if user choose to be remembered
-const jwt = localStorage.getItem(JWT_STORAGE_NAME);
-if (jwt) {
-  sessionStorage.setItem(JWT_STORAGE_NAME, jwt);
-  //const jwt = sessionStorage.getItem(JWT_STORAGE_NAME);
-
-  axiosWithAuth.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
-
-  getTokenUser(); // will log the user out if the token has expired
-}
+// Make sure all necessary functions are exported
+export {
+  authenticate as default,  // Default export
+};
 
 
