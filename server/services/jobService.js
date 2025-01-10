@@ -150,104 +150,101 @@ async function startJob(options) {
       profile
     });
 
-    const nextflowParams = [
-      'run',
-      'vmikk/phylotwin',
-      '-resume',
-      '-profile',
-      'docker',
-      '--input',
-      config.INPUT_PATH,
-      '--outdir',
-      outputDir,
-      ...profile,
-    ];
+    try {
+      db.read();
+      
+      // Construct the full nextflow command
+      const nextflowParams = [
+        'run',
+        'vmikk/phylotwin',
+        '-resume',
+        '-profile',
+        'docker',
+        '--input',
+        config.INPUT_PATH,
+        '--outdir',
+        outputDir,
+        ...profile,
+      ];
+      
+      const fullCommand = `${NEXTFLOW} ${nextflowParams.join(' ')}`;
+      
+      db.get("runs")
+        .push({
+          username: options?.username,
+          run: options.req_id,
+          started: new Date().toISOString(),
+          ...options.params,
+          nextflow_command: fullCommand  // Add the full command
+        })
+        .write();
 
-    // Log the complete nextflow command
-    console.log('Prepared nextflow command:', {
-      command: NEXTFLOW,
-      params: nextflowParams.join(' ')
-    });
+      jobs.set(options.req_id, { stdout: [], stderr: [] });
+      
+      const pcs = child_process.spawn(NEXTFLOW, nextflowParams, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
 
-    return new Promise((resolve, reject) => {
-      try {
-        db.read();
-        db.get("runs")
-          .push({
-            username: options?.username,
-            run: options.req_id,
-            started: new Date().toISOString(),
-            ...options.params,
-          })
-          .write();
+      pcs.stdout.on('data', (data) => {
+        const output = data.toString();
+        console.log('Nextflow output:', output);
+        
+        if (jobs.has(options.req_id)) {
+          const prev = jobs.get(options.req_id);
+          jobs.set(options.req_id, {
+            ...prev,
+            processRef: pcs,
+            stdout: processStdout([...prev.stdout, output]),
+          });
+        } else {
+          jobs.set(options.req_id, { 
+            stdout: [output], 
+            stderr: [], 
+            processRef: pcs 
+          });
+        }
+      });
 
-        jobs.set(options.req_id, { stdout: [], stderr: [] });
+      pcs.stderr.on('data', (data) => {
+        const error = data.toString();
+        console.error('Nextflow error:', error);
+        
+        if (jobs.has(options.req_id)) {
+          const prev = jobs.get(options.req_id);
+          jobs.set(options.req_id, {
+            ...prev,
+            processRef: pcs,
+            stderr: [...prev.stderr, error],
+          });
+        } else {
+          jobs.set(options.req_id, { 
+            stderr: [error], 
+            stdout: [], 
+            processRef: pcs 
+          });
+        }
+      });
 
-        const pcs = child_process.spawn(NEXTFLOW, nextflowParams, {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-
-        pcs.stdout.on('data', (data) => {
-          const output = data.toString();
-          console.log('Nextflow output:', output);
-          
-          if (jobs.has(options.req_id)) {
-            const prev = jobs.get(options.req_id);
-            jobs.set(options.req_id, {
-              ...prev,
-              processRef: pcs,
-              stdout: processStdout([...prev.stdout, output]),
-            });
-          } else {
-            jobs.set(options.req_id, { 
-              stdout: [output], 
-              stderr: [], 
-              processRef: pcs 
-            });
-          }
-        });
-
-        pcs.stderr.on('data', (data) => {
-          const error = data.toString();
-          console.error('Nextflow error:', error);
-          
-          if (jobs.has(options.req_id)) {
-            const prev = jobs.get(options.req_id);
-            jobs.set(options.req_id, {
-              ...prev,
-              processRef: pcs,
-              stderr: [...prev.stderr, error],
-            });
-          } else {
-            jobs.set(options.req_id, { 
-              stderr: [error], 
-              stdout: [], 
-              processRef: pcs 
-            });
-          }
-        });
-
-        pcs.on('error', (error) => {
-          console.error('Error running job:', error);
-          reject(error);
-        });
-
-        pcs.on('close', async (code) => {
-          console.log(`Job ${options.req_id} finished with code ${code}`);
-          try {
-            jobs.delete(options.req_id);
-            await zipRun(options.req_id);
-            resolve();
-          } catch (error) {
-            console.error('Error in job cleanup:', error);
-            reject(error);
-          }
-        });
-      } catch (error) {
-        console.error('Error in startJob:', error);
+      pcs.on('error', (error) => {
+        console.error('Error running job:', error);
         reject(error);
-      }
-    });
+      });
+
+      pcs.on('close', async (code) => {
+        console.log(`Job ${options.req_id} finished with code ${code}`);
+        try {
+          jobs.delete(options.req_id);
+          await zipRun(options.req_id);
+          resolve();
+        } catch (error) {
+          console.error('Error in job cleanup:', error);
+          reject(error);
+        }
+      });
+    } catch (error) {
+      console.error('Error in startJob:', error);
+      reject(error);
+    }
   } catch (error) {
     console.error('Fatal error in startJob:', error);
     throw error;

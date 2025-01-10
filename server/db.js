@@ -15,8 +15,11 @@ const adapter = new FileSync(config.DB_LOCATION);
 const db = low(adapter);
 
 // Set defaults if database is empty
-db.defaults({ runs: [] })
-  .write();
+db.defaults({ 
+  runs: [],
+  schema_version: 1  // Adding schema version for future migrations
+})
+.write();
 
 console.log('Database initialized at:', config.DB_LOCATION);
 
