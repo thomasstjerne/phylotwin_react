@@ -178,6 +178,18 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
     updateReduxStore('UPDATE_TAXONOMIC_FILTERS', updatedFilters);
   };
 
+  // Transform taxonomic filters to use taxa names instead of keys
+  const getTaxonNames = (taxonomicFilters) => {
+    const transformedFilters = {};
+    
+    Object.entries(taxonomicFilters).forEach(([rank, taxa]) => {
+      // Convert array of taxon objects to array of names
+      transformedFilters[rank] = taxa.map(taxon => taxon.name || taxon.scientificName);
+    });
+    
+    return transformedFilters;
+  };
+
   // Memoize handleStartAnalysis to prevent unnecessary re-renders
   const handleStartAnalysis = useCallback(async () => {
     console.log('handleStartAnalysis called', { user });
@@ -206,12 +218,15 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
       // Create form data
       const formData = new FormData();
       
+      // Transform taxonomic filters to use names instead of keys
+      const transformedTaxonomicFilters = getTaxonNames(taxonomicFilters);
+      
       // Prepare the main data object with all required parameters
       const data = {
         spatialResolution,
         selectedCountries,
         selectedPhyloTree,
-        taxonomicFilters,
+        taxonomicFilters: transformedTaxonomicFilters, // Use transformed filters
         recordFilteringMode,
         yearRange,
         selectedDiversityIndices,
