@@ -101,50 +101,47 @@ async function removeJobData(jobId) {
 }
 
 async function startJob(options) {
-  logger.group(`\nStarting job: ${options.req_id}`);
-  logger.debug('Job options:', JSON.stringify(options, null, 2));
-  
-  jobs.set(options.req_id, { stdout: [], stderr: [] });
-  
   try {
-    db.read();
-    db.get("runs")
-      .push({
-        username: options?.username,
-        run: options.req_id,
-        started: new Date().toISOString(),
-        ...options.params,
-      })
-      .write();
-
-    const params = options.params;
-    const jobDir = `${config.OUTPUT_PATH}/${options.req_id}`;
-    const workingDir = `${jobDir}/work`;
-    const outputDir = `${jobDir}/output`;
-
-    logger.debug('\nJob directories:');
-    logger.debug('Job directory:', jobDir);
-    logger.debug('Working directory:', workingDir);
-    logger.debug('Output directory:', outputDir);
-
-    // Log input parameters
-    logger.debug('\nInput parameters:', JSON.stringify(params, null, 2));
-
-    // If there's a polygon file, log its contents
-    if (params.polygon) {
-      await logger.logFileContents(fs, params.polygon, 'Polygon file contents');
+    console.log('Starting job with options:', options);
+    
+    const { username, req_id, params } = options;
+    if (!username || !req_id || !params) {
+      throw new Error('Missing required job parameters');
     }
 
-    let profile = [];
+    // Verify nextflow exists
+    try {
+      await fs.access(config.NEXTFLOW, fs.constants.X_OK);
+    } catch (error) {
+      throw new Error(`Nextflow not found or not executable at ${config.NEXTFLOW}`);
+    }
+
+    const outputDir = `${config.OUTPUT_PATH}/${req_id}/output`;
+    
+    // Verify input file exists
+    try {
+      await fs.access(config.INPUT_PATH, fs.constants.R_OK);
+    } catch (error) {
+      throw new Error(`Input file not found or not readable at ${config.INPUT_PATH}`);
+    }
+
+    const profile = [];
     Object.keys(params)
       .filter((p) => ALLOWED_PARAMS.includes(p))
       .forEach((key) => {
         if (Array.isArray(params[key])) {
-          profile = [...profile, `--${key}`, params[key].join(",")];
+          profile.push(`--${key}`, params[key].join(","));
         } else {
-          profile = [...profile, `--${key}`, params[key]];
+          profile.push(`--${key}`, params[key]);
         }
       });
+
+    // Log the complete configuration
+    console.log('Job configuration:', {
+      outputDir,
+      params,
+      profile
+    });
 
     const nextflowParams = [
       'run',
@@ -160,19 +157,32 @@ async function startJob(options) {
     ];
 
     // Log the complete nextflow command
-    logger.debug('\nPrepared nextflow command:');
-    logger.debug(NEXTFLOW, nextflowParams.join(' '));
-    logger.groupEnd();
+    console.log('Prepared nextflow command:', {
+      command: NEXTFLOW,
+      params: nextflowParams.join(' ')
+    });
 
     return new Promise((resolve, reject) => {
       try {
+        db.read();
+        db.get("runs")
+          .push({
+            username: options?.username,
+            run: options.req_id,
+            started: new Date().toISOString(),
+            ...options.params,
+          })
+          .write();
+
+        jobs.set(options.req_id, { stdout: [], stderr: [] });
+
         const pcs = child_process.spawn(NEXTFLOW, nextflowParams, {
           stdio: ['pipe', 'pipe', 'pipe'],
         });
 
         pcs.stdout.on('data', (data) => {
           const output = data.toString();
-          logger.debug('Nextflow output:', output);
+          console.log('Nextflow output:', output);
           
           if (jobs.has(options.req_id)) {
             const prev = jobs.get(options.req_id);
@@ -192,7 +202,7 @@ async function startJob(options) {
 
         pcs.stderr.on('data', (data) => {
           const error = data.toString();
-          logger.error('Nextflow error:', error);
+          console.error('Nextflow error:', error);
           
           if (jobs.has(options.req_id)) {
             const prev = jobs.get(options.req_id);
@@ -211,28 +221,28 @@ async function startJob(options) {
         });
 
         pcs.on('error', (error) => {
-          logger.error('Error running job:', error);
+          console.error('Error running job:', error);
           reject(error);
         });
 
         pcs.on('close', async (code) => {
-          logger.debug(`Job ${options.req_id} finished with code ${code}`);
+          console.log(`Job ${options.req_id} finished with code ${code}`);
           try {
             jobs.delete(options.req_id);
             await zipRun(options.req_id);
             resolve();
           } catch (error) {
-            logger.error('Error in job cleanup:', error);
+            console.error('Error in job cleanup:', error);
             reject(error);
           }
         });
       } catch (error) {
-        logger.error('Error spawning process:', error);
+        console.error('Error in startJob:', error);
         reject(error);
       }
     });
   } catch (error) {
-    logger.error('Error in startJob:', error);
+    console.error('Fatal error in startJob:', error);
     throw error;
   }
 }

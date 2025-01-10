@@ -6,6 +6,12 @@ const dev = {
     authWebservice: 'http://localhost:9000/auth'
 };
 
+// Add debug logging for config
+console.log('Using config:', process.env.NODE_ENV === 'production' ? 'production' : 'development', {
+    baseUrl: dev.phylonextWebservice,
+    fullRunsUrl: `${dev.phylonextWebservice}/api/phylonext/runs`
+});
+
 const prod = {
     taxonSuggestUrl : 'https://api.gbif.org/v1/species/suggest',
     taxonSearchUrl : 'https://api.gbif.org/v1/species/search',

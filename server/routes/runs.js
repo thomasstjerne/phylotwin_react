@@ -31,6 +31,29 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// Debug middleware
+router.use((req, res, next) => {
+  console.log('Runs Router:', {
+    method: req.method,
+    path: req.path,
+    body: req.body,
+    headers: req.headers,
+    files: req.files
+  });
+  next();
+});
+
+// Add this function at the top of the file
+const checkDirectoryAccess = async (dir) => {
+  try {
+    await fs.access(dir, fs.constants.W_OK);
+    return true;
+  } catch (error) {
+    console.error(`Directory ${dir} is not accessible:`, error);
+    return false;
+  }
+};
+
 // Start a new pipeline run
 router.post('/', 
   auth.appendUser(),
@@ -39,19 +62,36 @@ router.post('/',
     { name: 'specieskeys', maxCount: 1 }
   ]),
   async (req, res) => {
-    console.log('POST /runs received:', {
-      hasUser: !!req.user,
-      hasFiles: !!req.files,
-      bodyKeys: Object.keys(req.body)
-    });
-    
+    console.log('POST /runs handler executing');
     try {
+      // Check if output directory is accessible
+      const baseOutputDir = config.OUTPUT_PATH;
+      console.log('Checking directory access:', baseOutputDir);
+      
+      const hasAccess = await checkDirectoryAccess(baseOutputDir);
+      if (!hasAccess) {
+        throw new Error(`Output directory ${baseOutputDir} is not accessible`);
+      }
+
+      if (!req.body.data) {
+        console.error('No data field in request body');
+        return res.status(400).json({ error: 'Missing data field in request body' });
+      }
+
       const jobDir = `${config.OUTPUT_PATH}/${req.id}`;
       const outputDir = `${jobDir}/output`;
       
+      console.log('Creating directories:', { jobDir, outputDir });
       await fs.mkdir(outputDir, { recursive: true });
       
-      let body = JSON.parse(req.body.data);
+      let body;
+      try {
+        body = JSON.parse(req.body.data);
+      } catch (error) {
+        console.error('Failed to parse request data:', error);
+        return res.status(400).json({ error: 'Invalid JSON in data field' });
+      }
+
       console.log('Parsed request body:', body);
       
       // Handle uploaded files
@@ -64,78 +104,111 @@ router.post('/',
       }
 
       // Process parameters
-      const processedParams = processParams(body);
-      console.log('Processed parameters:', processedParams);
+      let processedParams;
+      try {
+        processedParams = processParams(body);
+        console.log('Processed parameters:', processedParams);
+      } catch (error) {
+        console.error('Error processing parameters:', error);
+        return res.status(400).json({ error: `Parameter processing failed: ${error.message}` });
+      }
 
-      await startJob({
-        username: req?.user?.userName,
-        req_id: req.id,
-        params: processedParams
-      });
-      
-      res.status(200).json({ jobid: req.id });
+      try {
+        await startJob({
+          username: req?.user?.userName,
+          req_id: req.id,
+          params: processedParams
+        });
+        
+        res.status(200).json({ jobid: req.id });
+      } catch (error) {
+        console.error('Error starting job:', error);
+        res.status(500).json({ 
+          error: error.message,
+          details: error.stack,
+          params: processedParams
+        });
+      }
     } catch (error) {
-      console.error('Error processing request:', error);
-      res.status(500).json({ error: error.message });
+      console.error('Error processing request:', {
+        error: error.message,
+        stack: error.stack,
+        body: req.body,
+        files: req.files,
+        user: req?.user
+      });
+      res.status(500).json({ 
+        error: error.message,
+        details: error.stack
+      });
     }
 });
 
 const processParams = (body) => {
-  const params = {};
+  try {
+    console.log('Processing parameters:', body);
+    
+    const params = {};
 
-  // Process spatial filters
-  if (body.spatialResolution) {
-    params.resolution = body.spatialResolution;
-  }
-  
-  if (body.areaSelectionMode === 'country' && body.selectedCountries?.length > 0) {
-    params.country = body.selectedCountries;
-  }
+    // Process spatial filters
+    if (body.spatialResolution) {
+      params.resolution = body.spatialResolution;
+    }
+    
+    if (body.areaSelectionMode === 'country' && body.selectedCountries?.length > 0) {
+      params.country = body.selectedCountries;
+    }
 
-  // Process taxonomic filters
-  if (body.selectedPhyloTree) {
-    params.tree = body.selectedPhyloTree;
-  }
+    // Process taxonomic filters
+    if (body.selectedPhyloTree) {
+      params.tree = body.selectedPhyloTree;
+    }
 
-  if (body.taxonomicFilters) {
-    ['phylum', 'class', 'order', 'family', 'genus'].forEach(rank => {
-      if (body.taxonomicFilters[rank]?.length > 0) {
-        const paramName = rank === 'class' ? 'classs' : rank;
-        params[paramName] = body.taxonomicFilters[rank].map(t => t.key || t);
+    if (body.taxonomicFilters) {
+      ['phylum', 'class', 'order', 'family', 'genus'].forEach(rank => {
+        if (body.taxonomicFilters[rank]?.length > 0) {
+          const paramName = rank === 'class' ? 'classs' : rank;
+          params[paramName] = body.taxonomicFilters[rank].map(t => t.key || t);
+        }
+      });
+    }
+
+    // Process data selection criteria
+    if (body.recordFilteringMode) {
+      params.basis_of_record = body.recordFilteringMode === 'specimen' 
+        ? "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION"
+        : "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION,HUMAN_OBSERVATION";
+    }
+
+    if (body.yearRange) {
+      params.minyear = body.yearRange[0];
+      params.maxyear = body.yearRange[1];
+    }
+
+    // Process diversity indices
+    if (body.selectedDiversityIndices?.length > 0) {
+      // Map the frontend indices to backend commands
+      const indexMapping = {
+        'richness': 'calc_richness',
+        'pd': 'calc_pd'
+        // Add other mappings as needed
+      };
+
+      const indices = body.selectedDiversityIndices
+        .map(index => indexMapping[index])
+        .filter(Boolean);
+
+      if (indices.length > 0) {
+        params.div = indices;
       }
-    });
+    }
+
+    console.log('Processed parameters:', params);
+    return params;
+  } catch (error) {
+    console.error('Error processing parameters:', error);
+    throw new Error(`Failed to process parameters: ${error.message}`);
   }
-
-  // Process data selection criteria
-  if (body.recordFilteringMode) {
-    params.basis_of_record = body.recordFilteringMode === 'specimen' 
-      ? "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION"
-      : "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION,HUMAN_OBSERVATION";
-  }
-
-  if (body.yearRange) {
-    params.minyear = body.yearRange[0];
-    params.maxyear = body.yearRange[1];
-  }
-
-  // Process diversity indices
-  if (body.selectedDiversityIndices?.length > 0) {
-    const mainIndices = [];
-    const biodiverseIndices = [];
-
-    body.selectedDiversityIndices.forEach(index => {
-      if (index.module === 'main') {
-        mainIndices.push(index.commandName);
-      } else if (index.module === 'biodiverse') {
-        biodiverseIndices.push(index.commandName);
-      }
-    });
-
-    if (mainIndices.length > 0) params.div = mainIndices;
-    if (biodiverseIndices.length > 0) params.bd_indices = biodiverseIndices;
-  }
-
-  return params;
 };
 
 module.exports = router; 

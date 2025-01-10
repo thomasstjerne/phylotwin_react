@@ -15,15 +15,20 @@ const addRequestId = (req, res, next) => {
 };
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://your-production-domain.com' 
+    : 'http://localhost:3000',
+  credentials: true
+}));
 app.use(addRequestId);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', auth.router);
+app.use('/api/phylonext/runs', require('./routes/runs'));
 app.use('/api/phylonext/jobs', require('./routes/jobs'));
-app.use('/api/phylonext', require('./routes/runs'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

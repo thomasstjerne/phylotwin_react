@@ -230,15 +230,23 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
       console.log('Sending request to:', apiUrl);
       console.log('Request data:', data);
       
-      const res = await axiosWithAuth.post(
-        apiUrl,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+      // Log the request details
+      console.log('Starting analysis with config:', {
+        url: apiUrl,
+        formData: Object.fromEntries(formData.entries()),
+        headers: {
+          'Content-Type': 'multipart/form-data'
         }
-      );
+      });
+      
+      const res = await axiosWithAuth.post(apiUrl, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      // Log successful response
+      console.log('Analysis started successfully:', res.data);
 
       const jobid = res?.data?.jobid;
       if (!jobid) {
@@ -248,8 +256,14 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
       setStep(1);
       navigate(`/run/${jobid}`);
     } catch (error) {
-      logger.error('Error submitting form:', error);
-      setError(error.message || 'Failed to start analysis');
+      // Enhanced error logging
+      console.error('Analysis start failed:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
+      throw error;
     } finally {
       setInternalLoading(false);
     }
