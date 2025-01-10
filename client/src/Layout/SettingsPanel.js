@@ -38,8 +38,16 @@ import { axiosWithAuth } from "../Auth/userApi";
 import config from "../config";
 import { AppContext } from '../Components/hoc/ContextProvider';
 import { JWT_STORAGE_NAME } from '../Auth/userApi';
+import { styled } from '@mui/material/styles';
 
 const drawerWidth = 340;
+
+const getMissingRequiredParams = (selectedPhyloTree, areaSelectionMode) => {
+  const missing = [];
+  if (!areaSelectionMode) missing.push('area selection mode (spatial filters)');
+  if (!selectedPhyloTree) missing.push('phylogenetic tree (taxonomic filters)');
+  return missing;
+};
 
 const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
   const dispatch = useDispatch();
@@ -312,6 +320,9 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
     const higherTaxon = taxonomicFilters[higherRank]?.[0];
     return higherTaxon?.key;
   };
+
+  const missingParams = getMissingRequiredParams(selectedPhyloTree, areaSelectionMode);
+  const isStartButtonDisabled = missingParams.length > 0 || isLoading;
 
   return (
     <Drawer
@@ -763,16 +774,27 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
                 {error}
               </Typography>
             )}
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              size="large"
-              onClick={handleAnalysisClick}
-              disabled={!selectedPhyloTree || isLoading}
+            <Tooltip 
+              title={
+                isStartButtonDisabled && !isLoading ? 
+                `Please specify: ${missingParams.join(' and ')}` : 
+                ''
+              }
+              placement="top"
             >
-              {isLoading ? 'Starting Analysis...' : 'Start Analysis'}
-            </Button>
+              <span>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  size="large"
+                  onClick={handleAnalysisClick}
+                  disabled={isStartButtonDisabled}
+                >
+                  {isLoading ? 'Starting Analysis...' : 'Start Analysis'}
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
         </Box>
       )}
