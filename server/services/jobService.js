@@ -139,9 +139,47 @@ async function startJob(options) {
     const outputDir = path.join(runDir, 'output');
     const workDir = path.join(WORK_DIR_BASE, sessionId);
     
-    // Ensure directories exist
-    await fs.mkdir(runDir, { recursive: true });
-    await fs.mkdir(workDir, { recursive: true });
+    // Process diversity indices based on their module
+    const mainIndices = [];
+    const biodiverseIndices = [];
+    
+    // Load diversity indices vocabulary
+    const diversityIndices = require('../Vocabularies/diversityIndices.json');
+    const allIndices = diversityIndices.groups.flatMap(group => group.indices);
+    
+    // Sort selected indices into their respective modules
+    params.selectedDiversityIndices?.forEach(selectedId => {
+      const index = allIndices.find(i => i.id === selectedId);
+      if (index) {
+        if (index.module === 'main') {
+          mainIndices.push(index.commandName);
+        } else if (index.module === 'biodiverse') {
+          biodiverseIndices.push(index.commandName);
+        }
+      }
+    });
+    
+    // Create modified params object with correctly formatted diversity indices
+    const modifiedParams = {
+      ...params,
+      div: mainIndices.length > 0 ? mainIndices : undefined,
+      bd_indices: biodiverseIndices.length > 0 ? biodiverseIndices : undefined
+    };
+    
+    // Delete the original selectedDiversityIndices to avoid confusion
+    delete modifiedParams.selectedDiversityIndices;
+    
+    // Build profile array from modified params
+    const profile = [];
+    Object.keys(modifiedParams)
+      .filter((p) => ALLOWED_PARAMS.includes(p))
+      .forEach((key) => {
+        if (Array.isArray(modifiedParams[key])) {
+          profile.push(`--${key}`, modifiedParams[key].join(","));
+        } else if (modifiedParams[key] !== undefined) {
+          profile.push(`--${key}`, modifiedParams[key]);
+        }
+      });
     
     // Construct nextflow parameters
     const nextflowParams = [
