@@ -144,7 +144,7 @@ async function startJob(options) {
     const biodiverseIndices = [];
     
     // Load diversity indices vocabulary
-    const diversityIndices = require('../Vocabularies/diversityIndices.json');
+    const diversityIndices = require('../../shared/vocabularies/diversityIndices.json');
     const allIndices = diversityIndices.groups.flatMap(group => group.indices);
     
     // Sort selected indices into their respective modules

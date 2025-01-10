@@ -6,6 +6,8 @@ const _ = require('lodash');
 const config = require('../config');
 const auth = require('../Auth/auth');
 const { startJob } = require('../services/jobService');
+const diversityIndices = require('../../shared/vocabularies/diversityIndices.json');
+const phylogeneticTrees = require('../../shared/vocabularies/phylogeneticTrees.json');
 
 // Multer storage configuration
 const storage = multer.diskStorage({
@@ -156,9 +158,8 @@ router.post('/',
 const processParams = (body) => {
   try {
     console.log('Processing parameters:', body);
-    
     const params = {};
-
+    
     // Process spatial filters
     if (body.spatialResolution) {
       params.resolution = body.spatialResolution;
@@ -168,9 +169,14 @@ const processParams = (body) => {
       params.country = body.selectedCountries;
     }
 
-    // Process taxonomic filters
+    // Process phylogenetic tree selection - use fileName instead of ID
     if (body.selectedPhyloTree) {
-      params.tree = body.selectedPhyloTree;
+      const selectedTree = phylogeneticTrees.find(tree => tree.id === body.selectedPhyloTree);
+      if (selectedTree) {
+        params.tree = selectedTree.fileName;
+      } else {
+        throw new Error(`Invalid phylogenetic tree selection: ${body.selectedPhyloTree}`);
+      }
     }
 
     if (body.taxonomicFilters) {
@@ -194,21 +200,30 @@ const processParams = (body) => {
       params.maxyear = body.yearRange[1];
     }
 
-    // Process diversity indices
+    // Process diversity indices using the vocabulary
     if (body.selectedDiversityIndices?.length > 0) {
-      // Map the frontend indices to backend commands
-      const indexMapping = {
-        'richness': 'calc_richness',
-        'pd': 'calc_pd'
-        // Add other mappings as needed
-      };
+      const mainIndices = [];
+      const biodiverseIndices = [];
+      
+      // Get all indices from the vocabulary
+      const allIndices = diversityIndices.groups.flatMap(group => group.indices);
+      
+      body.selectedDiversityIndices.forEach(selectedId => {
+        const index = allIndices.find(i => i.id === selectedId);
+        if (index) {
+          if (index.module === 'main') {
+            mainIndices.push(index.commandName);
+          } else if (index.module === 'biodiverse') {
+            biodiverseIndices.push(index.commandName);
+          }
+        }
+      });
 
-      const indices = body.selectedDiversityIndices
-        .map(index => indexMapping[index])
-        .filter(Boolean);
-
-      if (indices.length > 0) {
-        params.div = indices;
+      if (mainIndices.length > 0) {
+        params.div = mainIndices;
+      }
+      if (biodiverseIndices.length > 0) {
+        params.bd_indices = biodiverseIndices;
       }
     }
 
