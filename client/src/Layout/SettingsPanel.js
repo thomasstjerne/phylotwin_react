@@ -223,9 +223,32 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
         throw new Error('Please select at least one country');
       }
       
+      if (areaSelectionMode === 'map' && (!drawnItems?.features || drawnItems.features.length === 0)) {
+        throw new Error('Please draw at least one polygon on the map');
+      }
+
       // Create form data
       const formData = new FormData();
       
+      // If using map selection, add polygon data
+      if (areaSelectionMode === 'map' && drawnItems?.features?.length > 0) {
+        // Debug log the drawn items
+        console.log('Creating GeoJSON from drawn items:', {
+          featureCount: drawnItems.features.length,
+          features: drawnItems.features.map(f => ({
+            type: f.type,
+            coordinates: f.geometry.coordinates
+          }))
+        });
+
+        // Create a GeoJSON file from the drawn items
+        const geoJSONBlob = new Blob(
+          [JSON.stringify(drawnItems, null, 2)], // pretty printing for debugging
+          { type: 'application/geo+json' }
+        );
+        formData.append('polygon', geoJSONBlob, 'drawn_polygons.geojson');
+      }
+
       // Transform taxonomic filters to use names instead of keys
       const transformedTaxonomicFilters = getTaxonNames(taxonomicFilters);
       
@@ -234,22 +257,13 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
         spatialResolution,
         selectedCountries,
         selectedPhyloTree,
-        taxonomicFilters: transformedTaxonomicFilters, // Use transformed filters
+        taxonomicFilters: transformedTaxonomicFilters,
         recordFilteringMode,
         yearRange,
         selectedDiversityIndices,
         randomizations,
         areaSelectionMode
       };
-
-      // If using map selection, add polygon data
-      if (areaSelectionMode === 'map' && drawnItems?.features?.length > 0) {
-        const geoJSONBlob = new Blob(
-          [JSON.stringify(drawnItems, null, 2)],
-          { type: 'application/geo+json' }
-        );
-        formData.append('polygon', geoJSONBlob, 'drawn_polygons.geojson');
-      }
 
       // Add the main data as JSON
       formData.append('data', JSON.stringify(data));
@@ -258,15 +272,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
       const apiUrl = `${config.phylonextWebservice}/api/phylonext/runs`;
       console.log('Sending request to:', apiUrl);
       console.log('Request data:', data);
-      
-      // Log the request details
-      console.log('Starting analysis with config:', {
-        url: apiUrl,
-        formData: Object.fromEntries(formData.entries()),
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      console.log('Drawn items:', drawnItems);
       
       const res = await axiosWithAuth.post(apiUrl, formData, {
         headers: {
@@ -285,7 +291,6 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
       setStep(1);
       navigate(`/run/${jobid}`);
     } catch (error) {
-      // Enhanced error logging
       console.error('Analysis start failed:', {
         message: error.message,
         status: error.response?.status,

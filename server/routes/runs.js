@@ -105,13 +105,11 @@ router.post('/',
 
       console.log('Parsed request body:', body);
       
-      // Handle uploaded files
-      if(_.get(req, 'files.polygon[0].filename')) {
-        body.polygon = `${outputDir}/${req.files.polygon[0].filename}`;
-      }
-      
-      if(_.get(req, 'files.specieskeys[0].filename')) {
-        body.specieskeys = `${outputDir}/${req.files.specieskeys[0].filename}`;
+      // Handle uploaded polygon file
+      if (req.files?.polygon?.[0]) {
+        const polygonFile = req.files.polygon[0];
+        body.polygon = polygonFile.path; // Use the full path to the saved file
+        console.log('Polygon file saved at:', body.polygon);
       }
 
       // Process parameters
@@ -165,8 +163,12 @@ const processParams = (body) => {
       params.resolution = body.spatialResolution;
     }
     
+    // Handle area selection based on mode
     if (body.areaSelectionMode === 'country' && body.selectedCountries?.length > 0) {
       params.country = body.selectedCountries;
+    } else if (body.areaSelectionMode === 'map' && body.polygon) {
+      // For map selection, the polygon file path will be passed
+      params.polygon = body.polygon;
     }
 
     // Process phylogenetic tree selection - use fileName instead of ID

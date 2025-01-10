@@ -34,12 +34,14 @@ const MapComponent = () => {
     const featureCollection = {
       type: 'FeatureCollection',
       features: features.map(feature => {
+        // Clone the geometry to avoid modifying the original
+        const clonedGeometry = feature.getGeometry().clone();
         // Transform geometry from EPSG:3857 (Web Mercator) to EPSG:4326 (WGS84)
-        const geometry = feature.getGeometry().clone().transform('EPSG:3857', 'EPSG:4326');
+        clonedGeometry.transform('EPSG:3857', 'EPSG:4326');
         return {
           type: 'Feature',
-          geometry: geoJSONFormat.writeGeometryObject(geometry),
-          properties: {}
+          geometry: geoJSONFormat.writeGeometryObject(clonedGeometry),
+          properties: feature.getProperties()
         };
       })
     };
@@ -130,23 +132,38 @@ const MapComponent = () => {
       mapInstanceRef.current.addInteraction(snapRef.current);
 
       // Handle draw events
-      drawRef.current.on('drawend', () => {
-        // Convert all features to GeoJSON and update Redux store
+      const updateStore = () => {
         const geoJSON = featuresToGeoJSON();
         if (geoJSON) {
           dispatch({ type: 'UPDATE_DRAWN_ITEMS', payload: geoJSON });
         }
+      };
+
+      // Update store after drawing ends
+      drawRef.current.on('drawend', () => {
+        // Use setTimeout to ensure the feature is added to the source
+        setTimeout(updateStore, 0);
       });
 
-      // Handle modify events
-      modifyRef.current.on('modifyend', () => {
-        // Convert all features to GeoJSON and update Redux store
-        const geoJSON = featuresToGeoJSON();
-        if (geoJSON) {
-          dispatch({ type: 'UPDATE_DRAWN_ITEMS', payload: geoJSON });
-        }
-      });
+      // Update store after modifications
+      modifyRef.current.on('modifyend', updateStore);
+
+      // Handle feature removal
+      vectorSourceRef.current.on('removefeature', updateStore);
     }
+
+    return () => {
+      // Cleanup event listeners when component unmounts or mode changes
+      if (drawRef.current) {
+        drawRef.current.setActive(false);
+      }
+      if (modifyRef.current) {
+        modifyRef.current.setActive(false);
+      }
+      if (snapRef.current) {
+        snapRef.current.setActive(false);
+      }
+    };
   }, [areaSelectionMode, dispatch]);
 
   return (
