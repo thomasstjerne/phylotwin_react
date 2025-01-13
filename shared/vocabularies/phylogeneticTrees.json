@@ -2,73 +2,73 @@
   {
     "id": "seed_plants_2023",
     "displayName": "Seed plants",
-    "fileName": "Tietje_2023_Seed_plants_TACT.nwk",
+    "fileName": "Tietje_2023_Seed_plants_TACT.nwk.gz",
     "description": "Tietje et al. (2023), DOI:10.1111/nph.19151; Smith & Brown (2018), DOI:10.1002/ajb2.1019"
   },
   {
     "id": "ferns_2022",
     "displayName": "Ferns (FTOL)",
-    "fileName": "Ferns_FTOL_1-7-0.nwk",
+    "fileName": "Ferns_FTOL_1-7-0.nwk.gz",
     "description": "The Fern Tree of Life (FTOL), Nitta et al. (2022), DOI:10.3389/fpls.2022.909768"
   },
   {
     "id": "mushrooms_2019",
     "displayName": "Mushroom-forming fungi",
-    "fileName": "Varga_2019_Mushrooms.nwk",
+    "fileName": "Varga_2019_Mushrooms.nwk.gz",
     "description": "Varga et al. (2019), DOI:10.1038/s41559-019-0834-1"
   },
   {
     "id": "gtdb_bacteria",
     "displayName": "Bacteria (GTDB, r220)",
-    "fileName": "GTDB_bacteria_r220.nwk",
+    "fileName": "GTDB_bacteria_r220.nwk.gz",
     "description": "Parks et al. (2021), DOI:10.1093/nar/gkab776"
   },
   {
     "id": "gtdb_archaea",
     "displayName": "Archaea (GTDB, r220)",
-    "fileName": "GTDB_archaea_r220.nwk",
+    "fileName": "GTDB_archaea_r220.nwk.gz",
     "description": "Parks et al. (2021), DOI:10.1093/nar/gkab776"
   },
   {
     "id": "mammals_2019",
     "displayName": "Mammals (VertLife)",
-    "fileName": "VertLife_Mammals.nwk",
+    "fileName": "VertLife_Mammals.nwk.gz",
     "description": "VertLife - Upham et al. (2019), DOI:10.1371/journal.pbio.3000494"
   },
   {
     "id": "birds_2012",
     "displayName": "Birds (VertLife)",
-    "fileName": "VertLife_Birds.nwk",
+    "fileName": "VertLife_Birds.nwk.gz",
     "description": "VertLife - Jetz et al. (2012), DOI:10.1038/nature11631"
   },
   {
     "id": "squamates_2016",
     "displayName": "Squamates (VertLife)",
-    "fileName": "VertLife_Squamates.nwk",
+    "fileName": "VertLife_Squamates.nwk.gz",
     "description": "VertLife - Tonini et al. (2016), DOI:10.1016/j.biocon.2016.03.039"
   },
   {
     "id": "amphibians_2018",
     "displayName": "Amphibians (VertLife)",
-    "fileName": "VertLife_Amphibians.nwk",
+    "fileName": "VertLife_Amphibians.nwk.gz",
     "description": "VertLife - Jetz & Pyron (2018), DOI:10.1038/s41559-018-0515-5"
   },
   {
     "id": "ray_finned_fishes_2018",
     "displayName": "Ray-finned fishes (FishTree)",
-    "fileName": "FishTree.nwk",
+    "fileName": "FishTree.nwk.gz",
     "description": "The Fish Tree of Life - Rabosky et al. (2018), DOI:10.1038/s41586-018-0273-1"
   },
   {
     "id": "butterflies_2023",
     "displayName": "Butterflies",
-    "fileName": "Kawahara_2023_Butterflies.nwk",
+    "fileName": "Kawahara_2023_Butterflies.nwk.gz",
     "description": "Kawahara et al. (2023), DOI:10.1093/bioinformatics/btac031"
   },
   {
     "id": "bees_2024",
     "displayName": "Bees (BeeTree)",
-    "fileName": "Henriquez-Piskulich_2024_BeetreeOfLife.nwk",
+    "fileName": "Henriquez-Piskulich_2024_BeetreeOfLife.nwk.gz",
     "description": "Henríquez-Piskulich et al. (2024), DOI:10.1016/j.ympev.2023.107963"
   }
 ]
