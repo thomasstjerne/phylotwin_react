@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -9,8 +9,12 @@ import OSM from 'ol/source/OSM';
 import { Draw, Modify, Snap } from 'ol/interaction';
 import { get } from 'ol/proj';
 import GeoJSON from 'ol/format/GeoJSON';
-import { useSelector } from 'react-redux';
+import { Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
+
+// Import the swipe control from ol-ext
+import 'ol-ext/dist/ol-ext.css';
+import Swipe from 'ol-ext/control/Swipe';
 
 const MapComponent = () => {
   const mapRef = useRef();
@@ -19,9 +23,18 @@ const MapComponent = () => {
   const drawRef = useRef(null);
   const snapRef = useRef(null);
   const modifyRef = useRef(null);
+  const swipeControlRef = useRef(null);
+  const resultsLayersRef = useRef([]);
   const dispatch = useDispatch();
 
+  // Get state from Redux
   const areaSelectionMode = useSelector(state => state.map.areaSelectionMode);
+  const selectedIndices = useSelector(state => state.visualization?.selectedIndices || []);
+  const colorPalette = useSelector(state => state.visualization?.colorPalette);
+  const useQuantiles = useSelector(state => state.visualization?.useQuantiles);
+  const valueRange = useSelector(state => state.visualization?.valueRange);
+  const minRecords = useSelector(state => state.visualization?.minRecords);
+  const resultsGeoJSON = useSelector(state => state.results?.geoJSON);
 
   // Function to convert features to GeoJSON
   const featuresToGeoJSON = () => {
@@ -34,9 +47,7 @@ const MapComponent = () => {
     const featureCollection = {
       type: 'FeatureCollection',
       features: features.map(feature => {
-        // Clone the geometry to avoid modifying the original
         const clonedGeometry = feature.getGeometry().clone();
-        // Transform geometry from EPSG:3857 (Web Mercator) to EPSG:4326 (WGS84)
         clonedGeometry.transform('EPSG:3857', 'EPSG:4326');
         return {
           type: 'Feature',
@@ -49,9 +60,75 @@ const MapComponent = () => {
     return featureCollection;
   };
 
+  // Color schemes for different metric types
+  const colorSchemes = {
+    sequential: (value, min, max) => {
+      const t = (value - min) / (max - min);
+      return `rgba(72, 118, 255, ${0.2 + t * 0.8})`; // Blue with varying opacity
+    },
+    diverging: (value, min, max) => {
+      const mid = (max + min) / 2;
+      const t = (value - min) / (max - min);
+      if (value < mid) {
+        return `rgba(255, 0, 0, ${0.2 + t * 0.8})`; // Red for negative
+      }
+      return `rgba(72, 118, 255, ${0.2 + t * 0.8})`; // Blue for positive
+    },
+    canape: (value) => {
+      const colors = {
+        1: "#FF0000", // Neo-endemism
+        2: "#4876FF", // Paleo-endemism
+        0: "#FAFAD2", // Not significant
+        3: "#CB7FFF", // Mixed endemism
+        4: "#9D00FF"  // Super endemism
+      };
+      return colors[value] || "#808080"; // Gray for missing values
+    }
+  };
+
+  // Style function for results layer
+  const getResultStyle = (feature, indexId, palette, useQuantiles, valueRange, minRecords) => {
+    const value = feature.get(indexId);
+    const numRecords = feature.get('NumRecords') || 0;
+    
+    // Hide cells with too few records
+    if (numRecords < minRecords) {
+      return null;
+    }
+
+    // Get all values for the selected index to calculate min/max
+    const allValues = vectorSourceRef.current.getFeatures()
+      .map(f => f.get(indexId))
+      .filter(v => v !== undefined && v !== null);
+    
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+
+    // Get color based on value and palette type
+    let fillColor;
+    if (indexId === 'canape') {
+      fillColor = colorSchemes.canape(value);
+    } else if (indexId.startsWith('ses.')) {
+      fillColor = colorSchemes.diverging(value, min, max);
+    } else {
+      fillColor = colorSchemes.sequential(value, min, max);
+    }
+
+    return new Style({
+      fill: new Fill({
+        color: fillColor
+      }),
+      stroke: new Stroke({
+        color: fillColor.replace(/[^,]+\)/, '1)'), // Make stroke fully opaque
+        width: 1
+      })
+    });
+  };
+
+  // Initialize map
   useEffect(() => {
     if (!mapInstanceRef.current) {
-      // Create vector source and layer
+      // Create vector source and layer for drawing
       vectorSourceRef.current = new VectorSource();
       const vector = new VectorLayer({
         source: vectorSourceRef.current,
@@ -87,7 +164,6 @@ const MapComponent = () => {
       });
     }
 
-    // Cleanup function
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.setTarget(undefined);
@@ -96,7 +172,7 @@ const MapComponent = () => {
     };
   }, []);
 
-  // Handle drawing interactions based on areaSelectionMode
+  // Handle drawing interactions
   useEffect(() => {
     if (!mapInstanceRef.current || !vectorSourceRef.current) return;
 
@@ -139,21 +215,15 @@ const MapComponent = () => {
         }
       };
 
-      // Update store after drawing ends
       drawRef.current.on('drawend', () => {
-        // Use setTimeout to ensure the feature is added to the source
         setTimeout(updateStore, 0);
       });
 
-      // Update store after modifications
       modifyRef.current.on('modifyend', updateStore);
-
-      // Handle feature removal
       vectorSourceRef.current.on('removefeature', updateStore);
     }
 
     return () => {
-      // Cleanup event listeners when component unmounts or mode changes
       if (drawRef.current) {
         drawRef.current.setActive(false);
       }
@@ -165,6 +235,64 @@ const MapComponent = () => {
       }
     };
   }, [areaSelectionMode, dispatch]);
+
+  // Handle results visualization
+  useEffect(() => {
+    if (!mapInstanceRef.current || !resultsGeoJSON) return;
+
+    // Remove existing results layers
+    resultsLayersRef.current.forEach(layer => {
+      mapInstanceRef.current.removeLayer(layer);
+    });
+    resultsLayersRef.current = [];
+
+    // Remove existing swipe control
+    if (swipeControlRef.current) {
+      mapInstanceRef.current.removeControl(swipeControlRef.current);
+      swipeControlRef.current = null;
+    }
+
+    // Create new layers for selected indices
+    selectedIndices.forEach((indexId, idx) => {
+      const source = new VectorSource({
+        features: new GeoJSON().readFeatures(resultsGeoJSON, {
+          featureProjection: 'EPSG:3857'
+        })
+      });
+
+      const layer = new VectorLayer({
+        source: source,
+        style: (feature) => getResultStyle(
+          feature, 
+          indexId, 
+          colorPalette, 
+          useQuantiles, 
+          valueRange, 
+          minRecords
+        )
+      });
+
+      mapInstanceRef.current.addLayer(layer);
+      resultsLayersRef.current.push(layer);
+
+      // Fit view to layer extent
+      if (idx === 0) {
+        const extent = source.getExtent();
+        mapInstanceRef.current.getView().fit(extent, {
+          padding: [50, 50, 50, 50],
+          maxZoom: 12
+        });
+      }
+    });
+
+    // Add swipe control if two indices are selected
+    if (selectedIndices.length === 2) {
+      swipeControlRef.current = new Swipe();
+      swipeControlRef.current.set('rightLayer', resultsLayersRef.current[1]);
+      mapInstanceRef.current.addControl(swipeControlRef.current);
+    }
+
+  }, [resultsGeoJSON, selectedIndices, colorPalette, useQuantiles, valueRange, minRecords]);
 
   return (
     <div 

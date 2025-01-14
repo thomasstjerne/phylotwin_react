@@ -7,10 +7,8 @@ import withContext from "../Components/hoc/withContext";
 import { Box } from "@mui/material";
 import MapComponent from "../Components/Map/Map";
 import logger from "../utils/logger";
-import SettingsPanel from "../Layout/SettingsPanel";
 
 const PhyloNextForm = ({ setStep, user }) => {
-  const [settingsPanelOpen, setSettingsPanelOpen] = useState(true);
   const navigate = useNavigate();
 
   // Debug mounting
@@ -28,13 +26,6 @@ const PhyloNextForm = ({ setStep, user }) => {
       left: 0
     }}>
       <MapComponent />
-      <SettingsPanel
-        isOpen={settingsPanelOpen}
-        onClose={() => setSettingsPanelOpen(false)}
-        activePanel="settings"
-        navigate={navigate}
-        setStep={setStep}
-      />
     </Box>
   );
 };

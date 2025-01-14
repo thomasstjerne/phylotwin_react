@@ -39,6 +39,25 @@ import config from "../config";
 import { AppContext } from '../Components/hoc/ContextProvider';
 import { JWT_STORAGE_NAME } from '../Auth/userApi';
 import { styled } from '@mui/material/styles';
+import {
+  setPipelineStatus,
+  setJobId,
+  setError as setResultsError
+} from '../store/resultsSlice';
+import {
+  updateSpatialResolution,
+  updateSelectedCountries,
+  updateSelectedPhyloTree,
+  updateTaxonomicFilters,
+  updateRecordFilteringMode,
+  updateYearRange,
+  updateDiversityIndices,
+  updateRandomizations
+} from '../store/settingsSlice';
+import {
+  setAreaSelectionMode,
+  clearDrawnItems
+} from '../store/mapSlice';
 
 const drawerWidth = 340;
 
@@ -49,7 +68,14 @@ const getMissingRequiredParams = (selectedPhyloTree, areaSelectionMode) => {
   return missing;
 };
 
-const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
+const SettingsPanel = ({ 
+  isOpen, 
+  onClose, 
+  activePanel, 
+  handlePanelOpen,
+  setStep, 
+  navigate 
+}) => {
   const dispatch = useDispatch();
   const appContext = React.useContext(AppContext);
   
@@ -62,6 +88,8 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
   const reduxState = useSelector(state => state.settings);
   const reduxUser = useSelector(state => state.auth?.user);
   const user = appContext.user || reduxUser;
+  const drawnItems = useSelector(state => state.map.drawnItems);
+  const areaSelectionMode = useSelector(state => state.map.areaSelectionMode);  // Get from Redux instead of local state
   
   // Debug auth state
   useEffect(() => {
@@ -76,7 +104,6 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
   const [internalLoading, setInternalLoading] = useState(false);
   const [error, setError] = useState(null);
   const [spatialResolution, setSpatialResolution] = useState(reduxState.spatialResolution || '3');
-  const [areaSelectionMode, setAreaSelectionMode] = useState(null);
   const [selectedCountries, setSelectedCountries] = useState(reduxState.selectedCountries || []);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [selectedPhyloTree, setSelectedPhyloTree] = useState(reduxState.selectedPhyloTree || '');
@@ -93,12 +120,36 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
     genus: reduxState.taxonomicFilters?.genus || []
   });
   
-  // Get all relevant data from Redux store
-  const drawnItems = useSelector(state => state.map.drawnItems);
-
   // Update Redux store when settings change
   const updateReduxStore = useCallback((type, payload) => {
-    dispatch({ type, payload });
+    switch(type) {
+      case 'UPDATE_SPATIAL_RESOLUTION':
+        dispatch(updateSpatialResolution(payload));
+        break;
+      case 'UPDATE_SELECTED_COUNTRIES':
+        dispatch(updateSelectedCountries(payload));
+        break;
+      case 'UPDATE_SELECTED_PHYLO_TREE':
+        dispatch(updateSelectedPhyloTree(payload));
+        break;
+      case 'UPDATE_TAXONOMIC_FILTERS':
+        dispatch(updateTaxonomicFilters(payload));
+        break;
+      case 'UPDATE_RECORD_FILTERING_MODE':
+        dispatch(updateRecordFilteringMode(payload));
+        break;
+      case 'UPDATE_YEAR_RANGE':
+        dispatch(updateYearRange(payload));
+        break;
+      case 'UPDATE_DIVERSITY_INDICES':
+        dispatch(updateDiversityIndices(payload));
+        break;
+      case 'UPDATE_RANDOMIZATIONS':
+        dispatch(updateRandomizations(payload));
+        break;
+      default:
+        console.warn('Unknown action type:', type);
+    }
   }, [dispatch]);
 
   // Handle settings changes
@@ -121,7 +172,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
   const handlePhyloTreeChange = (event) => {
     const value = event.target.value;
     setSelectedPhyloTree(value);
-    dispatch({ type: 'UPDATE_SELECTED_PHYLO_TREE', payload: value });
+    dispatch(updateSelectedPhyloTree(value));
   };
 
   const handleYearRangeChange = (value) => {
@@ -144,18 +195,24 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
     updateReduxStore('UPDATE_RECORD_FILTERING_MODE', value);
   };
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = (event, type = 'polygon') => {
     const file = event.target.files[0];
     if (file) {
-      setUploadedFile(file);
-      handleAreaSelectionModeChange('upload');
+      if (type === 'polygon') {
+        setUploadedFile(file);
+        dispatch(setAreaSelectionMode('upload'));
+      }
+      // Handle other file types if needed
     }
   };
 
   const handleAreaSelectionModeChange = (mode) => {
     const newMode = mode === areaSelectionMode ? null : mode;
-    setAreaSelectionMode(newMode);
-    dispatch({ type: 'SET_AREA_SELECTION_MODE', payload: newMode });
+    dispatch(setAreaSelectionMode(newMode));
+    
+    if (newMode !== 'map') {
+      dispatch(clearDrawnItems());
+    }
     
     if (newMode !== 'upload') {
       setUploadedFile(null);
@@ -200,96 +257,82 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
 
   // Memoize handleStartAnalysis to prevent unnecessary re-renders
   const handleStartAnalysis = useCallback(async () => {
-    console.log('handleStartAnalysis called', { user });
     if (!user) {
-      logger.warn('No user found. Please log in.');
       throw new Error('Please log in to start analysis');
     }
 
-    try {
-      setInternalLoading(true);
-      
-      // Validate required parameters
-      if (!selectedPhyloTree) {
-        throw new Error('Please select a phylogenetic tree');
-      }
-      
-      if (!areaSelectionMode) {
-        throw new Error('Please select an area selection mode');
-      }
-      
-      // Additional validation based on area selection mode
-      if (areaSelectionMode === 'country' && (!selectedCountries || selectedCountries.length === 0)) {
-        throw new Error('Please select at least one country');
-      }
-      
-      if (areaSelectionMode === 'map' && (!drawnItems?.features || drawnItems.features.length === 0)) {
-        throw new Error('Please draw at least one polygon on the map');
-      }
+    setInternalLoading(true);
+    setError(null);
 
-      // Create form data
+    try {
+      // Prepare form data
       const formData = new FormData();
       
-      // If using map selection, add polygon data
-      if (areaSelectionMode === 'map' && drawnItems?.features?.length > 0) {
-        // Debug log the drawn items
-        console.log('Creating GeoJSON from drawn items:', {
-          featureCount: drawnItems.features.length,
-          features: drawnItems.features.map(f => ({
-            type: f.type,
-            coordinates: f.geometry.coordinates
-          }))
-        });
-
-        // Create a GeoJSON file from the drawn items
-        const geoJSONBlob = new Blob(
-          [JSON.stringify(drawnItems, null, 2)], // pretty printing for debugging
-          { type: 'application/geo+json' }
-        );
-        formData.append('polygon', geoJSONBlob, 'drawn_polygons.geojson');
-      }
-
-      // Transform taxonomic filters to use names instead of keys
-      const transformedTaxonomicFilters = getTaxonNames(taxonomicFilters);
+      // Find the selected tree's filename
+      const selectedTreeData = phylogeneticTrees.find(t => t.id === selectedPhyloTree);
       
-      // Prepare the main data object with all required parameters
-      const data = {
-        spatialResolution,
-        selectedCountries,
-        selectedPhyloTree,
-        taxonomicFilters: transformedTaxonomicFilters,
+      // Split diversity indices by module
+      const mainIndices = [];
+      const biodiverseIndices = [];
+      selectedDiversityIndices.forEach(id => {
+        const index = diversityIndices.groups
+          .flatMap(group => group.indices)
+          .find(index => index.id === id);
+        if (index?.module === 'main') {
+          mainIndices.push(index.commandName);
+        } else if (index?.module === 'biodiverse') {
+          biodiverseIndices.push(index.commandName);
+        }
+      });
+
+      // Base parameters
+      const params = {
+        spatialResolution: parseInt(spatialResolution, 10),
+        selectedPhyloTree: selectedPhyloTree,
+        selectedDiversityIndices: selectedDiversityIndices,
+        randomizations: parseInt(randomizations, 10),
         recordFilteringMode,
         yearRange,
-        selectedDiversityIndices,
-        randomizations,
+        taxonomicFilters,
         areaSelectionMode
       };
 
-      // Add the main data as JSON
-      formData.append('data', JSON.stringify(data));
-
-      // Send request to server
-      const apiUrl = `${config.phylonextWebservice}/api/phylonext/runs`;
-      console.log('Sending request to:', apiUrl);
-      console.log('Request data:', data);
-      console.log('Drawn items:', drawnItems);
-      
-      const res = await axiosWithAuth.post(apiUrl, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      // Log successful response
-      console.log('Analysis started successfully:', res.data);
-
-      const jobid = res?.data?.jobid;
-      if (!jobid) {
-        throw new Error('No job ID received from server');
+      // Add spatial filters
+      if (areaSelectionMode === 'map' && drawnItems?.features?.length > 0) {
+        console.log('Adding map polygon to params:', drawnItems);
+        // Convert coordinates to [longitude, latitude] format if needed
+        const geoJSON = {
+          ...drawnItems,
+          features: drawnItems.features.map(feature => ({
+            ...feature,
+            geometry: {
+              ...feature.geometry,
+              coordinates: feature.geometry.coordinates.map(ring => 
+                ring.map(coord => [coord[0], coord[1]])
+              )
+            }
+          }))
+        };
+        params.polygon = geoJSON;
+      } else if (areaSelectionMode === 'country' && selectedCountries.length > 0) {
+        params.selectedCountries = selectedCountries;  // Already in ISO A2 format
       }
 
-      setStep(1);
-      navigate(`/run/${jobid}`);
+      // Add form data
+      formData.append('data', JSON.stringify(params));
+      console.log('Starting analysis with params:', params);
+
+      // Start analysis
+      const response = await axiosWithAuth.post(`${config.phylonextWebservice}/api/phylonext/runs`, formData);
+      
+      if (response?.data?.jobid) {
+        console.log('Analysis started successfully:', response.data);
+        dispatch(setJobId(response.data.jobid));
+        dispatch(setPipelineStatus('running'));
+        handlePanelOpen('visualization');
+      } else {
+        throw new Error('No job ID returned from server');
+      }
     } catch (error) {
       console.error('Analysis start failed:', {
         message: error.message,
@@ -297,13 +340,29 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
         data: error.response?.data,
         config: error.config
       });
+      dispatch(setPipelineStatus('failed'));
+      dispatch(setResultsError(error.message || 'Failed to start analysis'));
       throw error;
     } finally {
       setInternalLoading(false);
     }
-  }, [user, drawnItems, areaSelectionMode, spatialResolution, selectedCountries, 
-      selectedPhyloTree, taxonomicFilters, recordFilteringMode, yearRange, 
-      selectedDiversityIndices, randomizations, navigate, setStep]);
+  }, [
+    user,
+    drawnItems,
+    areaSelectionMode,
+    spatialResolution,
+    selectedCountries,
+    selectedPhyloTree,
+    taxonomicFilters,
+    recordFilteringMode,
+    yearRange,
+    selectedDiversityIndices,
+    randomizations,
+    dispatch,
+    handlePanelOpen,
+    phylogeneticTrees,
+    diversityIndices
+  ]);
 
   const handleAnalysisClick = () => {
     handleStartAnalysis().catch(err => {
@@ -436,7 +495,7 @@ const SettingsPanel = ({ isOpen, onClose, activePanel, setStep, navigate }) => {
                           type="file"
                           hidden
                           accept=".gpkg,.geojson"
-                          onChange={handleFileUpload}
+                          onChange={(e) => handleFileUpload(e, 'polygon')}
                         />
                       </Button>
                     )}

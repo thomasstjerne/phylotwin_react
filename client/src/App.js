@@ -5,10 +5,9 @@ import store from './store';
 import { AuthProvider, useAuth } from './Auth/AuthContext';
 import Layout from './Layout/Layout';
 import Home from './Home';
-import Run from './Run';
-import MyRuns from './MyRuns';
 import Workflow from './Workflow';
 import ContextProvider from './Components/hoc/ContextProvider';
+import JobStatusPoller from './Components/JobStatusPoller';
 import { checkAuthStatus } from './Auth/userApi';
 
 const App = () => {
@@ -34,14 +33,15 @@ const App = () => {
   }, []);
 
   return (
-    <Routes>
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Home />} />
-        <Route path="run" element={<Workflow />} />
-        <Route path="run/:id" element={<Workflow />} />
-        <Route path="myruns" element={<MyRuns />} />
-      </Route>
-    </Routes>
+    <>
+      <JobStatusPoller />
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="run" element={<Workflow />} />
+        </Route>
+      </Routes>
+    </>
   );
 };
 

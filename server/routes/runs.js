@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const fs = require('fs').promises;
+const path = require('path');
 const _ = require('lodash');
 const config = require('../config');
 const auth = require('../Auth/auth');
@@ -56,6 +57,37 @@ const checkDirectoryAccess = async (dir) => {
   }
 };
 
+// Helper function to save GeoJSON to file
+async function saveGeoJSONToFile(geojson, outputDir) {
+  const filename = 'drawn_polygon.geojson';
+  const filepath = path.join(outputDir, filename);
+  console.log('Saving GeoJSON to:', filepath);
+  try {
+    // Ensure the GeoJSON is properly formatted
+    const formattedGeoJSON = {
+      type: 'FeatureCollection',
+      features: geojson.features.map(feature => ({
+        type: 'Feature',
+        geometry: {
+          type: feature.geometry.type,
+          coordinates: feature.geometry.coordinates
+        },
+        properties: feature.properties || {}
+      }))
+    };
+
+    await fs.writeFile(filepath, JSON.stringify(formattedGeoJSON, null, 2));
+    // Verify the file was written
+    await fs.access(filepath, fs.constants.F_OK);
+    const fileContent = await fs.readFile(filepath, 'utf8');
+    console.log('Successfully wrote and verified GeoJSON file. Content:', fileContent);
+    return filepath;
+  } catch (error) {
+    console.error('Error writing GeoJSON file:', error);
+    throw error;
+  }
+}
+
 // Start a new pipeline run
 router.post('/', 
   auth.appendUser(),
@@ -98,80 +130,72 @@ router.post('/',
       let body;
       try {
         body = JSON.parse(req.body.data);
+        console.log('Parsed request body:', body);
       } catch (error) {
         console.error('Failed to parse request data:', error);
         return res.status(400).json({ error: 'Invalid JSON in data field' });
       }
 
-      console.log('Parsed request body:', body);
+      // Handle map-drawn polygons
+      if (body.areaSelectionMode === 'map' && body.polygon?.features?.length > 0) {
+        console.log('Processing map-drawn polygon:', JSON.stringify(body.polygon, null, 2));
+        try {
+          const polygonPath = await saveGeoJSONToFile(body.polygon, outputDir);
+          console.log('Saved polygon to:', polygonPath);
+          // Store just the filename, not the full path
+          body.polygon = 'drawn_polygon.geojson';
+        } catch (error) {
+          console.error('Failed to save polygon file:', error);
+          throw new Error(`Failed to save polygon file: ${error.message}`);
+        }
+      }
+      // Handle uploaded files
+      else if (req.files?.polygon?.[0]) {
+        console.log('Processing uploaded polygon file');
+        body.polygon = req.files.polygon[0].originalname;
+      }
       
-      // Handle uploaded polygon file
-      if (req.files?.polygon?.[0]) {
-        const polygonFile = req.files.polygon[0];
-        body.polygon = polygonFile.path; // Use the full path to the saved file
-        console.log('Polygon file saved at:', body.polygon);
+      if (req.files?.specieskeys?.[0]) {
+        body.specieskeys = req.files.specieskeys[0].path;
       }
 
       // Process parameters
-      let processedParams;
-      try {
-        processedParams = processParams(body);
-        console.log('Processed parameters:', processedParams);
-      } catch (error) {
-        console.error('Error processing parameters:', error);
-        return res.status(400).json({ error: `Parameter processing failed: ${error.message}` });
-      }
-
-      try {
-        await startJob({
-          username: req?.user?.userName,
-          req_id: req.id,
-          params: processedParams
-        });
-        
-        res.status(200).json({ jobid: req.id });
-      } catch (error) {
-        console.error('Error starting job:', error);
-        res.status(500).json({ 
-          error: error.message,
-          details: error.stack,
-          params: processedParams
-        });
-      }
+      const processedParams = processParams(body, outputDir);
+      console.log('Final processed parameters:', processedParams);
+      
+      await startJob({
+        username: req?.user?.userName,
+        req_id: req.id,
+        params: processedParams
+      });
+      
+      res.status(200).json({ jobid: req.id });
     } catch (error) {
-      console.error('Error processing request:', {
-        error: error.message,
-        stack: error.stack,
-        body: req.body,
-        files: req.files,
-        user: req?.user
-      });
-      res.status(500).json({ 
-        error: error.message,
-        details: error.stack
-      });
+      console.error('Error processing request:', error);
+      res.status(500).json({ error: error.message });
     }
 });
 
-const processParams = (body) => {
+const processParams = (body, outputDir) => {
   try {
     console.log('Processing parameters:', body);
     const params = {};
     
-    // Process spatial filters
+    // Process spatial resolution
     if (body.spatialResolution) {
-      params.resolution = body.spatialResolution;
+      params.resolution = parseInt(body.spatialResolution, 10);
     }
     
     // Handle area selection based on mode
     if (body.areaSelectionMode === 'country' && body.selectedCountries?.length > 0) {
       params.country = body.selectedCountries;
     } else if (body.areaSelectionMode === 'map' && body.polygon) {
-      // For map selection, the polygon file path will be passed
-      params.polygon = body.polygon;
+      // Construct the full path to the polygon file
+      params.polygon = path.join(outputDir, body.polygon);
+      console.log('Setting polygon path:', params.polygon);
     }
 
-    // Process phylogenetic tree selection - use fileName instead of ID
+    // Process phylogenetic tree selection
     if (body.selectedPhyloTree) {
       const selectedTree = phylogeneticTrees.find(tree => tree.id === body.selectedPhyloTree);
       if (selectedTree) {
@@ -181,28 +205,30 @@ const processParams = (body) => {
       }
     }
 
+    // Process taxonomic filters
     if (body.taxonomicFilters) {
       ['phylum', 'class', 'order', 'family', 'genus'].forEach(rank => {
         if (body.taxonomicFilters[rank]?.length > 0) {
           const paramName = rank === 'class' ? 'classs' : rank;
-          params[paramName] = body.taxonomicFilters[rank].map(t => t.key || t);
+          params[paramName] = body.taxonomicFilters[rank].map(t => t.name || t.scientificName || t);
         }
       });
     }
 
-    // Process data selection criteria
+    // Process record filtering mode
     if (body.recordFilteringMode) {
       params.basis_of_record = body.recordFilteringMode === 'specimen' 
         ? "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION"
         : "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION,HUMAN_OBSERVATION";
     }
 
-    if (body.yearRange) {
+    // Process year range
+    if (body.yearRange && Array.isArray(body.yearRange) && body.yearRange.length === 2) {
       params.minyear = body.yearRange[0];
       params.maxyear = body.yearRange[1];
     }
 
-    // Process diversity indices using the vocabulary
+    // Process diversity indices
     if (body.selectedDiversityIndices?.length > 0) {
       const mainIndices = [];
       const biodiverseIndices = [];
@@ -227,6 +253,11 @@ const processParams = (body) => {
       if (biodiverseIndices.length > 0) {
         params.bd_indices = biodiverseIndices;
       }
+    }
+
+    // Process randomizations
+    if (body.randomizations) {
+      params.rnd = parseInt(body.randomizations, 10);
     }
 
     console.log('Processed parameters:', params);

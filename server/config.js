@@ -21,7 +21,7 @@ if (!nextflowPath) {
 // Define configurations
 const configs = {
     development: {
-        INPUT_PATH: `${userHomeDir}/phylotwin_data/occurrence.parquet`,
+        INPUT_PATH: `${userHomeDir}/phylotwin_data/preprocessed_occurrences_parquet`,
         OUTPUT_PATH: OUTPUT_PATH,
         TEST_DATA: PhyloTwinTestDataDir,
         PIPELINE_DATA: PhyloTwinPipelineDataDir,
@@ -35,7 +35,7 @@ const configs = {
         DB_LOCATION: `${userHomeDir}/phylotwin_data/db.json`
     },
     production: {
-        INPUT_PATH: `/mnt/auto/scratch/mblissett/cloud-data/latest/occurrence.parquet`,
+        INPUT_PATH: `/mnt/auto/scratch/mblissett/cloud-data/latest/preprocessed_occurrences_parquet`,
         OUTPUT_PATH: '/opt/phylotwin/runs',
         TEST_DATA: '/opt/phylotwin/.nextflow/assets/vmikk/phylotwin/test_data',
         PIPELINE_DATA: '/opt/phylotwin/.nextflow/assets/vmikk/phylotwin/pipeline_data',

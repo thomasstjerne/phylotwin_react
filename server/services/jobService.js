@@ -174,9 +174,14 @@ async function startJob(options) {
     Object.keys(modifiedParams)
       .filter((p) => ALLOWED_PARAMS.includes(p))
       .forEach((key) => {
-        if (Array.isArray(modifiedParams[key])) {
-          profile.push(`--${key}`, modifiedParams[key].join(","));
-        } else if (modifiedParams[key] !== undefined) {
+        if (key === 'div' || key === 'bd_indices') {
+          // Handle diversity indices - they should be comma-separated
+          if (modifiedParams[key] && modifiedParams[key].length > 0) {
+            profile.push(`--${key}`, modifiedParams[key].join(','));
+          }
+        } else if (Array.isArray(modifiedParams[key])) {
+          profile.push(`--${key}`, modifiedParams[key].join(','));
+        } else if (modifiedParams[key] !== undefined && modifiedParams[key] !== '') {
           profile.push(`--${key}`, modifiedParams[key]);
         }
       });
@@ -184,12 +189,14 @@ async function startJob(options) {
     // Construct nextflow parameters
     const nextflowParams = [
       'run',
-      'vmikk/phylotwin',
+      // 'vmikk/phylotwin -r main',
+      '/mnt/Data/Dropbox/Proj/BioDT/phylotwin/main.nf',
       '-resume',
-      '-profile', 'docker',
-      '-work-dir', workDir,
-      '--input', config.INPUT_PATH,
-      '--outdir', outputDir,
+      // '-profile', 'docker',
+      '--occ', config.INPUT_PATH,     // directory of preprocessed occurrences ---- TODO: change according to params
+      '--outdir', outputDir,          // output directory
+      '-work-dir', workDir,           // working directory (for caching intermediate results)
+      
       ...profile,
     ];
 
