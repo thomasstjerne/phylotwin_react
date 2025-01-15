@@ -135,6 +135,46 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
     }
   }, [selectedIndices, colorPalette, dispatch, getDefaultPalette]);
 
+  // Calculate min/max values for the selected index
+  const getValueRangeForIndex = (indexName) => {
+    if (!geoJSON?.features?.length || !indexName) {
+      console.log('No GeoJSON data or index name:', { 
+        hasFeatures: geoJSON?.features?.length > 0, 
+        indexName 
+      });
+      return null;
+    }
+    
+    console.log('Getting value range for index:', indexName);
+    console.log('GeoJSON features count:', geoJSON.features.length);
+    console.log('First feature properties:', geoJSON.features[0]?.properties);
+    
+    const values = geoJSON.features
+      .map(f => f.properties[indexName])
+      .filter(v => typeof v === 'number' && !isNaN(v) && v !== null);
+    
+    if (values.length === 0) {
+      console.log('No valid values found for index:', indexName);
+      return null;
+    }
+    
+    const range = [Math.min(...values), Math.max(...values)];
+    console.log('Calculated range for', indexName, ':', range);
+    return range;
+  };
+
+  // Initialize value ranges when GeoJSON data is loaded
+  useEffect(() => {
+    if (geoJSON?.features?.length > 0 && selectedIndices.length === 1) {
+      console.log('Initializing value range for index:', selectedIndices[0]);
+      const newRange = getValueRangeForIndex(selectedIndices[0]);
+      if (newRange) {
+        console.log('Setting initial value range:', newRange);
+        dispatch(setValueRange(newRange));
+      }
+    }
+  }, [geoJSON, selectedIndices, dispatch]);
+
   // Render index selection menu items
   const renderIndexMenuItems = () => {
     return diversityIndices.groups.map((group) => [
@@ -263,8 +303,8 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
                     {selected.map((indexId) => {
                       const index = diversityIndices.groups
                         .flatMap(group => group.indices)
-                        .find(index => index.id === indexId);
-                      return index?.displayName;
+                        .find(index => index.commandName === indexId);
+                      return index?.displayName || indexId;
                     }).join(', ')}
                   </Box>
                 )}
@@ -308,12 +348,56 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
 
               {/* Value Range Filter */}
               <Box>
-                <FormLabel>Value range filter</FormLabel>
-                <Slider
-                  value={valueRange}
-                  onChange={handleValueRangeChange}
-                  valueLabelDisplay="auto"
-                />
+                <FormLabel>
+                  Value range filter
+                  {selectedIndices.length === 2 && (
+                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                      (Disabled when comparing two indices)
+                    </Typography>
+                  )}
+                </FormLabel>
+                {selectedIndices.length === 1 && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {(() => {
+                      const range = getValueRangeForIndex(selectedIndices[0]);
+                      console.log('Current range for slider:', range);
+                      return range ? (
+                        <>
+                          <Slider
+                            value={valueRange || range}
+                            onChange={handleValueRangeChange}
+                            valueLabelDisplay="auto"
+                            min={range[0]}
+                            max={range[1]}
+                            step={(range[1] - range[0]) / 100}
+                          />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption">{range[0].toFixed(2)}</Typography>
+                            <Typography variant="caption">{range[1].toFixed(2)}</Typography>
+                          </Box>
+                        </>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          No data available for the selected index
+                        </Typography>
+                      );
+                    })()}
+                  </Box>
+                )}
+                {selectedIndices.length === 2 && (
+                  <Slider
+                    disabled
+                    value={[0, 100]}
+                    valueLabelDisplay="off"
+                  />
+                )}
+                {selectedIndices.length === 0 && (
+                  <Slider
+                    disabled
+                    value={[0, 100]}
+                    valueLabelDisplay="off"
+                  />
+                )}
               </Box>
 
               {/* Minimum Records Filter */}

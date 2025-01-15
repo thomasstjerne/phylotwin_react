@@ -107,19 +107,24 @@ const MapComponent = () => {
       return null;
     }
 
+    // Hide cells outside the value range
+    if (valueRange && (value < valueRange[0] || value > valueRange[1])) {
+      return null;
+    }
+
     // Get all values for the selected index to calculate min/max
     const allValues = vectorSourceRef.current.getFeatures()
       .map(f => f.get(indexId))
       .filter(v => v !== undefined && v !== null);
     
-    const min = Math.min(...allValues);
-    const max = Math.max(...allValues);
+    const min = valueRange ? valueRange[0] : Math.min(...allValues);
+    const max = valueRange ? valueRange[1] : Math.max(...allValues);
 
     // Get color based on value and palette type
     let fillColor;
-    if (indexId === 'canape') {
+    if (indexId === 'CANAPE') {
       fillColor = colorSchemes.canape(value);
-    } else if (indexId.startsWith('ses.')) {
+    } else if (indexId.startsWith('SES.')) {
       fillColor = colorSchemes.diverging(value, min, max);
     } else {
       fillColor = colorSchemes.sequential(value, min, max);
