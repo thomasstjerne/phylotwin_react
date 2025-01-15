@@ -315,6 +315,87 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
           </AccordionDetails>
         </Accordion>
 
+        {/* Quantile Toggle */}
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={useQuantiles}
+                onChange={handleQuantileToggle}
+              />
+            }
+            label="Use quantile bins"
+          />
+        </Box>
+
+        {/* Value Range Filter */}
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <FormLabel>
+            Value range filter
+            {selectedIndices.length === 2 && (
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                (Disabled when comparing two indices)
+              </Typography>
+            )}
+          </FormLabel>
+          {selectedIndices.length === 1 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+              {(() => {
+                const range = getValueRangeForIndex(selectedIndices[0]);
+                console.log('Current range for slider:', range);
+                return range ? (
+                  <>
+                    <Slider
+                      value={valueRange || range}
+                      onChange={handleValueRangeChange}
+                      valueLabelDisplay="auto"
+                      min={range[0]}
+                      max={range[1]}
+                      step={(range[1] - range[0]) / 100}
+                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="caption">{range[0].toFixed(2)}</Typography>
+                      <Typography variant="caption">{range[1].toFixed(2)}</Typography>
+                    </Box>
+                  </>
+                ) : (
+                  <Typography variant="caption" color="text.secondary">
+                    No data available for the selected index
+                  </Typography>
+                );
+              })()}
+            </Box>
+          )}
+          {selectedIndices.length === 2 && (
+            <Slider
+              disabled
+              value={[0, 100]}
+              valueLabelDisplay="off"
+            />
+          )}
+          {selectedIndices.length === 0 && (
+            <Slider
+              disabled
+              value={[0, 100]}
+              valueLabelDisplay="off"
+            />
+          )}
+        </Box>
+
+        {/* Minimum Records Filter */}
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <FormLabel>Minimum records per cell</FormLabel>
+          <Box sx={{ mt: 1 }}>
+            <Slider
+              value={minRecords}
+              onChange={handleMinRecordsChange}
+              min={0}
+              max={100}
+              valueLabelDisplay="auto"
+            />
+          </Box>
+        </Box>
+
         {/* Visualization Options */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -334,83 +415,6 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
                   <MenuItem value="categorical">Categorical</MenuItem>
                 </Select>
               </FormControl>
-
-              {/* Quantile Toggle */}
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={useQuantiles}
-                    onChange={handleQuantileToggle}
-                  />
-                }
-                label="Use quantile bins"
-              />
-
-              {/* Value Range Filter */}
-              <Box>
-                <FormLabel>
-                  Value range filter
-                  {selectedIndices.length === 2 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      (Disabled when comparing two indices)
-                    </Typography>
-                  )}
-                </FormLabel>
-                {selectedIndices.length === 1 && (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {(() => {
-                      const range = getValueRangeForIndex(selectedIndices[0]);
-                      console.log('Current range for slider:', range);
-                      return range ? (
-                        <>
-                          <Slider
-                            value={valueRange || range}
-                            onChange={handleValueRangeChange}
-                            valueLabelDisplay="auto"
-                            min={range[0]}
-                            max={range[1]}
-                            step={(range[1] - range[0]) / 100}
-                          />
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption">{range[0].toFixed(2)}</Typography>
-                            <Typography variant="caption">{range[1].toFixed(2)}</Typography>
-                          </Box>
-                        </>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">
-                          No data available for the selected index
-                        </Typography>
-                      );
-                    })()}
-                  </Box>
-                )}
-                {selectedIndices.length === 2 && (
-                  <Slider
-                    disabled
-                    value={[0, 100]}
-                    valueLabelDisplay="off"
-                  />
-                )}
-                {selectedIndices.length === 0 && (
-                  <Slider
-                    disabled
-                    value={[0, 100]}
-                    valueLabelDisplay="off"
-                  />
-                )}
-              </Box>
-
-              {/* Minimum Records Filter */}
-              <Box>
-                <FormLabel>Minimum records per cell</FormLabel>
-                <Slider
-                  value={minRecords}
-                  onChange={handleMinRecordsChange}
-                  min={0}
-                  max={100}
-                  valueLabelDisplay="auto"
-                />
-              </Box>
             </Box>
           </AccordionDetails>
         </Accordion>
