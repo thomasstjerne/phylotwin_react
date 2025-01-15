@@ -4,7 +4,7 @@ import { axiosWithAuth } from '../Auth/userApi';
 import config from '../config';
 import { setPipelineStatus, setIndices, setGeoJSON, setError } from '../store/resultsSlice';
 
-const POLL_INTERVAL = 5000; // 5 seconds
+const POLL_INTERVAL = 1500; // 1.5 seconds
 
 const JobStatusPoller = () => {
   const dispatch = useDispatch();
