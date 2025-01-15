@@ -298,14 +298,19 @@ const MapComponent = () => {
           useQuantiles, 
           valueRange, 
           minRecords
-        )
+        ),
+        // Ensure layers are above the base map
+        zIndex: idx + 1,
+        // Important: ensure the layer is updateWhileAnimating and updateWhileInteracting
+        updateWhileAnimating: true,
+        updateWhileInteracting: true
       });
 
       mapInstanceRef.current.addLayer(layer);
       resultsLayersRef.current.push(layer);
 
-      // Fit view to layer extent
-      if (idx === 0) {
+      // Fit view to layer extent only once
+      if (idx === 0 && source.getFeatures().length > 0) {
         const extent = source.getExtent();
         mapInstanceRef.current.getView().fit(extent, {
           padding: [50, 50, 50, 50],
@@ -316,10 +321,35 @@ const MapComponent = () => {
 
     // Add swipe control if two indices are selected
     if (selectedIndices.length === 2) {
-      swipeControlRef.current = new Swipe();
-      swipeControlRef.current.set('rightLayer', resultsLayersRef.current[1]);
+      console.log('Setting up swipe control for layers:', selectedIndices);
+      
+      // Create and configure the swipe control
+      swipeControlRef.current = new Swipe({
+        // The layer to swipe
+        layers: resultsLayersRef.current[1],
+        // Set initial position to center
+        position: 0.5,
+        // Ensure the swipe control is above other elements
+        className: 'ol-swipe',
+        // Add orientation
+        orientation: 'vertical'
+      });
+
       mapInstanceRef.current.addControl(swipeControlRef.current);
+
+      // Force map render when swipe position changes
+      swipeControlRef.current.on('moving', function() {
+        mapInstanceRef.current.render();
+      });
     }
+
+    // Cleanup function
+    return () => {
+      if (swipeControlRef.current) {
+        mapInstanceRef.current.removeControl(swipeControlRef.current);
+        swipeControlRef.current = null;
+      }
+    };
 
   }, [resultsGeoJSON, selectedIndices, colorPalette, useQuantiles, valueRange, minRecords]);
 
