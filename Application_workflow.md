@@ -126,12 +126,12 @@ const nextflowPath = findExecutable('nextflow');
 
 ```javascript
 // Development
-INPUT_PATH: `${userHomeDir}/phylotwin_data/occurrence.parquet`
+INPUT_PATH: `${userHomeDir}/phylotwin_data/preprocessed_occurrences_parquet`
 OUTPUT_PATH: `${userHomeDir}/phylotwin_data/runs`
 TEST_DATA: `${userHomeDir}/.nextflow/assets/vmikk/phylotwin/test_data`
 
 // Production
-INPUT_PATH: '/mnt/auto/scratch/mblissett/cloud-data/latest/occurrence.parquet'
+INPUT_PATH: '/mnt/auto/scratch/mblissett/cloud-data/latest/preprocessed_occurrences_parquet'
 OUTPUT_PATH: '/opt/phylotwin/runs'
 TEST_DATA: '/opt/phylotwin/.nextflow/assets/vmikk/phylotwin/test_data'
 ```
