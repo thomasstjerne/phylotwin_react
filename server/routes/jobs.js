@@ -6,6 +6,9 @@ const config = require('../config');
 const auth = require('../Auth/auth');
 const { jobs, killJob, removeJobData } = require('../services/jobService');
 
+// Track last logged status for each job to prevent duplicate logs
+const lastLoggedStatus = new Map();
+
 // Get job status
 router.get("/:jobid", async (req, res) => {
   try {
@@ -34,15 +37,27 @@ router.get("/:jobid", async (req, res) => {
       signal: jobRecord.signal
     };
 
-    // Only log status changes and final states
-    if (response.status === 'completed' || response.status === 'error') {
-      console.log(`\n=== JOB ${response.status.toUpperCase()} ===`);
+    // Only log status changes and final states, avoiding duplicates
+    const lastStatus = lastLoggedStatus.get(jobId);
+    const currentStatus = response.status;
+    
+    if ((currentStatus === 'completed' || currentStatus === 'error') && 
+        lastStatus !== currentStatus) {
+      console.log(`\n=== JOB ${currentStatus.toUpperCase()} ===`);
       console.log(`Job ID: ${jobId}`);
       console.log(`Time: ${new Date().toISOString()}`);
       if (response.exitCode) console.log(`Exit code: ${response.exitCode}`);
       if (response.error) console.log(`Error: ${response.error}`);
       if (response.signal) console.log(`Signal: ${response.signal}`);
-      console.log('='.repeat(response.status.length + 10), '\n');
+      console.log('='.repeat(currentStatus.length + 10), '\n');
+      
+      // Update last logged status
+      lastLoggedStatus.set(jobId, currentStatus);
+      
+      // Clean up status tracking after some time
+      setTimeout(() => {
+        lastLoggedStatus.delete(jobId);
+      }, 5000); // Clean up after 5 seconds
     }
 
     res.json(response);

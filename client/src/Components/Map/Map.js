@@ -11,6 +11,7 @@ import { get } from 'ol/proj';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
+import { updateDrawnItems } from '../../store/mapSlice';
 
 // Import the swipe control from ol-ext
 import 'ol-ext/dist/ol-ext.css';
@@ -57,6 +58,7 @@ const MapComponent = () => {
       })
     };
 
+    console.log('Generated GeoJSON from features:', featureCollection);
     return featureCollection;
   };
 
@@ -192,6 +194,8 @@ const MapComponent = () => {
 
     // Add new interactions if map selection is enabled
     if (areaSelectionMode === 'map') {
+      console.log('Map selection mode enabled');
+      
       // Add modify interaction
       modifyRef.current = new Modify({ source: vectorSourceRef.current });
       mapInstanceRef.current.addInteraction(modifyRef.current);
@@ -211,16 +215,27 @@ const MapComponent = () => {
       const updateStore = () => {
         const geoJSON = featuresToGeoJSON();
         if (geoJSON) {
-          dispatch({ type: 'UPDATE_DRAWN_ITEMS', payload: geoJSON });
+          console.log('Updating Redux store with GeoJSON:', geoJSON);
+          dispatch(updateDrawnItems(geoJSON));
+        } else {
+          console.log('No features to convert to GeoJSON');
         }
       };
 
       drawRef.current.on('drawend', () => {
+        console.log('Draw ended, updating store');
         setTimeout(updateStore, 0);
       });
 
-      modifyRef.current.on('modifyend', updateStore);
-      vectorSourceRef.current.on('removefeature', updateStore);
+      modifyRef.current.on('modifyend', () => {
+        console.log('Modify ended, updating store');
+        updateStore();
+      });
+      
+      vectorSourceRef.current.on('removefeature', () => {
+        console.log('Feature removed, updating store');
+        updateStore();
+      });
     }
 
     return () => {

@@ -90,7 +90,7 @@ const SettingsPanel = ({
   const reduxUser = useSelector(state => state.auth?.user);
   const user = appContext.user || reduxUser;
   const drawnItems = useSelector(state => state.map.drawnItems);
-  const areaSelectionMode = useSelector(state => state.map.areaSelectionMode);  // Get from Redux instead of local state
+  const areaSelectionMode = useSelector(state => state.map.areaSelectionMode);
   
   // Debug auth state
   useEffect(() => {
@@ -301,20 +301,7 @@ const SettingsPanel = ({
       // Add spatial filters
       if (areaSelectionMode === 'map' && drawnItems?.features?.length > 0) {
         console.log('Adding map polygon to params:', drawnItems);
-        // Convert coordinates to [longitude, latitude] format if needed
-        const geoJSON = {
-          ...drawnItems,
-          features: drawnItems.features.map(feature => ({
-            ...feature,
-            geometry: {
-              ...feature.geometry,
-              coordinates: feature.geometry.coordinates.map(ring => 
-                ring.map(coord => [coord[0], coord[1]])
-              )
-            }
-          }))
-        };
-        params.polygon = geoJSON;
+        params.polygon = drawnItems;
       } else if (areaSelectionMode === 'country' && selectedCountries.length > 0) {
         params.selectedCountries = selectedCountries;  // Already in ISO A2 format
       }

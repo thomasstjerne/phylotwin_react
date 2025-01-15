@@ -61,8 +61,23 @@ const checkDirectoryAccess = async (dir) => {
 async function saveGeoJSONToFile(geojson, outputDir) {
   const filename = 'drawn_polygon.geojson';
   const filepath = path.join(outputDir, filename);
-  console.log('Saving GeoJSON to:', filepath);
+  console.log('\n=== SAVING GEOJSON FILE ===');
+  console.log('Output directory:', outputDir);
+  console.log('Target filepath:', filepath);
+  console.log('Number of polygons:', geojson.features.length);
+  
   try {
+    // Verify directory exists
+    try {
+      await fs.access(outputDir, fs.constants.W_OK);
+      console.log('Output directory exists and is writable');
+    } catch (error) {
+      console.error('Output directory issue:', error);
+      // Create directory if it doesn't exist
+      await fs.mkdir(outputDir, { recursive: true });
+      console.log('Created output directory');
+    }
+
     // Ensure the GeoJSON is properly formatted
     const formattedGeoJSON = {
       type: 'FeatureCollection',
@@ -76,14 +91,22 @@ async function saveGeoJSONToFile(geojson, outputDir) {
       }))
     };
 
+    // Write file
     await fs.writeFile(filepath, JSON.stringify(formattedGeoJSON, null, 2));
-    // Verify the file was written
-    await fs.access(filepath, fs.constants.F_OK);
-    const fileContent = await fs.readFile(filepath, 'utf8');
-    console.log('Successfully wrote and verified GeoJSON file. Content:', fileContent);
+    console.log('File written successfully');
+
+    // Verify file exists and is readable
+    await fs.access(filepath, fs.constants.F_OK | fs.constants.R_OK);
+    const stats = await fs.stat(filepath);
+    console.log('File verified:', {
+      exists: true,
+      size: `${(stats.size / 1024).toFixed(2)} KB`,
+      path: filepath
+    });
+
     return filepath;
   } catch (error) {
-    console.error('Error writing GeoJSON file:', error);
+    console.error('Error in saveGeoJSONToFile:', error);
     throw error;
   }
 }
@@ -101,6 +124,7 @@ router.post('/',
     console.log(`Time: ${new Date().toISOString()}`);
     console.log(`Job ID: ${jobId}`);
     console.log(`User: ${req.user?.userName}`);
+    console.log('Request body data:', req.body.data);
     console.log('===============================\n');
 
     if (!req.user) {
@@ -124,24 +148,53 @@ router.post('/',
       const outputDir = `${jobDir}/output`;
       
       // Create job directories
-      await fs.mkdir(outputDir, { recursive: true });
+      console.log('\n=== CREATING DIRECTORIES ===');
+      console.log('Job directory:', jobDir);
+      console.log('Output directory:', outputDir);
+      
+      try {
+        await fs.mkdir(jobDir, { recursive: true });
+        await fs.mkdir(outputDir, { recursive: true });
+        console.log('Directories created successfully');
+      } catch (error) {
+        console.error('Error creating directories:', error);
+        throw error;
+      }
       
       // Parse request parameters
       let body;
       try {
         body = JSON.parse(req.body.data);
+        console.log('\n=== PARSED REQUEST BODY ===');
+        console.log('Area selection mode:', body.areaSelectionMode);
+        console.log('Has polygon data:', !!body.polygon);
+        if (body.polygon) {
+          console.log('Polygon features:', body.polygon.features?.length);
+        }
       } catch (error) {
+        console.error('Error parsing request body:', error);
         throw new Error('Invalid JSON in data field');
       }
 
+      let polygonPath = null;
+
       // Handle map-drawn polygons
       if (body.areaSelectionMode === 'map' && body.polygon?.features?.length > 0) {
-        const polygonPath = await saveGeoJSONToFile(body.polygon, outputDir);
-        body.polygon = 'drawn_polygon.geojson';
+        console.log('\n=== HANDLING MAP POLYGON ===');
+        try {
+          polygonPath = await saveGeoJSONToFile(body.polygon, outputDir);
+          console.log('Polygon saved successfully to:', polygonPath);
+          body.polygon = path.basename(polygonPath);
+        } catch (error) {
+          console.error('Error saving polygon:', error);
+          throw error;
+        }
       }
       // Handle uploaded files
       else if (req.files?.polygon?.[0]) {
-        body.polygon = req.files.polygon[0].originalname;
+        polygonPath = path.join(outputDir, req.files.polygon[0].originalname);
+        body.polygon = path.basename(polygonPath);
+        console.log('Using uploaded polygon file:', polygonPath);
       }
       
       if (req.files?.specieskeys?.[0]) {
@@ -149,8 +202,16 @@ router.post('/',
       }
 
       // Process parameters and start job
+      console.log('\n=== PROCESSING PARAMETERS ===');
+      console.log('Input body:', body);
       const processedParams = processParams(body, outputDir);
       
+      // Log the final parameters
+      console.log('\n=== PROCESSED PARAMETERS ===');
+      console.log('Polygon path:', processedParams.polygon || 'None');
+      console.log('Full processed parameters:', processedParams);
+      console.log('===========================\n');
+
       await startJob({
         username: req?.user?.userName,
         req_id: jobId,
@@ -162,6 +223,7 @@ router.post('/',
       console.error('\n=== REQUEST PROCESSING ERROR ===');
       console.error(`Job ID: ${jobId}`);
       console.error('Error:', error.message);
+      console.error('Stack:', error.stack);
       console.error('================================\n');
       res.status(500).json({ error: error.message });
     }
