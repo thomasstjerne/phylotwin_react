@@ -30,7 +30,8 @@ import {
   setColorPalette,
   setUseQuantiles,
   setValueRange,
-  setMinRecords
+  setMinRecords,
+  selectQuantileBins
 } from '../store/visualizationSlice';
 
 const drawerWidth = 340;
@@ -66,6 +67,7 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
     minRecords
   } = useSelector(state => state.visualization);
   
+  const quantileBins = useSelector(selectQuantileBins);
   const { status, indices: computedIndices, error, geoJSON } = useSelector(state => state.results);
   const hasResults = status === 'completed' && computedIndices.length > 0;
   const isLoading = status === 'running';
@@ -240,6 +242,26 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
     }
   };
 
+  const renderQuantileBins = () => {
+    if (!quantileBins) {
+      return (
+        <Typography variant="caption" color="text.secondary">
+          No data available for quantile binning
+        </Typography>
+      );
+    }
+
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        {quantileBins.map((bin, index) => (
+          <Typography key={index} variant="caption" color="text.secondary">
+            {bin.label}: {bin.range[0].toFixed(2)} to {bin.range[1] === Number.POSITIVE_INFINITY ? '∞' : bin.range[1].toFixed(2)}
+          </Typography>
+        ))}
+      </Box>
+    );
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -322,10 +344,25 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
               <Checkbox
                 checked={useQuantiles}
                 onChange={handleQuantileToggle}
+                disabled={selectedIndices.length !== 1}
               />
             }
-            label="Use quantile bins"
+            label={
+              <Box>
+                <Typography>Use quantile bins</Typography>
+                {selectedIndices.length !== 1 && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Available only when one index is selected
+                  </Typography>
+                )}
+              </Box>
+            }
           />
+          {useQuantiles && selectedIndices.length === 1 && (
+            <Box sx={{ mt: 1, ml: 4 }}>
+              {renderQuantileBins()}
+            </Box>
+          )}
         </Box>
 
         {/* Value Range Filter */}
