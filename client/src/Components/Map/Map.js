@@ -26,6 +26,8 @@ const MapComponent = () => {
   const modifyRef = useRef(null);
   const swipeControlRef = useRef(null);
   const resultsLayersRef = useRef([]);
+  const tooltipRef = useRef(null);
+  const hoveredFeatureRef = useRef(null);
   const dispatch = useDispatch();
 
   // Get state from Redux
@@ -38,52 +40,109 @@ const MapComponent = () => {
   const resultsGeoJSON = useSelector(state => state.results?.geoJSON);
   const drawnItems = useSelector(state => state.map.drawnItems);
 
-  // Watch for changes in drawnItems from Redux
+  // Create tooltip element
   useEffect(() => {
-    if (vectorSourceRef.current && drawnItems.features.length === 0) {
-      console.log('Clearing vector source due to Redux state change');
-      vectorSourceRef.current.clear();
+    if (!tooltipRef.current) {
+      const tooltip = document.createElement('div');
+      tooltip.className = 'map-tooltip';
+      tooltip.style.position = 'fixed';
+      document.body.appendChild(tooltip);
+      tooltipRef.current = tooltip;
     }
-  }, [drawnItems]);
 
-  // Function to convert features to GeoJSON
-  const featuresToGeoJSON = () => {
-    if (!vectorSourceRef.current) return null;
-    
-    const features = vectorSourceRef.current.getFeatures();
-    if (features.length === 0) return null;
-
-    const geoJSONFormat = new GeoJSON();
-    const featureCollection = {
-      type: 'FeatureCollection',
-      features: features.map(feature => {
-        const clonedGeometry = feature.getGeometry().clone();
-        clonedGeometry.transform('EPSG:3857', 'EPSG:4326');
-        return {
-          type: 'Feature',
-          geometry: geoJSONFormat.writeGeometryObject(clonedGeometry),
-          properties: feature.getProperties()
-        };
-      })
+    return () => {
+      if (tooltipRef.current) {
+        tooltipRef.current.remove();
+        tooltipRef.current = null;
+      }
     };
+  }, []);
 
-    console.log('Generated GeoJSON from features:', featureCollection);
-    return featureCollection;
+  // Function to format value for display
+  const formatValue = (value) => {
+    if (typeof value === 'number') {
+      // Check if value is an integer
+      return Number.isInteger(value) ? value : value.toFixed(2);
+    }
+    return value;
+  };
+
+  // Function to update tooltip content and position
+  const updateTooltip = (pixel, feature) => {
+    if (!tooltipRef.current || !feature) {
+      if (tooltipRef.current) {
+        tooltipRef.current.style.display = 'none';
+      }
+      return;
+    }
+
+    const h3Id = feature.get('h3_index');
+    if (!h3Id) return;
+
+    let content = `<strong>H3 ID:</strong> ${h3Id}<br/>`;
+    
+    // Get all properties of the feature
+    const properties = feature.getProperties();
+
+    // List of properties to exclude from display
+    const excludeProps = ['h3_index', 'geometry'];
+
+    // Add all numeric properties (indices)
+    Object.entries(properties)
+      .filter(([key, value]) => !excludeProps.includes(key) && typeof value === 'number')
+      .sort(([a], [b]) => a.localeCompare(b)) // Sort alphabetically
+      .forEach(([key, value]) => {
+        const formattedValue = formatValue(value);
+        content += `<strong>${key}:</strong> ${formattedValue}<br/>`;
+      });
+
+    tooltipRef.current.innerHTML = content;
+    tooltipRef.current.style.display = 'block';
+
+    // Use the mouse coordinates directly for positioning
+    const x = pixel[0];
+    const y = pixel[1];
+
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Get tooltip dimensions
+    const tooltipWidth = tooltipRef.current.offsetWidth;
+    const tooltipHeight = tooltipRef.current.offsetHeight;
+
+    // Calculate position, keeping tooltip within viewport
+    let left = x + 15; // 15px offset from cursor
+    let top = y + 15;
+
+    // Adjust if tooltip would go off right edge
+    if (left + tooltipWidth > viewportWidth) {
+      left = x - tooltipWidth - 15;
+    }
+
+    // Adjust if tooltip would go off bottom edge
+    if (top + tooltipHeight > viewportHeight) {
+      top = y - tooltipHeight - 15;
+    }
+
+    // Apply the position
+    tooltipRef.current.style.left = `${left}px`;
+    tooltipRef.current.style.top = `${top}px`;
   };
 
   // Color schemes for different metric types
   const colorSchemes = {
     sequential: (value, min, max) => {
       const t = (value - min) / (max - min);
-      return `rgba(72, 118, 255, ${0.2 + t * 0.8})`; // Blue with varying opacity
+      return `rgba(72, 118, 255, ${0.4 + t * 0.6})`; // Blue with varying opacity from 0.4 to 1.0
     },
     diverging: (value, min, max) => {
       const mid = (max + min) / 2;
       const t = (value - min) / (max - min);
       if (value < mid) {
-        return `rgba(255, 0, 0, ${0.2 + t * 0.8})`; // Red for negative
+        return `rgba(255, 0, 0, ${0.4 + t * 0.6})`; // Red for negative, opacity 0.4-1.0
       }
-      return `rgba(72, 118, 255, ${0.2 + t * 0.8})`; // Blue for positive
+      return `rgba(72, 118, 255, ${0.4 + t * 0.6})`; // Blue for positive, opacity 0.4-1.0
     },
     canape: (value) => {
       const colors = {
@@ -98,7 +157,7 @@ const MapComponent = () => {
   };
 
   // Style function for results layer
-  const getResultStyle = (feature, indexId, palette, useQuantiles, valueRange, minRecords) => {
+  const getResultStyle = (feature, indexId, palette, useQuantiles, valueRange, minRecords, isHovered = false) => {
     const value = feature.get(indexId);
     const numRecords = feature.get('NumRecords') || 0;
     
@@ -135,10 +194,43 @@ const MapComponent = () => {
         color: fillColor
       }),
       stroke: new Stroke({
-        color: fillColor.replace(/[^,]+\)/, '1)'), // Make stroke fully opaque
-        width: 1
+        color: isHovered ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0)',
+        width: isHovered ? 2 : 0
       })
     });
+  };
+
+  // Watch for changes in drawnItems from Redux
+  useEffect(() => {
+    if (vectorSourceRef.current && drawnItems.features.length === 0) {
+      console.log('Clearing vector source due to Redux state change');
+      vectorSourceRef.current.clear();
+    }
+  }, [drawnItems]);
+
+  // Function to convert features to GeoJSON
+  const featuresToGeoJSON = () => {
+    if (!vectorSourceRef.current) return null;
+    
+    const features = vectorSourceRef.current.getFeatures();
+    if (features.length === 0) return null;
+
+    const geoJSONFormat = new GeoJSON();
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: features.map(feature => {
+        const clonedGeometry = feature.getGeometry().clone();
+        clonedGeometry.transform('EPSG:3857', 'EPSG:4326');
+        return {
+          type: 'Feature',
+          geometry: geoJSONFormat.writeGeometryObject(clonedGeometry),
+          properties: feature.getProperties()
+        };
+      })
+    };
+
+    console.log('Generated GeoJSON from features:', featureCollection);
+    return featureCollection;
   };
 
   // Initialize map
@@ -177,6 +269,58 @@ const MapComponent = () => {
           projection: 'EPSG:3857',
           extent,
         })
+      });
+
+      // Add pointer move handler for tooltips
+      mapInstanceRef.current.on('pointermove', (evt) => {
+        if (evt.dragging) {
+          if (tooltipRef.current) {
+            tooltipRef.current.style.display = 'none';
+          }
+          if (hoveredFeatureRef.current) {
+            hoveredFeatureRef.current = null;
+            resultsLayersRef.current.forEach(layer => layer.changed());
+          }
+          return;
+        }
+
+        const pixel = mapInstanceRef.current.getEventPixel(evt.originalEvent);
+        const hit = mapInstanceRef.current.hasFeatureAtPixel(pixel, {
+          layerFilter: layer => resultsLayersRef.current.includes(layer)
+        });
+
+        mapInstanceRef.current.getTargetElement().style.cursor = hit ? 'pointer' : '';
+
+        // Handle hover effect and tooltip
+        let foundFeature = null;
+        mapInstanceRef.current.forEachFeatureAtPixel(pixel, (feature, layer) => {
+          if (resultsLayersRef.current.includes(layer)) {
+            foundFeature = feature;
+            return true;
+          }
+        }, {
+          layerFilter: layer => resultsLayersRef.current.includes(layer)
+        });
+
+        // Update hover effect
+        if (hoveredFeatureRef.current !== foundFeature) {
+          hoveredFeatureRef.current = foundFeature;
+          resultsLayersRef.current.forEach(layer => layer.changed());
+        }
+
+        // Update tooltip using mouse event coordinates
+        updateTooltip([evt.originalEvent.clientX, evt.originalEvent.clientY], foundFeature);
+      });
+
+      // Hide tooltip when leaving the map
+      mapInstanceRef.current.getViewport().addEventListener('mouseout', () => {
+        if (tooltipRef.current) {
+          tooltipRef.current.style.display = 'none';
+        }
+        if (hoveredFeatureRef.current) {
+          hoveredFeatureRef.current = null;
+          resultsLayersRef.current.forEach(layer => layer.changed());
+        }
       });
     }
 
@@ -297,7 +441,8 @@ const MapComponent = () => {
           colorPalette, 
           useQuantiles, 
           valueRange, 
-          minRecords
+          minRecords,
+          feature === hoveredFeatureRef.current
         ),
         // Ensure layers are above the base map
         zIndex: idx + 1,
@@ -343,7 +488,6 @@ const MapComponent = () => {
       });
     }
 
-    // Cleanup function
     return () => {
       if (swipeControlRef.current) {
         mapInstanceRef.current.removeControl(swipeControlRef.current);
