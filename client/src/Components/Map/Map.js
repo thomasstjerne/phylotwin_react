@@ -36,6 +36,15 @@ const MapComponent = () => {
   const valueRange = useSelector(state => state.visualization?.valueRange);
   const minRecords = useSelector(state => state.visualization?.minRecords);
   const resultsGeoJSON = useSelector(state => state.results?.geoJSON);
+  const drawnItems = useSelector(state => state.map.drawnItems);
+
+  // Watch for changes in drawnItems from Redux
+  useEffect(() => {
+    if (vectorSourceRef.current && drawnItems.features.length === 0) {
+      console.log('Clearing vector source due to Redux state change');
+      vectorSourceRef.current.clear();
+    }
+  }, [drawnItems]);
 
   // Function to convert features to GeoJSON
   const featuresToGeoJSON = () => {

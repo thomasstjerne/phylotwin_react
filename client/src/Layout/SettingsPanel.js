@@ -29,6 +29,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import InfoIcon from '@mui/icons-material/Info';
+import ClearIcon from '@mui/icons-material/Clear';
 import countries from '../Vocabularies/country.json';
 import phylogeneticTrees from '../shared/vocabularies/phylogeneticTrees.json';
 import diversityIndices from '../shared/vocabularies/diversityIndices.json';
@@ -453,6 +454,28 @@ const SettingsPanel = ({
                               <InfoIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
+                          {areaSelectionMode === 'map' && (
+                            <Tooltip title="Reset selection">
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  ml: 1,
+                                  color: 'error.main',
+                                  '&:hover': {
+                                    backgroundColor: 'error.light',
+                                    color: 'error.dark'
+                                  }
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  dispatch(clearDrawnItems());
+                                }}
+                              >
+                                <ClearIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                         </Box>
                       }
                     />
