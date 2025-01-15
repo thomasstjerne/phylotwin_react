@@ -168,7 +168,13 @@ const SettingsPanel = ({
     }).filter(Boolean);
     
     setSelectedCountries(selectedA2Codes);
-    updateReduxStore('UPDATE_SELECTED_COUNTRIES', selectedA2Codes);
+    dispatch(updateSelectedCountries(selectedA2Codes));
+  };
+
+  const handleClearCountries = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleSelectedCountriesChange([]);
   };
 
   const handlePhyloTreeChange = (event) => {
@@ -454,7 +460,7 @@ const SettingsPanel = ({
                               <InfoIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          {areaSelectionMode === 'map' && (
+                          {areaSelectionMode === 'map' && drawnItems?.features?.length > 0 && (
                             <Tooltip title="Reset selection">
                               <IconButton 
                                 size="small" 
@@ -530,6 +536,24 @@ const SettingsPanel = ({
                               <InfoIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
+                          {areaSelectionMode === 'country' && selectedCountries?.length > 0 && (
+                            <Tooltip title="Reset selection">
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  ml: 1,
+                                  color: 'error.main',
+                                  '&:hover': {
+                                    backgroundColor: 'error.light',
+                                    color: 'error.dark'
+                                  }
+                                }}
+                                onClick={handleClearCountries}
+                              >
+                                <ClearIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                         </Box>
                       }
                     />
