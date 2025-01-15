@@ -58,6 +58,7 @@ import {
   setAreaSelectionMode,
   clearDrawnItems
 } from '../store/mapSlice';
+import { Spin } from 'antd';
 
 const drawerWidth = 340;
 
@@ -387,6 +388,10 @@ const SettingsPanel = ({
 
   const missingParams = getMissingRequiredParams(selectedPhyloTree, areaSelectionMode);
   const isStartButtonDisabled = missingParams.length > 0 || isLoading;
+
+  // Get pipeline status from Redux
+  const pipelineStatus = useSelector((state) => state.results.status);
+  const isAnalysisRunning = pipelineStatus === 'running';
 
   return (
     <Drawer
@@ -840,7 +845,7 @@ const SettingsPanel = ({
             )}
             <Tooltip 
               title={
-                isStartButtonDisabled && !isLoading ? 
+                isStartButtonDisabled && !isAnalysisRunning ? 
                 `Please specify: ${missingParams.join(' and ')}` : 
                 ''
               }
@@ -853,9 +858,10 @@ const SettingsPanel = ({
                   fullWidth
                   size="large"
                   onClick={handleAnalysisClick}
-                  disabled={isStartButtonDisabled}
+                  disabled={isStartButtonDisabled || isAnalysisRunning}
+                  startIcon={isAnalysisRunning && <Spin size="small" />}
                 >
-                  {isLoading ? 'Starting Analysis...' : 'Start Analysis'}
+                  {isAnalysisRunning ? 'Analysis Running...' : 'Start Analysis'}
                 </Button>
               </span>
             </Tooltip>

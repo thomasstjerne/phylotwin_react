@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { Box, Button, AppBar, Toolbar } from '@mui/material';
+import { Box, Button, AppBar, Toolbar, Typography } from '@mui/material';
 import { useSelector } from 'react-redux';
+import { Spin } from 'antd';
 import SettingsPanel from './SettingsPanel';
 import VisualizationPanel from './VisualizationPanel';
 import HypothesisPanel from './HypothesisPanel';
@@ -11,11 +12,11 @@ const Layout = ({ step, setStep }) => {
   const [activePanel, setActivePanel] = useState('settings');
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true);
   const location = useLocation();
-  const { status } = useSelector(state => state.results);
+  const { status, jobId } = useSelector(state => state.results);
+  const isAnalysisRunning = status === 'running';
 
   // Only show the navigation and settings panel on the workflow page
   const isWorkflowPage = location.pathname === '/run';
-  console.log("Current pathname:", location.pathname, "isWorkflowPage:", isWorkflowPage);
 
   if (!isWorkflowPage) {
     return <Outlet />;
@@ -49,7 +50,7 @@ const Layout = ({ step, setStep }) => {
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Button 
               color="inherit"
               onClick={() => handlePanelChange('settings')}
@@ -79,6 +80,14 @@ const Layout = ({ step, setStep }) => {
             >
               Hypothesis test
             </Button>
+            {isAnalysisRunning && (
+              <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+                <Spin size="small" />
+                <Typography variant="body2" color="inherit" sx={{ ml: 1 }}>
+                  Analysis running...
+                </Typography>
+              </Box>
+            )}
           </Box>
           <Box>
             <UserMenu />
