@@ -10,14 +10,16 @@
           "displayName": "Species Richness",
           "description": "Number of unique species in the area",
           "commandName": "Richness",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "sequential"
         },
         {
           "id": "shannon",
           "displayName": "Shannon index",
           "description": "Measure of species diversity considering both abundance and evenness",
           "commandName": "Shannon",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "sequential"
         }
       ]
     },
@@ -32,49 +34,56 @@
           "displayName": "Phylogenetic diversity (PD)",
           "description": "Sum of branch lengths in the phylogenetic tree",
           "commandName": "PD",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "sequential"
         },
         {
           "id": "rpd",
           "displayName": "Relative phylogenetic diversity (RPD)",
           "description": "Relative phylogenetic diversity",
           "commandName": "RPD",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "bounded"
         },
         {
           "id": "mpd",
           "displayName": "Mean phylogenetic distance (MPD)",
           "description": "Mean phylogenetic distance",
           "commandName": "MPD",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "sequential"
         },
         {
           "id": "mntd",
           "displayName": "Mean nearest taxon distance (MNTD)",
           "description": "Mean nearest taxon distance",
           "commandName": "MNTD",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "sequential"
         },
         {
           "id": "ses.pd",
           "displayName": "SES PD",
           "description": "Standardized effect size for phylogenetic diversity",
           "commandName": "SES.PD",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "diverging"
         },
         {
           "id": "ses.mpd",
           "displayName": "SES MPD",
           "description": "Standardized effect size for mean phylogenetic distance",
           "commandName": "SES.MPD",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "diverging"
         },
         {
           "id": "ses.mntd",
           "displayName": "SES MNTD",
           "description": "Standardized effect size for mean nearest taxon distance",
           "commandName": "SES.MNTD",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "diverging"
         }
       ]
     },
@@ -89,21 +98,24 @@
           "displayName": "Weighted endemism",
           "description": "Measure of species uniqueness weighted by their range size",
           "commandName": "WeightedEndemism",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "sequential"
         },
         {
           "id": "pde",
           "displayName": "Phylogenetic endemism (PD-endemism)",
           "description": "The total amount of branch length found only in the sample/s (Faith et al., 2004)",
           "commandName": "PhyloEndemismStrict",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "sequential"
         },
         {
           "id": "pe",
           "displayName": "Phylogenetic endemism (PE)",
           "description": "Spatial uniqueness is calculated by summing branch lengths weighted by the reciprocal of their range for each branch at a sample/site (Rosauer et al., 2009)",
           "commandName": "PhyloEndemismWeighted",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "sequential"
         }
       ]
     },
@@ -118,35 +130,40 @@
           "displayName": "CANAPE",
           "description": "Categorical analysis of neo- and paleo-endemism",
           "commandName": "bd_CANAPE",
-          "module": "biodiverse"
+          "module": "biodiverse",
+          "colorSchemeType": "CANAPE"
         },
         {
           "id": "rpd1",
           "displayName": "Relative PD Type 1",
           "description": "Relative phylogenetic diversity using type 1 randomization",
           "commandName": "calc_phylo_rpd1",
-          "module": "biodiverse"
+          "module": "biodiverse",
+          "colorSchemeType": "bounded"
         },
         {
           "id": "rpd2",
           "displayName": "Relative PD Type 2",
           "description": "Relative phylogenetic diversity using type 2 randomization",
           "commandName": "calc_phylo_rpd2",
-          "module": "biodiverse"
+          "module": "biodiverse",
+          "colorSchemeType": "bounded"
         },
         {
           "id": "rpe1",
           "displayName": "Relative PE Type 1",
           "description": "Relative phylogenetic endemism using type 1 randomization",
           "commandName": "calc_phylo_rpe1",
-          "module": "biodiverse"
+          "module": "biodiverse",
+          "colorSchemeType": "bounded"
         },
         {
           "id": "rpe2",
           "displayName": "Relative PE Type 2",
           "description": "Relative phylogenetic endemism using type 2 randomization",
           "commandName": "calc_phylo_rpe2",
-          "module": "biodiverse"
+          "module": "biodiverse",
+          "colorSchemeType": "bounded"
         }
       ]
     },
@@ -161,14 +178,16 @@
           "displayName": "Redundancy",
           "description": "Identifies potential bias in undersampled grid cells. Defined as 1 - (richness / number of records)",
           "commandName": "Redundancy",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "bounded"
         },
         {
           "id": "NumRecords",
           "displayName": "Number or records",
           "description": "Number of records in species occurrences per grid cell",
           "commandName": "NumRecords",
-          "module": "main"
+          "module": "main",
+          "colorSchemeType": "sequential"
         }
       ]
     }
