@@ -13,7 +13,7 @@ const initialState = {
   },
   recordFilteringMode: 'specimen',
   yearRange: [1950, 2024],
-  selectedDiversityIndices: ['richness', 'pd'],
+  selectedDiversityIndices: ['richness', 'pd', 'ses.pd'],
   randomizations: 100
 };
 
