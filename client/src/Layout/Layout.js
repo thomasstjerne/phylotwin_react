@@ -7,6 +7,7 @@ import SettingsPanel from './SettingsPanel';
 import VisualizationPanel from './VisualizationPanel';
 import HypothesisPanel from './HypothesisPanel';
 import UserMenu from '../Components/UserMenu';
+import JobStatusPoller from '../Components/JobStatusPoller';
 
 const Layout = ({ step, setStep }) => {
   const [activePanel, setActivePanel] = useState('settings');
@@ -29,8 +30,9 @@ const Layout = ({ step, setStep }) => {
       hasResults: status === 'completed'
     });
     
-    // Allow opening visualization panel if results are available
-    if (newValue === 'visualization' && status !== 'completed') {
+    // Only block manual visualization panel opening
+    // Allow programmatic opening from JobStatusPoller
+    if (newValue === 'visualization' && status !== 'completed' && !isAnalysisRunning) {
       console.log('Cannot open visualization panel - no results available');
       return;
     }
@@ -39,11 +41,14 @@ const Layout = ({ step, setStep }) => {
   };
 
   const handlePanelOpen = (panel) => {
-    handlePanelChange(panel);
+    console.log('Opening panel:', panel);
+    setActivePanel(panel);
+    setIsSettingsPanelOpen(true);
   };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <JobStatusPoller handlePanelOpen={handlePanelOpen} />
       <AppBar 
         position="static" 
         sx={{ 

@@ -7,7 +7,7 @@ import { setSelectedIndices } from '../store/visualizationSlice';
 
 const POLL_INTERVAL = 1500; // 1.5 seconds
 
-const JobStatusPoller = () => {
+const JobStatusPoller = ({ handlePanelOpen }) => {
   const dispatch = useDispatch();
   const { jobId, status } = useSelector((state) => state.results);
 
@@ -52,6 +52,12 @@ const JobStatusPoller = () => {
         } else {
           console.log('Richness index not found in:', indices);
         }
+
+        // Switch to visualization panel when results are ready
+        if (handlePanelOpen) {
+          console.log('Switching to visualization panel');
+          handlePanelOpen('visualization');
+        }
       } else {
         throw new Error('No data in results response');
       }
@@ -67,7 +73,7 @@ const JobStatusPoller = () => {
       dispatch(setError('Failed to fetch results: ' + errorMessage));
       dispatch(setPipelineStatus('failed'));
     }
-  }, [dispatch]);
+  }, [dispatch, handlePanelOpen]);
 
   useEffect(() => {
     let pollTimer;
