@@ -12,7 +12,7 @@ const Layout = ({ step, setStep }) => {
   const [activePanel, setActivePanel] = useState('settings');
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true);
   const location = useLocation();
-  const { status, jobId } = useSelector(state => state.results);
+  const { status } = useSelector(state => state.results);
   const isAnalysisRunning = status === 'running';
 
   // Only show the navigation and settings panel on the workflow page
@@ -23,6 +23,12 @@ const Layout = ({ step, setStep }) => {
   }
 
   const handlePanelChange = (newValue) => {
+    console.log('Panel change requested:', {
+      newValue,
+      currentStatus: status,
+      hasResults: status === 'completed'
+    });
+    
     // Allow opening visualization panel if results are available
     if (newValue === 'visualization' && status !== 'completed') {
       console.log('Cannot open visualization panel - no results available');
@@ -69,6 +75,9 @@ const Layout = ({ step, setStep }) => {
               disabled={status !== 'completed'}
             >
               Visualization
+              {status === 'completed' && (
+                <Box component="span" sx={{ ml: 1, width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
+              )}
             </Button>
             <Button 
               color="inherit"

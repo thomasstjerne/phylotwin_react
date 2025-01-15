@@ -34,6 +34,19 @@ app.use(bodyParser.json({
     limit: '1mb'
 }));
 
+// Debug middleware
+app.use((req, res, next) => {
+    if (process.env.DEBUG_REQUESTS === 'true') {
+        console.log('\n=== INCOMING REQUEST ===');
+        console.log('Method:', req.method);
+        console.log('Path:', req.path);
+        console.log('Query:', req.query);
+        console.log('Headers:', req.headers);
+        console.log('======================\n');
+    }
+    next();
+});
+
 // Add headers before the routes are defined
 app.use(function (req, res, next) {
     // Website you wish to allow to connect
@@ -49,6 +62,9 @@ app.use(function (req, res, next) {
 app.use('/api/auth', require('./Auth/auth.controller'));
 app.use('/api/phylonext/runs', require('./routes/runs'));
 app.use('/api/phylonext/jobs', require('./routes/jobs'));
+
+// Add results routes
+require('./results')(app);
 
 // Error handling
 app.use((err, req, res, next) => {

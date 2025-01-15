@@ -243,5 +243,39 @@ module.exports = (app) => {
     }
   });
 
+  app.get("/api/phylonext/jobs/:jobid/output/02.Diversity_estimates/diversity_estimates.geojson", function (req, res) {
+    console.log('\n=== GEOJSON REQUEST ===');
+    console.log('Job ID:', req.params.jobid);
+    
+    if (!req.params.jobid) {
+      console.log('No job ID provided');
+      res.sendStatus(404);
+    } else {
+      const filePath = `${config.OUTPUT_PATH}/${req.params.jobid}/output/02.Diversity_estimates/diversity_estimates.geojson`;
+      console.log('Attempting to serve GeoJSON from:', filePath);
+      
+      // Check if file exists
+      fs.access(filePath, fs.constants.F_OK, (err) => {
+        if (err) {
+          console.error('GeoJSON file not found:', filePath);
+          console.error('Error:', err.message);
+          res.sendStatus(404);
+        } else {
+          try {
+            console.log('GeoJSON file found, streaming to client');
+            fs.createReadStream(filePath)
+              .on('error', (error) => {
+                console.error('Error streaming GeoJSON:', error);
+                res.sendStatus(500);
+              })
+              .pipe(res);
+          } catch (error) {
+            console.error('Error serving GeoJSON:', error);
+            res.sendStatus(500);
+          }
+        }
+      });
+    }
+  });
 
 };

@@ -4,7 +4,7 @@ const initialState = {
   selectedIndices: [],
   colorPalette: 'sequential',
   useQuantiles: false,
-  valueRange: [0, 100],
+  valueRange: null,
   minRecords: 0,
   geoJSON: null
 };
@@ -14,7 +14,7 @@ const visualizationSlice = createSlice({
   initialState,
   reducers: {
     setSelectedIndices: (state, action) => {
-      state.selectedIndices = action.payload;
+      state.selectedIndices = action.payload.slice(0, 2);
     },
     setColorPalette: (state, action) => {
       state.colorPalette = action.payload;
@@ -30,6 +30,20 @@ const visualizationSlice = createSlice({
     },
     setGeoJSON: (state, action) => {
       state.geoJSON = action.payload;
+      
+      if (action.payload?.features?.length > 0) {
+        const allValues = action.payload.features
+          .map(f => Object.values(f.properties))
+          .flat()
+          .filter(v => typeof v === 'number');
+        
+        if (allValues.length > 0) {
+          state.valueRange = [
+            Math.min(...allValues),
+            Math.max(...allValues)
+          ];
+        }
+      }
     },
     resetVisualization: (state) => {
       return initialState;

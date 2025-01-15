@@ -66,17 +66,35 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
     minRecords
   } = useSelector(state => state.visualization);
   
-  const { status, indices: computedIndices, error } = useSelector(state => state.results);
+  const { status, indices: computedIndices, error, geoJSON } = useSelector(state => state.results);
   const hasResults = status === 'completed' && computedIndices.length > 0;
   const isLoading = status === 'running';
   const hasFailed = status === 'failed';
 
+  // Debug logging
+  useEffect(() => {
+    console.log('VisualizationPanel state:', {
+      isOpen,
+      status,
+      computedIndices,
+      selectedIndices,
+      hasResults,
+      isLoading,
+      hasFailed,
+      geoJSON: geoJSON ? {
+        type: geoJSON.type,
+        featureCount: geoJSON.features?.length
+      } : null
+    });
+  }, [isOpen, status, computedIndices, selectedIndices, hasResults, isLoading, hasFailed, geoJSON]);
+
   // Don't automatically close the panel, let the Layout component handle it
   useEffect(() => {
     if (isOpen && hasResults) {
-      // If we have results and no indices are selected, select the first one
-      if (selectedIndices.length === 0 && computedIndices.length > 0) {
-        dispatch(setSelectedIndices([computedIndices[0]]));
+      // If we have results and no indices are selected, select Richness by default
+      if (selectedIndices.length === 0 && computedIndices.includes('Richness')) {
+        console.log('Setting default index to Richness in VisualizationPanel');
+        dispatch(setSelectedIndices(['Richness']));
       }
     }
   }, [isOpen, hasResults, selectedIndices, computedIndices, dispatch]);
@@ -88,6 +106,67 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
     if (value.length <= 2) {
       dispatch(setSelectedIndices(value));
     }
+  };
+
+  // Get index metadata from diversityIndices vocabulary
+  const getIndexMetadata = (indexId) => {
+    return diversityIndices.groups
+      .flatMap(group => group.indices)
+      .find(index => index.commandName === indexId);
+  };
+
+  // Determine color palette type based on index
+  const getDefaultPalette = (indexId) => {
+    const metadata = getIndexMetadata(indexId);
+    if (!metadata) return 'sequential';
+
+    if (indexId === 'CANAPE') return 'categorical';
+    if (indexId.startsWith('SES.')) return 'diverging';
+    return 'sequential';
+  };
+
+  // Update color palette when indices change
+  useEffect(() => {
+    if (selectedIndices.length === 1) {
+      const defaultPalette = getDefaultPalette(selectedIndices[0]);
+      if (defaultPalette !== colorPalette) {
+        dispatch(setColorPalette(defaultPalette));
+      }
+    }
+  }, [selectedIndices, colorPalette, dispatch, getDefaultPalette]);
+
+  // Render index selection menu items
+  const renderIndexMenuItems = () => {
+    return diversityIndices.groups.map((group) => [
+      <ListSubheader key={group.id}>
+        <Typography variant="subtitle2">{group.name}</Typography>
+      </ListSubheader>,
+      ...group.indices
+        .filter(index => computedIndices.includes(index.commandName))
+        .map((index) => (
+          <MenuItem 
+            key={index.id} 
+            value={index.commandName}
+            disabled={selectedIndices.length >= 2 && !selectedIndices.includes(index.commandName)}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox 
+                  checked={selectedIndices.includes(index.commandName)}
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2">{index.displayName}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {index.description}
+                  </Typography>
+                </Box>
+              }
+            />
+          </MenuItem>
+        ))
+    ]);
   };
 
   // Handle color palette change
@@ -190,36 +269,7 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
                   </Box>
                 )}
               >
-                {diversityIndices.groups.map((group) => [
-                  <ListSubheader key={group.id}>
-                    <Typography variant="subtitle2">{group.name}</Typography>
-                  </ListSubheader>,
-                  ...group.indices
-                    .filter(index => computedIndices.includes(index.id))
-                    .map((index) => (
-                      <MenuItem 
-                        key={index.id} 
-                        value={index.id}
-                        disabled={selectedIndices.length >= 2 && !selectedIndices.includes(index.id)}
-                      >
-                        <FormControlLabel
-                          control={
-                            <Checkbox 
-                              checked={selectedIndices.includes(index.id)}
-                            />
-                          }
-                          label={
-                            <Box>
-                              <Typography variant="body2">{index.displayName}</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {index.description}
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                      </MenuItem>
-                    ))
-                ])}
+                {renderIndexMenuItems()}
               </Select>
             </FormControl>
           </AccordionDetails>
