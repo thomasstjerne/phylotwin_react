@@ -96,62 +96,51 @@ router.post('/',
     { name: 'specieskeys', maxCount: 1 }
   ]),
   async (req, res) => {
-    console.log('POST /runs handler executing', {
-      hasUser: !!req.user,
-      userName: req.user?.userName,
-      isDev: process.env.NODE_ENV === 'development'
-    });
+    const jobId = req.id;
+    console.log('\n=== RECEIVED ANALYSIS REQUEST ===');
+    console.log(`Time: ${new Date().toISOString()}`);
+    console.log(`Job ID: ${jobId}`);
+    console.log(`User: ${req.user?.userName}`);
+    console.log('===============================\n');
 
     if (!req.user) {
+      console.error('Request rejected: Authentication required');
       return res.status(401).json({ error: 'Authentication required' });
     }
 
     try {
       // Check if output directory is accessible
       const baseOutputDir = config.OUTPUT_PATH;
-      console.log('Checking directory access:', baseOutputDir);
-      
       const hasAccess = await checkDirectoryAccess(baseOutputDir);
       if (!hasAccess) {
         throw new Error(`Output directory ${baseOutputDir} is not accessible`);
       }
 
       if (!req.body.data) {
-        console.error('No data field in request body');
-        return res.status(400).json({ error: 'Missing data field in request body' });
+        throw new Error('Missing data field in request body');
       }
 
-      const jobDir = `${config.OUTPUT_PATH}/${req.id}`;
+      const jobDir = `${config.OUTPUT_PATH}/${jobId}`;
       const outputDir = `${jobDir}/output`;
       
-      console.log('Creating directories:', { jobDir, outputDir });
+      // Create job directories
       await fs.mkdir(outputDir, { recursive: true });
       
+      // Parse request parameters
       let body;
       try {
         body = JSON.parse(req.body.data);
-        console.log('Parsed request body:', body);
       } catch (error) {
-        console.error('Failed to parse request data:', error);
-        return res.status(400).json({ error: 'Invalid JSON in data field' });
+        throw new Error('Invalid JSON in data field');
       }
 
       // Handle map-drawn polygons
       if (body.areaSelectionMode === 'map' && body.polygon?.features?.length > 0) {
-        console.log('Processing map-drawn polygon:', JSON.stringify(body.polygon, null, 2));
-        try {
-          const polygonPath = await saveGeoJSONToFile(body.polygon, outputDir);
-          console.log('Saved polygon to:', polygonPath);
-          // Store just the filename, not the full path
-          body.polygon = 'drawn_polygon.geojson';
-        } catch (error) {
-          console.error('Failed to save polygon file:', error);
-          throw new Error(`Failed to save polygon file: ${error.message}`);
-        }
+        const polygonPath = await saveGeoJSONToFile(body.polygon, outputDir);
+        body.polygon = 'drawn_polygon.geojson';
       }
       // Handle uploaded files
       else if (req.files?.polygon?.[0]) {
-        console.log('Processing uploaded polygon file');
         body.polygon = req.files.polygon[0].originalname;
       }
       
@@ -159,19 +148,21 @@ router.post('/',
         body.specieskeys = req.files.specieskeys[0].path;
       }
 
-      // Process parameters
+      // Process parameters and start job
       const processedParams = processParams(body, outputDir);
-      console.log('Final processed parameters:', processedParams);
       
       await startJob({
         username: req?.user?.userName,
-        req_id: req.id,
+        req_id: jobId,
         params: processedParams
       });
       
-      res.status(200).json({ jobid: req.id });
+      res.status(200).json({ jobid: jobId });
     } catch (error) {
-      console.error('Error processing request:', error);
+      console.error('\n=== REQUEST PROCESSING ERROR ===');
+      console.error(`Job ID: ${jobId}`);
+      console.error('Error:', error.message);
+      console.error('================================\n');
       res.status(500).json({ error: error.message });
     }
 });

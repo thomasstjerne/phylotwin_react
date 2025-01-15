@@ -9,23 +9,45 @@ const { jobs, killJob, removeJobData } = require('../services/jobService');
 // Get job status
 router.get("/:jobid", async (req, res) => {
   try {
-    if (!req.params.jobid) {
-      return res.status(400).json({ error: 'Job ID is required' });
+    const jobId = req.params.jobid;
+
+    // Get status from database
+    const jobRecord = db.get("runs")
+      .find({ run: jobId })
+      .value();
+
+    if (!jobRecord) {
+      return res.status(404).json({ error: 'Job not found' });
     }
 
-    if (jobs.has(req.params.jobid)) {
-      const data = jobs.get(req.params.jobid);
-      return res.json(data);
+    // Get current job tracking info
+    const jobTracking = jobs.get(jobId);
+
+    // Combine information from both sources
+    const response = {
+      jobid: jobId,
+      status: jobRecord.status || jobTracking?.status || 'unknown',
+      started: jobRecord.started,
+      completed: jobRecord.completed,
+      exitCode: jobRecord.exitCode,
+      error: jobRecord.error,
+      signal: jobRecord.signal
+    };
+
+    // Only log status changes and final states
+    if (response.status === 'completed' || response.status === 'error') {
+      console.log(`\n=== JOB ${response.status.toUpperCase()} ===`);
+      console.log(`Job ID: ${jobId}`);
+      console.log(`Time: ${new Date().toISOString()}`);
+      if (response.exitCode) console.log(`Exit code: ${response.exitCode}`);
+      if (response.error) console.log(`Error: ${response.error}`);
+      if (response.signal) console.log(`Signal: ${response.signal}`);
+      console.log('='.repeat(response.status.length + 10), '\n');
     }
 
-    try {
-      await fs.readdir(`${config.OUTPUT_PATH}/${req.params.jobid}/output/`);
-      const run = db.get("runs").find({ run: req.params.jobid }).value() || {};
-      res.json({ ...run, completed: true });
-    } catch (error) {
-      res.status(404).json({ error: 'Job not found' });
-    }
+    res.json(response);
   } catch (error) {
+    console.error('Error getting job status:', error);
     res.status(500).json({ error: error.message });
   }
 });

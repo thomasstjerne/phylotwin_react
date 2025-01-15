@@ -131,100 +131,146 @@ async function startJob(options) {
   try {
     const { username, req_id, params } = options;
     
-    // Generate session ID based on core parameters
-    const sessionId = getSessionId(username, params);
+    console.log('\n=== INITIALIZING ANALYSIS ===');
+    console.log(`Job ID: ${req_id}`);
+    console.log(`Time: ${new Date().toISOString()}`);
+    console.log('Parameters:', JSON.stringify(params, null, 2));
+    console.log('============================\n');
     
-    // Create run-specific directories
+    // Generate session ID and create directories
+    const sessionId = getSessionId(username, params);
     const runDir = path.join(config.OUTPUT_PATH, req_id);
     const outputDir = path.join(runDir, 'output');
     const workDir = path.join(WORK_DIR_BASE, sessionId);
     
-    // Process diversity indices based on their module
-    const mainIndices = [];
-    const biodiverseIndices = [];
-    
-    // Load diversity indices vocabulary
-    const diversityIndices = require('../../shared/vocabularies/diversityIndices.json');
-    const allIndices = diversityIndices.groups.flatMap(group => group.indices);
-    
-    // Sort selected indices into their respective modules
-    params.selectedDiversityIndices?.forEach(selectedId => {
-      const index = allIndices.find(i => i.id === selectedId);
-      if (index) {
-        if (index.module === 'main') {
-          mainIndices.push(index.commandName);
-        } else if (index.module === 'biodiverse') {
-          biodiverseIndices.push(index.commandName);
-        }
-      }
-    });
-    
-    // Create modified params object with correctly formatted diversity indices
-    const modifiedParams = {
-      ...params,
-      div: mainIndices.length > 0 ? mainIndices : undefined,
-      bd_indices: biodiverseIndices.length > 0 ? biodiverseIndices : undefined
-    };
-    
-    // Delete the original selectedDiversityIndices to avoid confusion
-    delete modifiedParams.selectedDiversityIndices;
-    
-    // Build profile array from modified params
-    const profile = [];
-    Object.keys(modifiedParams)
-      .filter((p) => ALLOWED_PARAMS.includes(p))
-      .forEach((key) => {
-        if (key === 'div' || key === 'bd_indices') {
-          // Handle diversity indices - they should be comma-separated
-          if (modifiedParams[key] && modifiedParams[key].length > 0) {
-            profile.push(`--${key}`, modifiedParams[key].join(','));
-          }
-        } else if (Array.isArray(modifiedParams[key])) {
-          profile.push(`--${key}`, modifiedParams[key].join(','));
-        } else if (modifiedParams[key] !== undefined && modifiedParams[key] !== '') {
-          profile.push(`--${key}`, modifiedParams[key]);
-        }
-      });
-    
-    // Construct nextflow parameters
-    const nextflowParams = [
-      'run',
-      // 'vmikk/phylotwin -r main',
-      '/mnt/Data/Dropbox/Proj/BioDT/phylotwin/main.nf',
-      '-resume',
-      // '-profile', 'docker',
-      '--occ', config.INPUT_PATH,     // directory of preprocessed occurrences ---- TODO: change according to params
-      '--outdir', outputDir,          // output directory
-      '-work-dir', workDir,           // working directory (for caching intermediate results)
-      
-      ...profile,
-    ];
-
+    // Process parameters and construct command
+    const nextflowParams = constructNextflowParams(params, outputDir, workDir);
     const fullCommand = `${NEXTFLOW} ${nextflowParams.join(' ')}`;
     
-    // Update database with session info
+    // Update database with initial job info
     db.get("runs")
       .push({
-        username: options?.username,
-        run: options.req_id,
+        username,
+        run: req_id,
         session_id: sessionId,
+        status: 'running',
         started: new Date().toISOString(),
-        ...options.params,
+        ...params,
         nextflow_command: fullCommand
       })
       .write();
 
-    // Spawn process with working directory set to run directory
+    console.log('\n=== STARTING PIPELINE ===');
+    console.log(`Job ID: ${req_id}`);
+    console.log(`Command: ${fullCommand}`);
+    console.log('=======================\n');
+
+    // Spawn process
     const pcs = child_process.spawn(NEXTFLOW, nextflowParams, {
       stdio: ['pipe', 'pipe', 'pipe'],
-      cwd: runDir // Set working directory for the process
+      cwd: runDir
     });
 
-    // ... rest of the existing process handling code ...
+    // Handle process events
+    pcs.on('exit', (code, signal) => {
+      const status = code === 0 ? 'completed' : 'error';
+      console.log(`\n=== PIPELINE ${status.toUpperCase()} ===`);
+      console.log(`Job ID: ${req_id}`);
+      console.log(`Time: ${new Date().toISOString()}`);
+      console.log(`Exit code: ${code}`);
+      if (signal) console.log(`Signal: ${signal}`);
+      console.log('='.repeat(status.length + 16), '\n');
+
+      // Update job status
+      const job = jobs.get(req_id);
+      if (job) {
+        job.status = status;
+        jobs.set(req_id, job);
+      }
+
+      // Update database
+      db.get("runs")
+        .find({ run: req_id })
+        .assign({ 
+          status,
+          completed: new Date().toISOString(),
+          exitCode: code,
+          signal
+        })
+        .write();
+    });
+
+    pcs.on('error', (err) => {
+      console.error('\n=== PIPELINE ERROR ===');
+      console.error(`Job ID: ${req_id}`);
+      console.error(`Time: ${new Date().toISOString()}`);
+      console.error('Error:', err.message);
+      console.error('===================\n');
+
+      // Update job status
+      const job = jobs.get(req_id);
+      if (job) {
+        job.status = 'error';
+        job.error = err.message;
+        jobs.set(req_id, job);
+      }
+
+      // Update database
+      db.get("runs")
+        .find({ run: req_id })
+        .assign({ 
+          status: 'error',
+          completed: new Date().toISOString(),
+          error: err.message
+        })
+        .write();
+    });
+
+    // Store process reference
+    jobs.set(req_id, {
+      processRef: pcs,
+      status: 'running',
+      stdout: [],
+      stderr: [],
+      started: new Date().toISOString()
+    });
+
   } catch (error) {
-    console.error('Fatal error in startJob:', error);
+    console.error('\n=== INITIALIZATION ERROR ===');
+    console.error(`Job ID: ${req_id}`);
+    console.error(`Time: ${new Date().toISOString()}`);
+    console.error('Error:', error.message);
+    console.error('=========================\n');
     throw error;
   }
+}
+
+// Helper function to construct nextflow parameters
+function constructNextflowParams(params, outputDir, workDir) {
+  const profile = [];
+  Object.keys(params)
+    .filter((p) => ALLOWED_PARAMS.includes(p))
+    .forEach((key) => {
+      if (key === 'div' || key === 'bd_indices') {
+        if (params[key] && params[key].length > 0) {
+          profile.push(`--${key}`, params[key].join(','));
+        }
+      } else if (Array.isArray(params[key])) {
+        profile.push(`--${key}`, params[key].join(','));
+      } else if (params[key] !== undefined && params[key] !== '') {
+        profile.push(`--${key}`, params[key]);
+      }
+    });
+
+  return [
+    'run',
+    '/mnt/Data/Dropbox/Proj/BioDT/phylotwin/main.nf',
+    '-resume',
+    '--occ', config.INPUT_PATH,
+    '--outdir', outputDir,
+    '-work-dir', workDir,
+    ...profile,
+  ];
 }
 
 // Add cleanup function for old work directories
