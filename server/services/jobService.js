@@ -150,12 +150,12 @@ async function startJob(options) {
     // Update database with initial job info
     db.get("runs")
       .push({
-        username,
+        userName: username,
         run: req_id,
         session_id: sessionId,
         status: 'running',
         started: new Date().toISOString(),
-        ...params,
+        params,
         nextflow_command: fullCommand
       })
       .write();

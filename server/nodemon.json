@@ -1,0 +1,16 @@
+{
+    "ignore": [
+        ".git",
+        "node_modules/**/node_modules",
+        "db.json",
+        "*.log",
+        "~/.phylotwin/*"
+    ],
+    "verbose": true,
+    "watch": [
+        "*.js",
+        "routes/",
+        "services/",
+        "utils/"
+    ]
+} 

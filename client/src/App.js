@@ -9,6 +9,7 @@ import Workflow from './Workflow';
 import ContextProvider from './Components/hoc/ContextProvider';
 import JobStatusPoller from './Components/JobStatusPoller';
 import { checkAuthStatus } from './Auth/userApi';
+import MyRuns from './MyRuns';
 
 const App = () => {
   const { user, logout } = useAuth();
@@ -39,6 +40,8 @@ const App = () => {
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="run" element={<Workflow />} />
+          <Route path="run/:id" element={<Workflow />} />
+          <Route path="myruns" element={<MyRuns />} />
         </Route>
       </Routes>
     </>
