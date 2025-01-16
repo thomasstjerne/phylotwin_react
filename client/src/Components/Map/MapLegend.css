@@ -1,24 +1,87 @@
+/* Main container for all legends, positioned at the bottom-right corner of the map
+   with proper spacing and stacking context */
 .map-legends-container {
   position: absolute;
   bottom: 35px;
-  right: 35px;
+  right: 85px;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 1000;
-  pointer-events: auto;
-  max-width: calc(100% - 70px);
+  flex-direction: column;         /* Stack multiple legends vertically */
+  gap: 12px;                      /* Space between multiple legends */
+  z-index: 1000;                  /* Ensure legends appear above the map */
+  pointer-events: auto;           /* Allow interaction with the legend */
+  max-width: calc(100% - 120px);  /* Prevent overflow, accounting for margins */
 }
 
+/* Individual legend wrapper, provides positioning context for its children */
 .map-legend {
-  background: rgba(255, 255, 255, 0.95);
+  position: relative;
+  min-width: 220px;      /* Ensure minimum readable width */
+  max-width: 100%;       /* Prevent overflow within container */
+}
+
+/* The main content area of the legend, containing title, scale, and labels
+   This is the element that slides in/out when folding */
+.legend-content {
+  background: rgba(255, 255, 255, 0.95);       /* Semi-transparent white background */
   padding: 12px 15px;
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  min-width: 220px;
-  max-width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);  /* Subtle elevation */
+  transition: transform 0.3s ease;              /* Smooth folding animation */
+  margin-right: 10px;                           /* Gap between legend and fold button */
 }
 
+/* Transform the legend content when folded */
+.folded .legend-content {
+  transform: translateX(calc(100% + 80px));  /* Slide right to hide */
+}
+
+/* Fold/unfold button that stays fixed at the screen edge */
+.legend-fold-button {
+  position: fixed;
+  right: 15px;
+  transform: none;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s ease;
+  z-index: 1;
+}
+
+/* Position buttons for first and second legends when multiple are present */
+.map-legend:nth-child(1) .legend-fold-button {
+  bottom: 35px;  /* Align with first legend */
+}
+
+.map-legend:nth-child(2) .legend-fold-button {
+  bottom: calc(35px + 120px);  /* Position above first legend button */
+}
+
+/* Hover effect for the fold button */
+.legend-fold-button:hover {
+  background: rgba(255, 255, 255, 1);  /* Full opacity on hover */
+}
+
+/* Arrow icon within the fold button */
+.legend-fold-button svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+  transform: rotate(180deg);  /* Point left when legend is visible */
+}
+
+/* Rotate arrow when legend is folded */
+.folded .legend-fold-button svg {
+  transform: rotate(0deg);    /* Point right when legend is folded */
+}
+
+/* Legend title styling */
 .legend-title {
   font-size: 12px;
   font-weight: 600;
@@ -26,20 +89,23 @@
   color: #333;
 }
 
+/* Color gradient bar for continuous scales */
 .color-scale {
   height: 20px;
   border-radius: 2px;
-  cursor: crosshair;
+  cursor: crosshair;     /* Indicates interactive hover functionality */
   margin-bottom: 4px;
 }
 
+/* Container for min/max labels below the color scale */
 .legend-labels {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between;  /* Spread min/max values */
   font-size: 11px;
   color: #666;
 }
 
+/* Tooltip that appears when hovering over the color scale */
 .legend-tooltip {
   position: fixed;
   background: rgba(51, 51, 51, 0.95);
@@ -47,29 +113,31 @@
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  pointer-events: none;
-  z-index: 1001;
-  display: none;
+  pointer-events: none;   /* Prevent tooltip from interfering with interactions */
+  z-index: 1001;          /* Appear above all other elements */
+  display: none;          /* Hidden by default, shown on hover */
 }
 
-/* CANAPE specific styles */
+/* Styles specific to CANAPE categorical legend */
 .canape-legend .legend-items {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: column;  /* Stack categories vertically */
+  gap: 4px;                /* Space between categories */
 }
 
+/* Individual category item in CANAPE legend */
 .canape-legend .legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 8px;              /* Space between color box and label */
   font-size: 11px;
   color: #333;
 }
 
+/* Color box for each CANAPE category */
 .canape-legend .color-box {
   width: 16px;
   height: 16px;
   border-radius: 2px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);  /* Subtle border */
 } 

@@ -14,6 +14,7 @@ import 'ol/ol.css';
 import { updateDrawnItems } from '../../store/mapSlice';
 import { getColorScale } from '../../utils/colorScales';
 import { selectColorSchemeType } from '../../store/visualizationSlice';
+import html2canvas from 'html2canvas';
 
 // Import the swipe control from ol-ext
 import 'ol-ext/dist/ol-ext.css';
@@ -28,7 +29,9 @@ const ColorLegend = ({
   domain, 
   title, 
   type = 'sequential',
-  isCanape = false 
+  isCanape = false,
+  onFoldClick,
+  isFolded
 }) => {
   const legendRef = useRef(null);
   const tooltipRef = useRef(null);
@@ -103,14 +106,25 @@ const ColorLegend = ({
 
     return (
       <div className="map-legend canape-legend">
-        <div className="legend-title">{title}</div>
-        <div className="legend-items">
-          {Object.entries(canapeValues).map(([value, { color, label }]) => (
-            <div key={value} className="legend-item">
-              <div className="color-box" style={{ backgroundColor: color }} />
-              <span>{label}</span>
-            </div>
-          ))}
+        <button 
+          className="legend-fold-button"
+          onClick={onFoldClick}
+          title={isFolded ? "Show legend" : "Hide legend"}
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+          </svg>
+        </button>
+        <div className="legend-content">
+          <div className="legend-title">{title}</div>
+          <div className="legend-items">
+            {Object.entries(canapeValues).map(([value, { color, label }]) => (
+              <div key={value} className="legend-item">
+                <div className="color-box" style={{ backgroundColor: color }} />
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -138,20 +152,31 @@ const ColorLegend = ({
 
   return (
     <div className="map-legend">
-      <div className="legend-title">{title}</div>
-      <div 
-        ref={legendRef}
-        className="color-scale"
-        style={{ 
-          background: `linear-gradient(to right, ${gradientStops.join(', ')})`
-        }}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-      />
-      <div className="legend-labels">
-        <span>{domain[0].toFixed(2)}</span>
-        {type === 'diverging' && <span>0</span>}
-        <span>{domain[1].toFixed(2)}</span>
+      <button 
+        className="legend-fold-button"
+        onClick={onFoldClick}
+        title={isFolded ? "Show legend" : "Hide legend"}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+        </svg>
+      </button>
+      <div className="legend-content">
+        <div className="legend-title">{title}</div>
+        <div 
+          ref={legendRef}
+          className="color-scale"
+          style={{ 
+            background: `linear-gradient(to right, ${gradientStops.join(', ')})`
+          }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        />
+        <div className="legend-labels">
+          <span>{domain[0].toFixed(2)}</span>
+          {type === 'diverging' && <span>0</span>}
+          <span>{domain[1].toFixed(2)}</span>
+        </div>
       </div>
     </div>
   );
@@ -171,6 +196,7 @@ const MapComponent = () => {
   const hasInitiallyFitView = useRef(false);
   const prevResultsGeoJSONRef = useRef(null);
   const dispatch = useDispatch();
+  const [isLegendFolded, setIsLegendFolded] = useState(false);
 
   // Get state from Redux
   const areaSelectionMode = useSelector(state => state.map.areaSelectionMode);
@@ -678,6 +704,56 @@ const MapComponent = () => {
 
   }, [resultsGeoJSON, selectedIndices, colorPalette, useQuantiles, valueRange, minRecords, colorSchemeType]);
 
+  // Handle map export
+  const handleExportMap = async () => {
+    const mapContainer = mapRef.current;
+    if (!mapContainer) return;
+
+    try {
+      // Get the current map canvas
+      const mapCanvas = mapContainer.querySelector('.ol-viewport canvas');
+      const mapContext = mapCanvas.getContext('2d');
+
+      // Create a temporary canvas with the same dimensions
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = mapCanvas.width;
+      tempCanvas.height = mapCanvas.height;
+      const tempContext = tempCanvas.getContext('2d');
+
+      // Copy the map to the temporary canvas
+      tempContext.drawImage(mapCanvas, 0, 0);
+
+      // If legend is visible, add it to the canvas
+      if (!isLegendFolded) {
+        const legendContainer = mapContainer.querySelector('.map-legends-container');
+        if (legendContainer) {
+          // Convert legend to canvas
+          const legendCanvas = await html2canvas(legendContainer, {
+            backgroundColor: null,
+            scale: window.devicePixelRatio
+          });
+
+          // Calculate position for legend (maintain its current position relative to map)
+          const mapRect = mapCanvas.getBoundingClientRect();
+          const legendRect = legendContainer.getBoundingClientRect();
+          const x = (legendRect.left - mapRect.left) * window.devicePixelRatio;
+          const y = (legendRect.top - mapRect.top) * window.devicePixelRatio;
+
+          // Draw legend onto the temporary canvas
+          tempContext.drawImage(legendCanvas, x, y);
+        }
+      }
+
+      // Convert the combined canvas to data URL and trigger download
+      const link = document.createElement('a');
+      link.download = 'map_export.png';
+      link.href = tempCanvas.toDataURL();
+      link.click();
+    } catch (error) {
+      console.error('Error exporting map:', error);
+    }
+  };
+
   return (
     <div 
       ref={mapRef} 
@@ -688,7 +764,7 @@ const MapComponent = () => {
       }} 
     >
       {selectedIndices.length > 0 && resultsGeoJSON && (
-        <div className="map-legends-container">
+        <div className={`map-legends-container ${isLegendFolded ? 'folded' : ''}`}>
           {selectedIndices.map((indexId, idx) => {
             // Get all values for the selected index
             const values = resultsGeoJSON.features
@@ -713,6 +789,8 @@ const MapComponent = () => {
                 title={indexId}
                 type={indexId === 'CANAPE' ? 'canape' : colorSchemeType}
                 isCanape={indexId === 'CANAPE'}
+                onFoldClick={() => setIsLegendFolded(!isLegendFolded)}
+                isFolded={isLegendFolded}
               />
             );
           })}
