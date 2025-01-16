@@ -50,7 +50,21 @@ const MapComponent = () => {
     if (!tooltipRef.current) {
       const tooltip = document.createElement('div');
       tooltip.className = 'map-tooltip';
-      tooltip.style.position = 'fixed';
+      tooltip.style.cssText = `
+        position: fixed;
+        background: rgba(51, 51, 51, 0.95);
+        color: #ffffff;
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        display: none;
+        line-height: 1.5;
+        min-width: 150px;
+      `;
       document.body.appendChild(tooltip);
       tooltipRef.current = tooltip;
     }
@@ -84,7 +98,7 @@ const MapComponent = () => {
     const h3Id = feature.get('h3_index');
     if (!h3Id) return;
 
-    let content = `<strong>H3 ID:</strong> ${h3Id}<br/>`;
+    let content = `<div style="color: #fff;"><strong style="color: #fff; font-weight: 600; margin-right: 4px;">H3 ID:</strong> ${h3Id}<br/>`;
     
     // Get all properties of the feature
     const properties = feature.getProperties();
@@ -98,9 +112,10 @@ const MapComponent = () => {
       .sort(([a], [b]) => a.localeCompare(b)) // Sort alphabetically
       .forEach(([key, value]) => {
         const formattedValue = formatValue(value);
-        content += `<strong>${key}:</strong> ${formattedValue}<br/>`;
+        content += `<strong style="color: #fff; font-weight: 600; margin-right: 4px;">${key}:</strong> ${formattedValue}<br/>`;
       });
 
+    content += '</div>';
     tooltipRef.current.innerHTML = content;
     tooltipRef.current.style.display = 'block';
 
