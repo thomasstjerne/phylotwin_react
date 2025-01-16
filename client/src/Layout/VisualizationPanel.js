@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Box,
@@ -78,19 +78,24 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
   // Don't automatically close the panel, let the Layout component handle it
   useEffect(() => {
     if (isOpen && hasResults) {
-      // If we have results and no indices are selected, select Richness by default
-      if (selectedIndices.length === 0 && computedIndices.includes('Richness')) {
+      // Only set default index if this is the first time results are available
+      if (selectedIndices.length === 0 && computedIndices.includes('Richness') && !hasUserInteracted.current) {
         console.log('Setting default index to Richness in VisualizationPanel');
         dispatch(setSelectedIndices(['Richness']));
+        hasUserInteracted.current = true;  // Mark that we've done the initial selection
       }
     }
   }, [isOpen, hasResults, selectedIndices, computedIndices, dispatch]);
 
+  // Add ref to track if user has interacted with index selection
+  const hasUserInteracted = useRef(false);
+
   // Handle index selection
   const handleIndicesChange = (event) => {
     const value = event.target.value;
-    // Limit to max 2 indices
+    // Allow empty selection and limit to max 2 indices
     if (value.length <= 2) {
+      hasUserInteracted.current = true;  // Mark that user has made a selection
       dispatch(setSelectedIndices(value));
     }
   };

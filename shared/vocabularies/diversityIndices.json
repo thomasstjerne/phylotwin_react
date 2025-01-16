@@ -7,7 +7,7 @@
       "indices": [
         {
           "id": "richness",
-          "displayName": "Species Richness",
+          "displayName": "Species richness",
           "description": "Number of unique species in the area",
           "commandName": "Richness",
           "module": "main",
