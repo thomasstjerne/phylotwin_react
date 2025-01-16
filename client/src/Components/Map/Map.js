@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -18,6 +18,144 @@ import { selectColorSchemeType } from '../../store/visualizationSlice';
 // Import the swipe control from ol-ext
 import 'ol-ext/dist/ol-ext.css';
 import Swipe from 'ol-ext/control/Swipe';
+
+// Import styles for the legend
+import './MapLegend.css';
+
+// Legend component
+const ColorLegend = ({ 
+  colorScale, 
+  domain, 
+  title, 
+  type = 'sequential',
+  isCanape = false 
+}) => {
+  const legendRef = useRef(null);
+  const tooltipRef = useRef(null);
+  const [tooltipValue, setTooltipValue] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!tooltipRef.current) {
+      const tooltip = document.createElement('div');
+      tooltip.className = 'legend-tooltip';
+      document.body.appendChild(tooltip);
+      tooltipRef.current = tooltip;
+    }
+
+    return () => {
+      if (tooltipRef.current) {
+        tooltipRef.current.remove();
+        tooltipRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!legendRef.current || isCanape) return;
+
+    const rect = legendRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const width = rect.width;
+    
+    // Calculate value based on position
+    let t = x / width;
+    let value;
+    
+    if (type === 'diverging') {
+      // For diverging scales, map the position to [-1, 1]
+      const [min, max] = domain;
+      const absMax = Math.max(Math.abs(min), Math.abs(max));
+      value = (t * 2 - 1) * absMax;
+    } else {
+      // For sequential scales, map position to domain
+      const [min, max] = domain;
+      value = min + t * (max - min);
+    }
+
+    setTooltipValue(value);
+    setTooltipPosition({ x: e.clientX, y: e.clientY });
+
+    if (tooltipRef.current) {
+      tooltipRef.current.style.display = 'block';
+      tooltipRef.current.style.left = `${e.clientX + 10}px`;
+      tooltipRef.current.style.top = `${e.clientY - 25}px`;
+      tooltipRef.current.textContent = value.toFixed(2);
+    }
+  }, [domain, type, isCanape]);
+
+  const handleMouseLeave = useCallback(() => {
+    setTooltipValue(null);
+    if (tooltipRef.current) {
+      tooltipRef.current.style.display = 'none';
+    }
+  }, []);
+
+  if (isCanape) {
+    // Render discrete legend for CANAPE
+    const canapeValues = {
+      0: { color: "#FAFAD2", label: "Not significant" },
+      1: { color: "#FF0000", label: "Neo-endemism" },
+      2: { color: "#4876FF", label: "Paleo-endemism" },
+      3: { color: "#CB7FFF", label: "Mixed endemism" },
+      4: { color: "#9D00FF", label: "Super endemism" }
+    };
+
+    return (
+      <div className="map-legend canape-legend">
+        <div className="legend-title">{title}</div>
+        <div className="legend-items">
+          {Object.entries(canapeValues).map(([value, { color, label }]) => (
+            <div key={value} className="legend-item">
+              <div className="color-box" style={{ backgroundColor: color }} />
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Generate gradient stops
+  const gradientStops = Array.from({ length: 100 }, (_, i) => {
+    const t = i / 99;
+    let color;
+    
+    if (type === 'diverging') {
+      // Map t from [0, 1] to [-1, 1] for diverging scales
+      const mappedT = t * 2 - 1;
+      const [min, max] = domain;
+      const absMax = Math.max(Math.abs(min), Math.abs(max));
+      color = colorScale(mappedT * absMax);
+    } else {
+      // For sequential scales, map t directly to domain
+      const [min, max] = domain;
+      color = colorScale(min + t * (max - min));
+    }
+    
+    return `${color} ${t * 100}%`;
+  });
+
+  return (
+    <div className="map-legend">
+      <div className="legend-title">{title}</div>
+      <div 
+        ref={legendRef}
+        className="color-scale"
+        style={{ 
+          background: `linear-gradient(to right, ${gradientStops.join(', ')})`
+        }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      />
+      <div className="legend-labels">
+        <span>{domain[0].toFixed(2)}</span>
+        {type === 'diverging' && <span>0</span>}
+        <span>{domain[1].toFixed(2)}</span>
+      </div>
+    </div>
+  );
+};
 
 const MapComponent = () => {
   const mapRef = useRef();
@@ -545,9 +683,42 @@ const MapComponent = () => {
       ref={mapRef} 
       style={{ 
         width: '100%', 
-        height: '100%' 
+        height: '100%',
+        position: 'relative'
       }} 
-    />
+    >
+      {selectedIndices.length > 0 && resultsGeoJSON && (
+        <div className="map-legends-container">
+          {selectedIndices.map((indexId, idx) => {
+            // Get all values for the selected index
+            const values = resultsGeoJSON.features
+              .map(f => f.properties[indexId])
+              .filter(v => typeof v === 'number' && !isNaN(v));
+            
+            const min = valueRange ? valueRange[0] : Math.min(...values);
+            const max = valueRange ? valueRange[1] : Math.max(...values);
+            
+            // Get the appropriate color scale
+            const scale = getColorScale(
+              indexId === 'CANAPE' ? 'canape' : colorSchemeType,
+              [min, max],
+              colorPalette
+            );
+
+            return (
+              <ColorLegend
+                key={indexId}
+                colorScale={scale}
+                domain={[min, max]}
+                title={indexId}
+                type={indexId === 'CANAPE' ? 'canape' : colorSchemeType}
+                isCanape={indexId === 'CANAPE'}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
 
