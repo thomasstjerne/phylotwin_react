@@ -164,6 +164,14 @@
           "commandName": "calc_phylo_rpe2",
           "module": "biodiverse",
           "colorSchemeType": "bounded"
+        },
+        {
+          "id": "PHYLO_RARITY_CWR",
+          "displayName": "Corrected weighted phylogenetic rarity",
+          "description": "Analogue of corrected weighted endemism",
+          "commandName": "calc_phylo_corrected_weighted_rarity",
+          "module": "biodiverse",
+          "colorSchemeType": "sequential"
         }
       ]
     },

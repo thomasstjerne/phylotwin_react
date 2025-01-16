@@ -31,29 +31,12 @@ import {
   setUseQuantiles,
   setValueRange,
   setMinRecords,
-  selectQuantileBins
+  selectQuantileBins,
+  selectColorSchemeType
 } from '../store/visualizationSlice';
+import { PALETTES, getPalettesForType } from '../utils/colorScales';
 
 const drawerWidth = 340;
-
-// Color schemes for different metric types
-const colorSchemes = {
-  effectSize: {
-    HighlyNegative: "#8B0000",
-    Negative: "#FF0000",
-    NotSignificant: "#FAFAD2",
-    Positive: "#4876FF",
-    HighlyPositive: "#27408B"
-  },
-  canape: {
-    Neo_endemism: "#FF0000",
-    Paleo_endemism: "#4876FF",
-    NotSignificant: "#FAFAD2",
-    Mixed_endemism: "#CB7FFF",
-    Super_endemism: "#9D00FF"
-  },
-  missing: "#808080"
-};
 
 const VisualizationPanel = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
@@ -68,6 +51,7 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
   } = useSelector(state => state.visualization);
   
   const quantileBins = useSelector(selectQuantileBins);
+  const colorSchemeType = useSelector(selectColorSchemeType);
   const { status, indices: computedIndices, error, geoJSON } = useSelector(state => state.results);
   const hasResults = status === 'completed' && computedIndices.length > 0;
   const isLoading = status === 'running';
@@ -83,12 +67,13 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
       hasResults,
       isLoading,
       hasFailed,
+      colorSchemeType,
       geoJSON: geoJSON ? {
         type: geoJSON.type,
         featureCount: geoJSON.features?.length
       } : null
     });
-  }, [isOpen, status, computedIndices, selectedIndices, hasResults, isLoading, hasFailed, geoJSON]);
+  }, [isOpen, status, computedIndices, selectedIndices, hasResults, isLoading, hasFailed, colorSchemeType, geoJSON]);
 
   // Don't automatically close the panel, let the Layout component handle it
   useEffect(() => {
@@ -117,25 +102,52 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
       .find(index => index.commandName === indexId);
   };
 
-  // Determine color palette type based on index
-  const getDefaultPalette = (indexId) => {
-    const metadata = getIndexMetadata(indexId);
-    if (!metadata) return 'sequential';
-
-    if (indexId === 'CANAPE') return 'categorical';
-    if (indexId.startsWith('SES.')) return 'diverging';
-    return 'sequential';
+  // Handle color palette change
+  const handleColorPaletteChange = (event) => {
+    dispatch(setColorPalette(event.target.value));
   };
 
-  // Update color palette when indices change
-  useEffect(() => {
-    if (selectedIndices.length === 1) {
-      const defaultPalette = getDefaultPalette(selectedIndices[0]);
-      if (defaultPalette !== colorPalette) {
-        dispatch(setColorPalette(defaultPalette));
-      }
+  // Get available palettes for current data type
+  const getAvailablePalettes = () => {
+    if (!colorSchemeType) return [];
+    return getPalettesForType(colorSchemeType);
+  };
+
+  // Render color palette selection
+  const renderColorPaletteSelection = () => {
+    const availablePalettes = getAvailablePalettes();
+    const isDivergingType = colorSchemeType === 'diverging';
+
+    if (selectedIndices.length !== 1) {
+      return (
+        <Typography variant="caption" color="text.secondary">
+          Select one index to customize the color palette
+        </Typography>
+      );
     }
-  }, [selectedIndices, colorPalette, dispatch, getDefaultPalette]);
+
+    if (isDivergingType) {
+      return (
+        <Typography variant="caption" color="text.secondary">
+          Color palette is fixed for SES values to ensure consistent interpretation
+        </Typography>
+      );
+    }
+
+    return (
+      <Select
+        value={colorPalette}
+        onChange={handleColorPaletteChange}
+        fullWidth
+      >
+        {availablePalettes.map(palette => (
+          <MenuItem key={palette.id} value={palette.id}>
+            {palette.name}
+          </MenuItem>
+        ))}
+      </Select>
+    );
+  };
 
   // Calculate min/max values for the selected index
   const getValueRangeForIndex = (indexName) => {
@@ -209,11 +221,6 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
           </MenuItem>
         ))
     ]);
-  };
-
-  // Handle color palette change
-  const handleColorPaletteChange = (event) => {
-    dispatch(setColorPalette(event.target.value));
   };
 
   // Handle quantile toggle
@@ -442,15 +449,22 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {/* Color Palette Selection */}
               <FormControl fullWidth>
-                <FormLabel>Color palette</FormLabel>
-                <Select
-                  value={colorPalette}
-                  onChange={handleColorPaletteChange}
-                >
-                  <MenuItem value="sequential">Sequential</MenuItem>
-                  <MenuItem value="diverging">Diverging</MenuItem>
-                  <MenuItem value="categorical">Categorical</MenuItem>
-                </Select>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <FormLabel>Color palette</FormLabel>
+                  <Tooltip 
+                    title={
+                      colorSchemeType === 'diverging' 
+                        ? "SES values use a fixed diverging color scheme (red-blue) for consistent interpretation"
+                        : "Select a color scheme for visualizing the data"
+                    }
+                    placement="right"
+                  >
+                    <IconButton size="small" sx={{ ml: 1 }}>
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                {renderColorPaletteSelection()}
               </FormControl>
             </Box>
           </AccordionDetails>

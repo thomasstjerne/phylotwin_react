@@ -12,6 +12,8 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
 import { updateDrawnItems } from '../../store/mapSlice';
+import { getColorScale } from '../../utils/colorScales';
+import { selectColorSchemeType } from '../../store/visualizationSlice';
 
 // Import the swipe control from ol-ext
 import 'ol-ext/dist/ol-ext.css';
@@ -39,6 +41,9 @@ const MapComponent = () => {
   const minRecords = useSelector(state => state.visualization?.minRecords);
   const resultsGeoJSON = useSelector(state => state.results?.geoJSON);
   const drawnItems = useSelector(state => state.map.drawnItems);
+
+  // Get color scheme type from Redux
+  const colorSchemeType = useSelector(selectColorSchemeType);
 
   // Create tooltip element
   useEffect(() => {
@@ -161,8 +166,8 @@ const MapComponent = () => {
     const value = feature.get(indexId);
     const numRecords = feature.get('NumRecords') || 0;
     
-    // Hide cells with too few records
-    if (numRecords < minRecords) {
+    // Hide cells with too few records or invalid values
+    if (numRecords < minRecords || value === undefined || value === null || isNaN(value)) {
       return null;
     }
 
@@ -174,19 +179,33 @@ const MapComponent = () => {
     // Get all values for the selected index to calculate min/max
     const allValues = vectorSourceRef.current.getFeatures()
       .map(f => f.get(indexId))
-      .filter(v => v !== undefined && v !== null);
+      .filter(v => typeof v === 'number' && !isNaN(v));
     
     const min = valueRange ? valueRange[0] : Math.min(...allValues);
     const max = valueRange ? valueRange[1] : Math.max(...allValues);
 
-    // Get color based on value and palette type
+    // Get color based on value and color scheme type
     let fillColor;
+
     if (indexId === 'CANAPE') {
       fillColor = colorSchemes.canape(value);
-    } else if (indexId.startsWith('SES.')) {
-      fillColor = colorSchemes.diverging(value, min, max);
     } else {
-      fillColor = colorSchemes.sequential(value, min, max);
+      // Get the appropriate color scale based on the type
+      const colorScale = getColorScale(colorSchemeType, [min, max], palette);
+      
+      // Apply the color scale directly to the value
+      fillColor = colorScale(value);
+
+      // Add logging for debugging
+      console.log('Style calculation:', {
+        indexId,
+        value,
+        min,
+        max,
+        colorSchemeType,
+        palette,
+        fillColor
+      });
     }
 
     return new Style({
@@ -495,7 +514,7 @@ const MapComponent = () => {
       }
     };
 
-  }, [resultsGeoJSON, selectedIndices, colorPalette, useQuantiles, valueRange, minRecords]);
+  }, [resultsGeoJSON, selectedIndices, colorPalette, useQuantiles, valueRange, minRecords, colorSchemeType]);
 
   return (
     <div 

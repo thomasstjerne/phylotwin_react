@@ -1,13 +1,22 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { getDefaultPalette } from '../utils/colorScales';
+import diversityIndices from '../shared/vocabularies/diversityIndices.json';
 
 const initialState = {
   selectedIndices: [],
-  colorPalette: 'sequential',
+  colorPalette: getDefaultPalette('sequential'),
   useQuantiles: false,
   valueRange: null,
   minRecords: 0,
   geoJSON: null,
   quantileBins: null
+};
+
+// Helper function to get index metadata
+const getIndexMetadata = (indexId) => {
+  return diversityIndices.groups
+    .flatMap(group => group.indices)
+    .find(index => index.commandName === indexId);
 };
 
 // Helper function to calculate quantile bins
@@ -49,6 +58,15 @@ const visualizationSlice = createSlice({
   reducers: {
     setSelectedIndices: (state, action) => {
       state.selectedIndices = action.payload.slice(0, 2);
+      
+      // Update color palette based on the first selected index
+      if (state.selectedIndices.length === 1) {
+        const metadata = getIndexMetadata(state.selectedIndices[0]);
+        if (metadata?.colorSchemeType) {
+          state.colorPalette = getDefaultPalette(metadata.colorSchemeType);
+        }
+      }
+      
       // Recalculate quantile bins if needed
       if (state.useQuantiles && state.geoJSON && state.selectedIndices.length === 1) {
         console.log('Recalculating quantiles after index selection:', state.selectedIndices[0]);
@@ -59,7 +77,13 @@ const visualizationSlice = createSlice({
       }
     },
     setColorPalette: (state, action) => {
-      state.colorPalette = action.payload;
+      // Only update if the selected index allows custom palettes
+      if (state.selectedIndices.length === 1) {
+        const metadata = getIndexMetadata(state.selectedIndices[0]);
+        if (metadata?.colorSchemeType !== 'diverging') {
+          state.colorPalette = action.payload;
+        }
+      }
     },
     setUseQuantiles: (state, action) => {
       state.useQuantiles = action.payload;
@@ -155,6 +179,13 @@ export const selectQuantileBins = (state) => {
   
   console.log('Formatted quantile bins:', result);
   return result;
+};
+
+// Selector to get color scheme type for selected index
+export const selectColorSchemeType = (state) => {
+  if (state.visualization.selectedIndices.length !== 1) return null;
+  const metadata = getIndexMetadata(state.visualization.selectedIndices[0]);
+  return metadata?.colorSchemeType || 'sequential';
 };
 
 export default visualizationSlice.reducer; 
