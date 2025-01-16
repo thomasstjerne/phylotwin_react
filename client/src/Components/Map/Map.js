@@ -30,6 +30,8 @@ const MapComponent = () => {
   const resultsLayersRef = useRef([]);
   const tooltipRef = useRef(null);
   const hoveredFeatureRef = useRef(null);
+  const hasInitiallyFitView = useRef(false);
+  const prevResultsGeoJSONRef = useRef(null);
   const dispatch = useDispatch();
 
   // Get state from Redux
@@ -447,6 +449,12 @@ const MapComponent = () => {
   useEffect(() => {
     if (!mapInstanceRef.current || !resultsGeoJSON) return;
 
+    // Reset the view fitting flag when new results are loaded
+    if (resultsGeoJSON !== prevResultsGeoJSONRef.current) {
+      hasInitiallyFitView.current = false;
+      prevResultsGeoJSONRef.current = resultsGeoJSON;
+    }
+
     // Remove existing results layers
     resultsLayersRef.current.forEach(layer => {
       mapInstanceRef.current.removeLayer(layer);
@@ -488,13 +496,14 @@ const MapComponent = () => {
       mapInstanceRef.current.addLayer(layer);
       resultsLayersRef.current.push(layer);
 
-      // Fit view to layer extent only once
-      if (idx === 0 && source.getFeatures().length > 0) {
+      // Fit view to layer extent only once when results are first loaded
+      if (idx === 0 && source.getFeatures().length > 0 && !hasInitiallyFitView.current) {
         const extent = source.getExtent();
         mapInstanceRef.current.getView().fit(extent, {
           padding: [50, 50, 50, 50],
           maxZoom: 12
         });
+        hasInitiallyFitView.current = true;
       }
     });
 
