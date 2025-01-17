@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import axiosWithAuth from "../utils/axiosWithAuth";
 import { DownloadOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from "@ant-design/icons";
 import { useAuth } from '../Auth/AuthContext';
-import Layout from "../Layout/Layout";
 import PageContent from "../Layout/PageContent";
 import config from "../config";
 
@@ -218,120 +217,118 @@ const MyRuns = () => {
     console.log('Rendering MyRuns with filteredRuns:', filteredRuns);
 
     return (
-        <Layout>
-            <PageContent>
-                <div style={{ width: '100%', padding: '20px' }}>
-                    {loading ? (
-                        <div>Loading...</div>
-                    ) : !user ? (
-                        <Alert
-                            message="Authentication Required"
-                            description="Please login to view your analysis history."
-                            type="warning"
-                            showIcon
-                        />
-                    ) : (
-                        <>
-                            <h1>Analysis History ({filteredRuns.length} runs)</h1>
-                            
-                            {error && (
-                                <Alert
-                                    message="Error"
-                                    description={error}
-                                    type="error"
-                                    showIcon
-                                    style={{ marginBottom: 16 }}
-                                />
-                            )}
-                            
-                            <Input
-                                placeholder="Search runs by tree, country, or date..."
-                                prefix={<SearchOutlined />}
-                                value={searchText}
-                                onChange={e => setSearchText(e.target.value)}
+        <PageContent>
+            <div style={{ width: '100%' }}>
+                {loading ? (
+                    <div>Loading...</div>
+                ) : !user ? (
+                    <Alert
+                        message="Authentication Required"
+                        description="Please login to view your analysis history."
+                        type="warning"
+                        showIcon
+                    />
+                ) : (
+                    <>
+                        <h1>Analysis History ({filteredRuns.length} runs)</h1>
+                        
+                        {error && (
+                            <Alert
+                                message="Error"
+                                description={error}
+                                type="error"
+                                showIcon
                                 style={{ marginBottom: 16 }}
                             />
+                        )}
+                        
+                        <Input
+                            placeholder="Search runs by tree, country, or date..."
+                            prefix={<SearchOutlined />}
+                            value={searchText}
+                            onChange={e => setSearchText(e.target.value)}
+                            style={{ marginBottom: 16 }}
+                        />
 
-                            {filteredRuns.length === 0 ? (
-                                <Alert
-                                    message="No Runs Found"
-                                    description="No analysis runs match your search criteria."
-                                    type="info"
-                                    showIcon
-                                />
-                            ) : (
-                                <List
-                                    loading={loading}
-                                    bordered
-                                    dataSource={filteredRuns}
-                                    pagination={{
-                                        pageSize: 10,
-                                        showSizeChanger: true,
-                                        showQuickJumper: true,
-                                        pageSizeOptions: ['10', '20', '50', '100'],
-                                        showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} runs`,
-                                        position: 'both'
-                                    }}
-                                    renderItem={(item) => (
-                                        <List.Item 
-                                            key={item.run}
-                                            actions={[
-                                                <Button 
-                                                    key="view"
-                                                    type="primary"
-                                                    icon={<EyeOutlined />}
-                                                    onClick={() => navigate(`/run/${item.run}`)}
-                                                >
-                                                    View Results
-                                                </Button>,
-                                                <Button 
-                                                    key="download"
-                                                    onClick={() => downloadResults(item.run)}
-                                                    icon={<DownloadOutlined />}
-                                                >
-                                                    Download
-                                                </Button>,
-                                                <Popconfirm
-                                                    key="delete"
-                                                    placement="topLeft"
-                                                    title="Are you sure you want to delete this run? This cannot be undone."
-                                                    onConfirm={() => deleteRun(item.run)}
-                                                    okText="Yes"
-                                                    cancelText="No"
-                                                >
-                                                    <Button type="link" danger icon={<DeleteOutlined />}>
-                                                        Delete
-                                                    </Button>
-                                                </Popconfirm>
-                                            ]}
-                                        >
-                                            <List.Item.Meta
-                                                title={
-                                                    <Space>
-                                                        <Text strong>
-                                                            {item.params?.tree || item.tree || 'Unnamed Run'} - {moment(item.completed || item.started).format('LLL')}
-                                                        </Text>
-                                                        <Text type="secondary">
-                                                            ({moment(item.completed || item.started).fromNow()})
-                                                        </Text>
-                                                        {item.status && (
-                                                            <Tag color={item.status === 'completed' ? 'success' : 'processing'}>
-                                                                {item.status}
-                                                            </Tag>
-                                                        )}
-                                                    </Space>
-                                                }
-                                                description={getDescription(item)}
-                                            />
-                                        </List.Item>
-                                    )}
-                                />
-                            )}
-                        </>
-                    )}
-                </div>
-            </PageContent>
-        </Layout>
+                        {filteredRuns.length === 0 ? (
+                            <Alert
+                                message="No Runs Found"
+                                description="No analysis runs match your search criteria."
+                                type="info"
+                                showIcon
+                            />
+                        ) : (
+                            <List
+                                loading={loading}
+                                bordered
+                                dataSource={filteredRuns}
+                                pagination={{
+                                    pageSize: 10,
+                                    showSizeChanger: true,
+                                    showQuickJumper: true,
+                                    pageSizeOptions: ['10', '20', '50', '100'],
+                                    showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} runs`,
+                                    position: 'both'
+                                }}
+                                renderItem={(item) => (
+                                    <List.Item 
+                                        key={item.run}
+                                        actions={[
+                                            <Button 
+                                                key="view"
+                                                type="primary"
+                                                icon={<EyeOutlined />}
+                                                onClick={() => navigate(`/run/${item.run}`)}
+                                            >
+                                                View Results
+                                            </Button>,
+                                            <Button 
+                                                key="download"
+                                                onClick={() => downloadResults(item.run)}
+                                                icon={<DownloadOutlined />}
+                                            >
+                                                Download
+                                            </Button>,
+                                            <Popconfirm
+                                                key="delete"
+                                                placement="topLeft"
+                                                title="Are you sure you want to delete this run? This cannot be undone."
+                                                onConfirm={() => deleteRun(item.run)}
+                                                okText="Yes"
+                                                cancelText="No"
+                                            >
+                                                <Button type="link" danger icon={<DeleteOutlined />}>
+                                                    Delete
+                                                </Button>
+                                            </Popconfirm>
+                                        ]}
+                                    >
+                                        <List.Item.Meta
+                                            title={
+                                                <Space>
+                                                    <Text strong>
+                                                        {item.params?.tree || item.tree || 'Unnamed Run'} - {moment(item.completed || item.started).format('LLL')}
+                                                    </Text>
+                                                    <Text type="secondary">
+                                                        ({moment(item.completed || item.started).fromNow()})
+                                                    </Text>
+                                                    {item.status && (
+                                                        <Tag color={item.status === 'completed' ? 'success' : 'processing'}>
+                                                            {item.status}
+                                                        </Tag>
+                                                    )}
+                                                </Space>
+                                            }
+                                            description={getDescription(item)}
+                                        />
+                                    </List.Item>
+                                )}
+                            />
+                        )}
+                    </>
+                )}
+            </div>
+        </PageContent>
     );
 };
 

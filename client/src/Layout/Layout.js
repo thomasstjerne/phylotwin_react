@@ -19,10 +19,6 @@ const Layout = ({ step, setStep }) => {
   // Only show the navigation and settings panel on the workflow page
   const isWorkflowPage = location.pathname === '/run';
 
-  if (!isWorkflowPage) {
-    return <Outlet />;
-  }
-
   const handlePanelChange = (newValue) => {
     console.log('Panel change requested:', {
       newValue,
@@ -46,6 +42,33 @@ const Layout = ({ step, setStep }) => {
     setIsSettingsPanelOpen(true);
   };
 
+  // For non-workflow pages, render a simpler layout with just the app bar and content
+  if (!isWorkflowPage) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <AppBar 
+          position="static" 
+          sx={{ 
+            '& .MuiToolbar-root': {
+              minHeight: '48px',
+              '@media (min-width: 600px)': {
+                minHeight: '48px'
+              }
+            }
+          }}
+        >
+          <Toolbar sx={{ justifyContent: 'flex-end' }}>
+            <UserMenu />
+          </Toolbar>
+        </AppBar>
+        <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+          <Outlet />
+        </Box>
+      </Box>
+    );
+  }
+
+  // For workflow page, render the full layout with panels
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <JobStatusPoller handlePanelOpen={handlePanelOpen} />
