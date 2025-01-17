@@ -1,4 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { setUser as setUserAction, setToken as setTokenAction } from '../store/authSlice';
 
 const AuthContext = createContext(null);
 
@@ -8,20 +10,25 @@ const DEV_USER = {
 };
 
 export const AuthProvider = ({ children }) => {
+  const dispatch = useDispatch();
   const [user, setUser] = useState(() => {
     // Check if we have a stored user
     const storedUser = localStorage.getItem('user');
     return storedUser ? JSON.parse(storedUser) : null;
   });
 
-  // Persist user data
+  // Persist user data and sync with Redux
   useEffect(() => {
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
+      dispatch(setUserAction(user));
+      dispatch(setTokenAction(user.token));
     } else {
       localStorage.removeItem('user');
+      dispatch(setUserAction(null));
+      dispatch(setTokenAction(null));
     }
-  }, [user]);
+  }, [user, dispatch]);
 
   const login = async (credentials) => {
     if (process.env.REACT_APP_DEV_MODE === 'true') {

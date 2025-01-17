@@ -14,23 +14,26 @@ import MyRuns from './MyRuns';
 const App = () => {
   const { user, logout } = useAuth();
 
+  // Only check auth status in production mode
   React.useEffect(() => {
-    if (!user) {
+    if (!user && process.env.REACT_APP_DEV_MODE !== 'true') {
       logout();
     }
   }, [user, logout]);
 
-  // Check auth status when app loads
+  // Check auth status when app loads (only in production)
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        await checkAuthStatus();
-      } catch (error) {
-        console.error('Failed to initialize auth:', error);
-      }
-    };
-    
-    initAuth();
+    if (process.env.REACT_APP_DEV_MODE !== 'true') {
+      const initAuth = async () => {
+        try {
+          await checkAuthStatus();
+        } catch (error) {
+          console.error('Failed to initialize auth:', error);
+        }
+      };
+      
+      initAuth();
+    }
   }, []);
 
   return (

@@ -4,5 +4,6 @@ export {
   setGeoJSON,
   setJobId,
   setError as setResultsError,
-  resetResults
+  resetResults,
+  setIndices
 } from './resultsSlice'; 

@@ -1,48 +1,68 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
 import { Box } from "@mui/material";
 import Form from "../Form";
-import Run from "../Run";
-import Results from "../Results";
+import Map from "../Components/Map/Map";
 import withContext from "../Components/hoc/withContext";
-import { useDispatch } from "react-redux";
-import { setGeoJSON, setPipelineStatus, setJobId, setResultsError } from "../store/actions";
+import { useDispatch, useSelector } from "react-redux";
+import { setGeoJSON, setPipelineStatus, setJobId, setResultsError, setIndices } from "../store/actions";
 import axiosWithAuth from "../utils/axiosWithAuth";
 import config from "../config";
 
 const Workflow = ({ step, setStep, runID, setRunID }) => {
     const params = useParams();
-    const { isSettingsPanelOpen } = useOutletContext();
+    const { handlePanelOpen } = useOutletContext();
     const dispatch = useDispatch();
-    const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const status = useSelector(state => state.results.status);
 
+    // Set initial step based on URL params
     useEffect(() => {
-        // Set initial step based on URL params
         if (params?.id) {
             setStep(1); // Run view
+            setRunID(params.id); // Set the runID from params
         } else {
             setStep(0); // Form view
+            setRunID(null); // Clear runID
         }
         console.log("Workflow mounted with step:", step, "and params:", params);
-    }, [params?.id, setStep]);
+    }, [params, setStep, setRunID, step]);
 
+    // Load results when job ID changes
     useEffect(() => {
-        if (params?.id) {
+        if (params?.id && status !== 'completed') {
             // Load existing results
             const loadExistingResults = async () => {
                 try {
                     // Fetch GeoJSON results
+                    console.log('Loading results for job:', params.id);
                     const response = await axiosWithAuth.get(
-                        `${config.phylonextWebservice}/job/${params.id}/results`
+                        `${config.phylonextWebservice}/api/phylonext/runs/job/${params.id}/results`
                     );
                     
-                    // Update visualization state with loaded results
+                    const geoJSON = response.data;
+                    console.log('Received GeoJSON data:', {
+                        type: geoJSON.type,
+                        featureCount: geoJSON.features?.length,
+                        sampleProperties: geoJSON.features?.[0]?.properties
+                    });
+
+                    // Extract indices from GeoJSON properties
+                    const properties = geoJSON.features?.[0]?.properties || {};
+                    const indices = Object.keys(properties).filter(key => 
+                        !['h3_index', 'NumRecords', 'Redundancy'].includes(key)
+                    );
+
+                    console.log('Found indices:', indices);
+                    
+                    // Update Redux state
+                    dispatch(setIndices(indices));
                     dispatch(setGeoJSON(response.data));
                     dispatch(setPipelineStatus('completed'));
                     dispatch(setJobId(params.id));
                     
                     // Switch to visualization panel
-                    setIsPanelOpen(true);
+                    console.log('Opening visualization panel');
+                    handlePanelOpen('visualization');
                 } catch (error) {
                     console.error('Failed to load results:', error);
                     dispatch(setPipelineStatus('failed'));
@@ -52,49 +72,37 @@ const Workflow = ({ step, setStep, runID, setRunID }) => {
             
             loadExistingResults();
         }
-    }, [params?.id, dispatch]);
+    }, [params?.id, dispatch, handlePanelOpen, status]);
 
     // Debug logging
     console.log("Current step:", step);
     console.log("Current runID:", runID);
 
-    // Handle panel open/close
-    const handlePanelOpen = (panel) => {
-        if (panel === 'visualization') {
-            setIsPanelOpen(true);
-        }
-    };
-
-    // Render the workflow content (Form, Run, or Results)
+    // Render the workflow content (Form or Map)
     const renderWorkflowContent = () => {
         switch (step) {
             case 0:
                 return <Form />;
             case 1:
-                return <Run onPanelOpen={handlePanelOpen} />;
-            case 2:
-                return <Results />;
+                return <Map key={params?.id} />;
             default:
-                console.log("No matching step found:", step);
-                return <Form />; // Default to Form view
+                return <Form />;
         }
     };
 
     return (
-        <Box sx={{ 
-            position: 'relative', 
-            width: '100%', 
-            height: '100%',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            padding: 2
-        }}>
+        <Box sx={{ width: '100%', height: '100%' }}>
             {renderWorkflowContent()}
         </Box>
     );
 };
 
+// Map context props to component props
 const mapContextToProps = ({ step, setStep, runID, setRunID }) => ({
-    step, setStep, runID, setRunID 
+    step,
+    setStep,
+    runID,
+    setRunID
 });
 
 export default withContext(mapContextToProps)(Workflow);

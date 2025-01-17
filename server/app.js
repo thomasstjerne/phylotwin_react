@@ -25,11 +25,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.use('/api/phylonext/runs', runsRouter);
-app.use('/myruns', runsRouter);
-app.use('/job', runsRouter);
 app.use('/api/phylonext/jobs', jobsRouter);
-
-// Auth routes
+app.use('/job', runsRouter);
 app.use('/auth', authRouter);
 
 // Error handling

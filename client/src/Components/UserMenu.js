@@ -85,6 +85,16 @@ const UserMenu = () => {
           <Button htmlType="button" type="primary" onClick={() => setLoginModalVisible(true)}>
             Login
           </Button>
+          {process.env.REACT_APP_DEV_MODE === 'true' && (
+            <Button 
+              htmlType="button" 
+              type="link" 
+              onClick={() => handleLogin({ username: 'dev_user', password: 'dev_password' })}
+              style={{ marginLeft: 8 }}
+            >
+              Dev Login
+            </Button>
+          )}
         </span>
       )}
       {user && (

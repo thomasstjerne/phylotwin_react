@@ -30,13 +30,15 @@ const decode = (jwt) => {
 axiosWithAuth.interceptors.request.use(
   (config) => {
     // In development mode, add a dev token
-    if (process.env.NODE_ENV === 'development') {
-        config.headers.Authorization = 'Bearer dev_token';
-    } else {
-        const token = localStorage.getItem(JWT_STORAGE_NAME);
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+    if (process.env.REACT_APP_DEV_MODE === 'true') {
+      config.headers.Authorization = `Bearer ${process.env.REACT_APP_DEV_TOKEN || 'dev_token'}`;
+      return config;
+    }
+
+    // In production, use stored token
+    const token = localStorage.getItem(JWT_STORAGE_NAME);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -47,6 +49,18 @@ axiosWithAuth.interceptors.request.use(
 
 // Authentication functions
 export const authenticate = async (username, password) => {
+  // In development mode, return mock response
+  if (process.env.REACT_APP_DEV_MODE === 'true') {
+    const mockResponse = {
+      token: process.env.REACT_APP_DEV_TOKEN || 'dev_token',
+      user: {
+        userName: process.env.REACT_APP_DEV_USER || 'dev_user'
+      }
+    };
+    return Promise.resolve(mockResponse);
+  }
+
+  // In production, make real API call
   const response = await axios.post(`${config.authWebservice}/login`, {}, {
     headers: {
       Authorization: `Basic ${base64.encode(username + ":" + password)}`,

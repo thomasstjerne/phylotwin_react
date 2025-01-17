@@ -230,7 +230,7 @@ const MyRuns = () => {
                     />
                 ) : (
                     <>
-                        <h1>Analysis History ({filteredRuns.length} runs)</h1>
+                        <h1>Analysis history ({filteredRuns.length} runs)</h1>
                         
                         {error && (
                             <Alert
