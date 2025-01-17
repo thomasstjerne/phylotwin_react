@@ -1,185 +1,252 @@
-import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import { Box, Button, AppBar, Toolbar, Typography } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Layout as AntLayout, Button, theme, Spin, Dropdown } from 'antd';
 import { useSelector } from 'react-redux';
-import { Spin } from 'antd';
+import {
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  SettingOutlined,
+  LineChartOutlined,
+  ExperimentOutlined
+} from '@ant-design/icons';
+import { Box, Typography } from '@mui/material';
+
 import SettingsPanel from './SettingsPanel';
 import VisualizationPanel from './VisualizationPanel';
 import HypothesisPanel from './HypothesisPanel';
 import UserMenu from '../Components/UserMenu';
 import JobStatusPoller from '../Components/JobStatusPoller';
+import Logo from './Logo';
+
+const { Header, Content } = AntLayout;
 
 const Layout = ({ step, setStep }) => {
   const [activePanel, setActivePanel] = useState('settings');
-  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const location = useLocation();
+  const { id: runId } = useParams();
   const { status } = useSelector(state => state.results);
   const isAnalysisRunning = status === 'running';
+  const {
+    token: { colorBgContainer },
+  } = theme.useToken();
 
   // Only show the navigation and settings panel on the workflow page
-  const isWorkflowPage = location.pathname === '/run';
+  const isWorkflowPage = location.pathname === '/run' || location.pathname.startsWith('/run/');
 
-  const handlePanelChange = (newValue) => {
-    console.log('Panel change requested:', {
-      newValue,
+  // Set initial active panel based on conditions
+  useEffect(() => {
+    if (isWorkflowPage) {
+      if (runId) {
+        // For historical runs, start with visualization
+        setActivePanel('visualization');
+      } else if (status === 'completed') {
+        // When analysis results are ready
+        setActivePanel('visualization');
+      } else {
+        // For new analysis
+        setActivePanel('settings');
+      }
+    }
+  }, [isWorkflowPage, runId, status]);
+
+  const handleMenuClick = (key) => {
+    console.log('Menu click:', {
+      key,
       currentStatus: status,
       hasResults: status === 'completed'
     });
     
     // Only block manual visualization panel opening
-    // Allow programmatic opening from JobStatusPoller
-    if (newValue === 'visualization' && status !== 'completed' && !isAnalysisRunning) {
+    if (key === 'visualization' && status !== 'completed' && !isAnalysisRunning) {
       console.log('Cannot open visualization panel - no results available');
       return;
     }
-    setActivePanel(newValue);
-    setIsSettingsPanelOpen(true);
+    setActivePanel(key);
+    setIsPanelCollapsed(false); // Expand panel when changing
   };
 
-  const handlePanelOpen = (panel) => {
-    console.log('Opening panel:', panel);
-    setActivePanel(panel);
-    setIsSettingsPanelOpen(true);
+  // Get panel title based on active panel
+  const getPanelTitle = () => {
+    switch (activePanel) {
+      case 'settings':
+        return 'Settings';
+      case 'visualization':
+        return 'Visualization';
+      case 'hypothesis':
+        return 'Tests';
+      default:
+        return '';
+    }
   };
 
-  // For non-workflow pages, render a simpler layout with just the app bar and content
+  // Menu items for the dropdown
+  const menuItems = {
+    items: [
+      {
+        key: 'settings',
+        icon: <SettingOutlined />,
+        label: 'Settings',
+      },
+      {
+        key: 'visualization',
+        icon: <LineChartOutlined />,
+        label: 'Visualization',
+        disabled: status !== 'completed',
+      },
+      {
+        key: 'hypothesis',
+        icon: <ExperimentOutlined />,
+        label: 'Tests',
+        disabled: status !== 'completed',
+      },
+    ],
+    onClick: ({ key }) => handleMenuClick(key),
+  };
+
+  // For non-workflow pages, render a simpler layout with just the header and content
   if (!isWorkflowPage) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <AppBar 
-          position="static" 
-          sx={{ 
-            '& .MuiToolbar-root': {
-              minHeight: '48px',
-              '@media (min-width: 600px)': {
-                minHeight: '48px'
-              }
-            }
-          }}
-        >
-          <Toolbar sx={{ justifyContent: 'flex-end' }}>
-            <UserMenu />
-          </Toolbar>
-        </AppBar>
-        <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+      <AntLayout style={{ minHeight: '100vh' }}>
+        <Header style={{ 
+          padding: '0 16px', 
+          background: colorBgContainer, 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          height: 48,
+          lineHeight: '48px'
+        }}>
+          <UserMenu />
+        </Header>
+        <Content style={{ margin: '0 16px' }}>
           <Outlet />
-        </Box>
-      </Box>
+        </Content>
+      </AntLayout>
     );
   }
 
   // For workflow page, render the full layout with panels
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <JobStatusPoller handlePanelOpen={handlePanelOpen} />
-      <AppBar 
-        position="static" 
-        sx={{ 
-          '& .MuiToolbar-root': {
-            minHeight: '48px',
-            '@media (min-width: 600px)': {
-              minHeight: '48px'
-            }
-          }
-        }}
-      >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Button 
-              color="inherit"
-              onClick={() => handlePanelChange('settings')}
-              variant={activePanel === 'settings' ? 'contained' : 'text'}
-              sx={{ mr: 1, py: 0.5 }}
-              size="small"
-            >
-              Settings
-            </Button>
-            <Button 
-              color="inherit"
-              onClick={() => handlePanelChange('visualization')}
-              variant={activePanel === 'visualization' ? 'contained' : 'text'}
-              sx={{ mr: 1, py: 0.5 }}
-              size="small"
-              disabled={status !== 'completed'}
-            >
-              Visualization
-              {status === 'completed' && (
-                <Box component="span" sx={{ ml: 1, width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
-              )}
-            </Button>
-            <Button 
-              color="inherit"
-              onClick={() => handlePanelChange('hypothesis')}
-              variant={activePanel === 'hypothesis' ? 'contained' : 'text'}
-              sx={{ py: 0.5 }}
-              size="small"
-              disabled={status !== 'completed'}
-            >
-              Hypothesis test
-            </Button>
+    <AntLayout style={{ minHeight: '100vh' }}>
+      <JobStatusPoller handlePanelOpen={handleMenuClick} />
+      <Header style={{ 
+        padding: '0 16px', 
+        background: colorBgContainer, 
+        display: 'flex', 
+        alignItems: 'center',
+        height: 48,
+        lineHeight: '48px',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1002,
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)'
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          gap: 2,
+          flexGrow: 1
+        }}>
+          <Dropdown 
+            menu={menuItems} 
+            trigger={['click']}
+            placement="bottomLeft"
+            getPopupContainer={(trigger) => trigger.parentNode}
+            overlayStyle={{ zIndex: 1003 }}
+          >
+            <Button
+              type="text"
+              icon={isPanelCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={(e) => {
+                if (e.domEvent) {
+                  e.domEvent.stopPropagation();
+                }
+                if (!activePanel) {
+                  return;
+                }
+                setIsPanelCollapsed(!isPanelCollapsed);
+              }}
+              style={{
+                fontSize: '16px',
+                width: 48,
+                height: 48,
+              }}
+            />
+          </Dropdown>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              color: 'text.secondary',
+              fontWeight: 500,
+              minWidth: 100
+            }}
+          >
+            {getPanelTitle()}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Logo />
             {isAnalysisRunning && (
-              <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                gap: 1 
+              }}>
                 <Spin size="small" />
-                <Typography variant="body2" color="inherit" sx={{ ml: 1 }}>
+                <Typography variant="body2">
                   Analysis running...
                 </Typography>
               </Box>
             )}
           </Box>
-          <Box>
-            <UserMenu />
-          </Box>
-        </Toolbar>
-      </AppBar>
+        </Box>
+        <UserMenu />
+      </Header>
 
-      <Box sx={{ 
+      <Content style={{ 
+        marginTop: 48, 
         position: 'relative', 
-        flexGrow: 1, 
+        height: 'calc(100vh - 48px)',
         overflow: 'hidden'
       }}>
-        {/* Main content area (map) that takes full width */}
+        {/* Main content area (map) */}
         <Box sx={{ 
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 0
+          zIndex: 0,
+          overflow: 'hidden'
         }}>
-          <Outlet context={{ isSettingsPanelOpen, activePanel, handlePanelOpen }} />
+          <Outlet context={{ activePanel, handlePanelOpen: handleMenuClick }} />
         </Box>
 
-        {/* Overlay panels */}
-        <Box sx={{ 
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          height: '100%',
-          zIndex: 1
-        }}>
-          {/* Settings Panel */}
-          <SettingsPanel
-            isOpen={isSettingsPanelOpen && activePanel === 'settings'}
-            onClose={() => setIsSettingsPanelOpen(false)}
-            activePanel={activePanel}
-            handlePanelOpen={handlePanelOpen}
-            setStep={setStep}
-          />
+        {/* Panel overlays */}
+        <SettingsPanel
+          isOpen={activePanel === 'settings'}
+          onClose={() => setActivePanel(null)}
+          isCollapsed={isPanelCollapsed}
+          activePanel={activePanel}
+          handlePanelOpen={handleMenuClick}
+          setStep={setStep}
+        />
 
-          {/* Visualization Panel */}
-          <VisualizationPanel
-            isOpen={isSettingsPanelOpen && activePanel === 'visualization'}
-            onClose={() => setIsSettingsPanelOpen(false)}
-          />
+        <VisualizationPanel
+          isOpen={activePanel === 'visualization'}
+          onClose={() => setActivePanel(null)}
+          isCollapsed={isPanelCollapsed}
+        />
 
-          {/* Hypothesis Panel */}
-          <HypothesisPanel
-            isOpen={isSettingsPanelOpen && activePanel === 'hypothesis'}
-            onClose={() => setIsSettingsPanelOpen(false)}
-          />
-        </Box>
-      </Box>
-    </Box>
+        <HypothesisPanel
+          isOpen={activePanel === 'hypothesis'}
+          onClose={() => setActivePanel(null)}
+          isCollapsed={isPanelCollapsed}
+        />
+      </Content>
+    </AntLayout>
   );
 };
 

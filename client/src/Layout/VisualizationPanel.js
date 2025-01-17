@@ -38,7 +38,7 @@ import { PALETTES, getPalettesForType } from '../utils/colorScales';
 
 const drawerWidth = 340;
 
-const VisualizationPanel = ({ isOpen, onClose }) => {
+const VisualizationPanel = ({ isOpen, onClose, isCollapsed }) => {
   const dispatch = useDispatch();
   
   // Get state from Redux
@@ -499,22 +499,78 @@ const VisualizationPanel = ({ isOpen, onClose }) => {
         width: drawerWidth,
         flexShrink: 0,
         '& .MuiDrawer-paper': {
-          width: drawerWidth,
+          width: isCollapsed ? 0 : drawerWidth,
           boxSizing: 'border-box',
+          position: 'fixed',
+          height: 'calc(100vh - 64px)',
+          border: 'none',
+          borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+          top: 64,
+          transition: 'width 0.2s ease-in-out',
+          overflow: 'hidden',
+          zIndex: 1001,
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Visualization
-        </Typography>
-        <IconButton onClick={onClose}>
-          <ChevronLeftIcon />
-        </IconButton>
-      </Box>
-
-      <Box sx={{ p: 2, overflow: 'auto' }}>
-        {renderContent()}
+      <Box 
+        sx={{ 
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          backgroundColor: 'background.paper',
+        }}
+      >
+        <Box
+          sx={{
+            p: 2,
+            flex: 1,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#888 #f1f1f1',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f1f1',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#888',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              background: '#555',
+            },
+            '& .MuiAccordion-root': {
+              '&:not(:last-child)': {
+                marginBottom: 2,
+              },
+              '&:before': {
+                display: 'none',
+              },
+            },
+            '& .MuiAccordionSummary-root': {
+              minHeight: 48,
+              '&.Mui-expanded': {
+                minHeight: 48,
+              },
+            },
+            '& .MuiAccordionSummary-content': {
+              margin: '12px 0',
+              '&.Mui-expanded': {
+                margin: '12px 0',
+              },
+            },
+            '& .MuiAccordionDetails-root': {
+              padding: '8px 16px 16px',
+            },
+          }}
+        >
+          {renderContent()}
+        </Box>
       </Box>
     </Drawer>
   );

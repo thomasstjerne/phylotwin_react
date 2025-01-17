@@ -1,11 +1,36 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { Box, Typography } from '@mui/material';
 
-function Logo() {
-      /* return (<div
-            style={{ backgroundImage: `url("../images/clb-blue.svg")` , height: '58px', width: '58px', flex: '0 0 auto' }}
-            className='headerLogo'
-          />) */
-      return (<img src="/image26.png" style={{ height: '54px', flex: '0 0 auto' }} alt=""></img>);
-}
+const Logo = () => {
+  return (
+    <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        gap: 1
+      }}>
+        <img 
+          src="/logo.png" 
+          alt="PhyloTwin Logo" 
+          style={{ 
+            height: 32,
+            width: 'auto'
+          }} 
+        />
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            fontSize: '1.2rem',
+            fontWeight: 600,
+            color: '#1890ff'
+          }}
+        >
+          PhyloTwin
+        </Typography>
+      </Box>
+    </Link>
+  );
+};
 
 export default Logo;
