@@ -11,7 +11,7 @@ const Logo = () => {
         gap: 1
       }}>
         <img 
-          src="/logo.png" 
+          src="/logo.png"
           alt="PhyloTwin Logo" 
           style={{ 
             height: 32,
