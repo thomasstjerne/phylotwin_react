@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import PageContent from "../Layout/PageContent";
 import { marked } from "marked"
 import { Image, Row, Col, Typography, Space, Card } from "antd";
-import UserMenu from "../Components/UserMenu";
 import styled from '@emotion/styled';
 
 const { Title, Text, Link } = Typography;
@@ -64,9 +63,6 @@ function App() {
         <Col flex="auto">
           <Title level={1} style={{ margin: 0 }}>PhyloNext v2</Title>
           <Text>A powerful tool for phylogenetic analysis and visualization</Text>
-        </Col>
-        <Col>
-          <UserMenu />
         </Col>
       </Row>
 
