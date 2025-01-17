@@ -5,7 +5,19 @@ import Form from "../Form";
 import Map from "../Components/Map/Map";
 import withContext from "../Components/hoc/withContext";
 import { useDispatch, useSelector } from "react-redux";
-import { setGeoJSON, setPipelineStatus, setJobId, setResultsError, setIndices } from "../store/actions";
+import { 
+    setGeoJSON, 
+    setPipelineStatus, 
+    setJobId, 
+    setResultsError, 
+    setIndices, 
+    resetResults,
+    resetVisualization,
+    clearDrawnItems,
+    setAreaSelectionMode,
+    updateMapCenter,
+    updateMapZoom
+} from "../store/actions";
 import axiosWithAuth from "../utils/axiosWithAuth";
 import config from "../config";
 
@@ -15,17 +27,25 @@ const Workflow = ({ step, setStep, runID, setRunID }) => {
     const dispatch = useDispatch();
     const status = useSelector(state => state.results.status);
 
-    // Set initial step based on URL params
+    // Set initial step based on URL params and handle cleanup
     useEffect(() => {
         if (params?.id) {
             setStep(1); // Run view
             setRunID(params.id); // Set the runID from params
         } else {
+            // Clear all states and switch to settings panel for new analysis
+            dispatch(resetResults());
+            dispatch(resetVisualization());
+            dispatch(clearDrawnItems());
+            dispatch(setAreaSelectionMode(null));
+            dispatch(updateMapCenter([20, 0]));
+            dispatch(updateMapZoom(2));
             setStep(0); // Form view
             setRunID(null); // Clear runID
+            handlePanelOpen('settings');
         }
         console.log("Workflow mounted with step:", step, "and params:", params);
-    }, [params, setStep, setRunID, step]);
+    }, [params, setStep, setRunID, step, dispatch, handlePanelOpen]);
 
     // Load results when job ID changes
     useEffect(() => {

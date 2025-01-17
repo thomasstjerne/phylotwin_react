@@ -6,4 +6,17 @@ export {
   setError as setResultsError,
   resetResults,
   setIndices
-} from './resultsSlice'; 
+} from './resultsSlice';
+
+// Re-export actions from visualizationSlice
+export {
+  resetVisualization
+} from './visualizationSlice';
+
+// Re-export actions from mapSlice
+export {
+  clearDrawnItems,
+  setAreaSelectionMode,
+  updateMapCenter,
+  updateMapZoom
+} from './mapSlice'; 
