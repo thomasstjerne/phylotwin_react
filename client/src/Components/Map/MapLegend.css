@@ -3,7 +3,7 @@
 .map-legends-container {
   position: absolute;
   bottom: 35px;
-  right: 85px;
+  right: 45px;
   display: flex;
   flex-direction: column;         /* Stack multiple legends vertically */
   gap: 12px;                      /* Space between multiple legends */
@@ -27,12 +27,12 @@
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);  /* Subtle elevation */
   transition: transform 0.3s ease;              /* Smooth folding animation */
-  margin-right: 10px;                           /* Gap between legend and fold button */
+  margin-right: 5px;                           /* Gap between legend and fold button */
 }
 
 /* Transform the legend content when folded */
 .folded .legend-content {
-  transform: translateX(calc(100% + 80px));  /* Slide right to hide */
+  transform: translateX(calc(100% + 100px));  /* Slide right to hide */
 }
 
 /* Fold/unfold button that stays fixed at the screen edge */
@@ -56,7 +56,7 @@
 
 /* Position buttons for first and second legends when multiple are present */
 .map-legend:nth-child(1) .legend-fold-button {
-  bottom: 35px;  /* Align with first legend */
+  bottom: 65px;  /* Align with first legend */
 }
 
 .map-legend:nth-child(2) .legend-fold-button {
