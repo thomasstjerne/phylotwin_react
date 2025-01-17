@@ -378,15 +378,16 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
           width: isCollapsed ? 0 : drawerWidth,
           boxSizing: 'border-box',
           position: 'fixed',
-          height: 'calc(100vh - 64px)',
+          height: '100%',
           border: 'none',
           borderRight: '1px solid rgba(0, 0, 0, 0.12)',
-          top: 64,
+          top: 0,
           transition: 'width 0.2s ease-in-out',
           overflow: 'hidden',
           zIndex: 1001,
           display: 'flex',
           flexDirection: 'column',
+          paddingTop: '64px'
         },
       }}
     >
