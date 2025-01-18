@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { List, Button, Popconfirm, Space, Input, Typography, message, Tag, Alert, Card, Row, Col, Statistic, Spin } from "antd";
+import { List, Button, Popconfirm, Space, Input, Typography, message, Tag, Alert, Card, Row, Col, Statistic, Spin, Tooltip } from "antd";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
 import axiosWithAuth from "../utils/axiosWithAuth";
@@ -36,23 +36,44 @@ const MyRuns = () => {
         // Add phylogenetic tree
         const tree = item.params?.tree || item.tree;
         if (tree) {
-            parts.push(<Tag color="blue" key="tree">Tree: {tree}</Tag>);
+            parts.push(
+                <Tooltip title={`Tree: ${tree}`} key="tree">
+                    <Tag color="blue" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Tree: {tree}
+                    </Tag>
+                </Tooltip>
+            );
         }
 
         // Add spatial resolution
         const resolution = item.params?.resolution || item.resolution;
         if (resolution) {
-            parts.push(<Tag color="green" key="resolution">Resolution: H3/{resolution}</Tag>);
+            parts.push(
+                <Tooltip title={`Resolution: H3/${resolution}`} key="resolution">
+                    <Tag color="green">Resolution: H3/{resolution}</Tag>
+                </Tooltip>
+            );
         }
 
         // Add area selection
         const country = item.params?.country || item.country || [];
         if (country.length) {
-            parts.push(<Tag color="orange" key="country">Countries: {country.join(', ')}</Tag>);
+            const countryText = `Countries: ${country.join(', ')}`;
+            parts.push(
+                <Tooltip title={countryText} key="country">
+                    <Tag color="orange" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {countryText}
+                    </Tag>
+                </Tooltip>
+            );
         }
         const polygon = item.params?.polygon || item.polygon;
         if (polygon) {
-            parts.push(<Tag color="orange" key="polygon">Custom polygon</Tag>);
+            parts.push(
+                <Tooltip title="Custom polygon" key="polygon">
+                    <Tag color="orange">Custom polygon</Tag>
+                </Tooltip>
+            );
         }
 
         // Add taxonomic filters
@@ -60,11 +81,14 @@ const MyRuns = () => {
         taxonomicRanks.forEach(rank => {
             const values = item.params?.[rank] || item[rank] || [];
             if (values.length) {
+                const label = rank === 'classs' ? 'Class' : rank.charAt(0).toUpperCase() + rank.slice(1);
+                const text = `${label}: ${values.join(', ')}`;
                 parts.push(
-                    <Tag color="purple" key={rank}>
-                        {rank === 'classs' ? 'Class' : rank.charAt(0).toUpperCase() + rank.slice(1)}: 
-                        {values.join(', ')}
-                    </Tag>
+                    <Tooltip title={text} key={rank}>
+                        <Tag color="purple" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {text}
+                        </Tag>
+                    </Tooltip>
                 );
             }
         });
@@ -73,31 +97,47 @@ const MyRuns = () => {
         const minyear = item.params?.minyear || item.minyear;
         const maxyear = item.params?.maxyear || item.maxyear;
         if (minyear && maxyear) {
-            parts.push(<Tag color="cyan" key="years">Years: {minyear}-{maxyear}</Tag>);
+            const text = `Years: ${minyear}-${maxyear}`;
+            parts.push(
+                <Tooltip title={text} key="years">
+                    <Tag color="cyan">{text}</Tag>
+                </Tooltip>
+            );
         }
 
         // Add diversity indices
         const div = item.params?.div || item.div || [];
         if (div.length) {
+            const text = `Indices: ${div.join(', ')}`;
             parts.push(
-                <Tag color="magenta" key="div">
-                    Indices: {div.join(', ')}
-                </Tag>
+                <Tooltip title={text} key="div">
+                    <Tag color="magenta" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {text}
+                    </Tag>
+                </Tooltip>
             );
         }
         const bd_indices = item.params?.bd_indices || item.bd_indices || [];
         if (bd_indices.length) {
+            const text = `Biodiverse: ${bd_indices.join(', ')}`;
             parts.push(
-                <Tag color="magenta" key="bd">
-                    Biodiverse: {bd_indices.join(', ')}
-                </Tag>
+                <Tooltip title={text} key="bd">
+                    <Tag color="magenta" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {text}
+                    </Tag>
+                </Tooltip>
             );
         }
 
         // Add randomizations
         const rnd = item.params?.rnd || item.rnd;
         if (rnd) {
-            parts.push(<Tag color="gold" key="rnd">Randomizations: {rnd}</Tag>);
+            const text = `Randomizations: ${rnd}`;
+            parts.push(
+                <Tooltip title={text} key="rnd">
+                    <Tag color="gold">{text}</Tag>
+                </Tooltip>
+            );
         }
 
         return (
@@ -264,7 +304,7 @@ const MyRuns = () => {
 
     return (
         <PageContent>
-            <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+            <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '0 16px' }}>
                 {loading ? (
                     renderLoading()
                 ) : !user ? (
@@ -431,7 +471,11 @@ const MyRuns = () => {
                                                     )}
                                                 </Space>
                                             }
-                                            description={getDescription(item)}
+                                            description={
+                                                <div style={{ maxWidth: 'calc(100% - 300px)' }}>
+                                                    {getDescription(item)}
+                                                </div>
+                                            }
                                         />
                                     </List.Item>
                                 )}
