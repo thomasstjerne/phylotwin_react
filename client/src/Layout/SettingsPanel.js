@@ -320,8 +320,13 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
       
       if (response?.data?.jobid) {
         console.log('Analysis started successfully:', response.data);
-        dispatch(setJobId(response.data.jobid));
-        dispatch(setPipelineStatus('running'));
+        // Update Redux state first
+        await Promise.all([
+          dispatch(setJobId(response.data.jobid)),
+          dispatch(setPipelineStatus('running'))
+        ]);
+        // Then switch to visualization panel
+        console.log('Switching to visualization panel');
         handlePanelOpen('visualization');
       } else {
         throw new Error('No job ID returned from server');

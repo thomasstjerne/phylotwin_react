@@ -18,5 +18,6 @@ export {
   clearDrawnItems,
   setAreaSelectionMode,
   updateMapCenter,
-  updateMapZoom
+  updateMapZoom,
+  resetMapState
 } from './mapSlice'; 

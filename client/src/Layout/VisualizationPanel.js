@@ -38,7 +38,7 @@ import { PALETTES, getPalettesForType } from '../utils/colorScales';
 
 const drawerWidth = 340;
 
-const VisualizationPanel = ({ isOpen, onClose, isCollapsed }) => {
+const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) => {
   const dispatch = useDispatch();
   
   // Get state from Redux
@@ -279,32 +279,48 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed }) => {
       return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: 4 }}>
           <CircularProgress />
-          <Typography>Analysis in progress...</Typography>
-          <Typography variant="caption" color="text.secondary">
-            Please wait while the pipeline completes.
+          <Typography variant="h6">Analysis in progress...</Typography>
+          <Typography variant="body2" color="text.secondary" align="center">
+            Please wait while we process your data. This may take a few minutes.
+            The visualization will automatically update when results are ready.
           </Typography>
+          <Box sx={{ mt: 2, width: '100%', maxWidth: 300 }}>
+            <Typography variant="caption" color="text.secondary" align="center" display="block">
+              You can switch back to the Settings panel to review your configuration while waiting.
+            </Typography>
+          </Box>
         </Box>
       );
     }
 
     if (hasFailed) {
       return (
-        <Box sx={{ textAlign: 'center', mt: 4, color: 'error.main' }}>
-          <Typography>Analysis failed</Typography>
+        <Box sx={{ p: 3, textAlign: 'center', color: 'error.main' }}>
+          <Typography variant="h6">Analysis failed</Typography>
           {error && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {error}
             </Typography>
           )}
+          <Button
+            variant="outlined"
+            color="primary"
+            sx={{ mt: 2 }}
+            onClick={() => handlePanelOpen('settings')}
+          >
+            Return to Settings
+          </Button>
         </Box>
       );
     }
 
     if (!hasResults) {
       return (
-        <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 2 }}>
-          No analysis results available. Run an analysis first.
-        </Typography>
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Typography color="text.secondary">
+            No analysis results available. Run an analysis first.
+          </Typography>
+        </Box>
       );
     }
 

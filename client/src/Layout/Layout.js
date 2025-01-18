@@ -37,11 +37,8 @@ const Layout = ({ step, setStep }) => {
   // Set initial active panel based on conditions
   useEffect(() => {
     if (isWorkflowPage) {
-      if (runId) {
-        // For historical runs, start with visualization
-        setActivePanel('visualization');
-      } else if (status === 'completed') {
-        // When analysis results are ready
+      if (runId || status === 'completed' || status === 'running') {
+        // For historical runs or when analysis is running/completed
         setActivePanel('visualization');
       } else {
         // For new analysis
@@ -57,13 +54,20 @@ const Layout = ({ step, setStep }) => {
       hasResults: status === 'completed'
     });
     
-    // Only block manual visualization panel opening
-    if (key === 'visualization' && status !== 'completed' && !isAnalysisRunning) {
-      console.log('Cannot open visualization panel - no results available');
+    // Allow visualization panel when analysis is running or completed
+    if (key === 'visualization' && status !== 'completed' && status !== 'running') {
+      console.log('Cannot open visualization panel - no analysis in progress or completed');
       return;
     }
     setActivePanel(key);
     setIsPanelCollapsed(false); // Expand panel when changing
+  };
+
+  // Separate function for programmatic panel switching
+  const handlePanelOpen = (key) => {
+    console.log('Opening panel:', key);
+    setActivePanel(key);
+    setIsPanelCollapsed(false);
   };
 
   // Get panel title based on active panel
@@ -92,7 +96,7 @@ const Layout = ({ step, setStep }) => {
         key: 'visualization',
         icon: <LineChartOutlined />,
         label: 'Visualization',
-        disabled: status !== 'completed',
+        disabled: status !== 'completed' && status !== 'running',
       },
       {
         key: 'hypothesis',
@@ -129,7 +133,7 @@ const Layout = ({ step, setStep }) => {
   // For workflow page, render the full layout with panels
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
-      <JobStatusPoller handlePanelOpen={handleMenuClick} />
+      <JobStatusPoller handlePanelOpen={handlePanelOpen} />
       <Header style={{ 
         padding: '0 16px', 
         background: colorBgContainer, 
@@ -221,7 +225,7 @@ const Layout = ({ step, setStep }) => {
           zIndex: 0,
           overflow: 'hidden'
         }}>
-          <Outlet context={{ activePanel, handlePanelOpen: handleMenuClick }} />
+          <Outlet context={{ activePanel, handlePanelOpen }} />
         </Box>
 
         {/* Panel overlays */}
@@ -230,7 +234,7 @@ const Layout = ({ step, setStep }) => {
           onClose={() => setActivePanel(null)}
           isCollapsed={isPanelCollapsed}
           activePanel={activePanel}
-          handlePanelOpen={handleMenuClick}
+          handlePanelOpen={handlePanelOpen}
           setStep={setStep}
         />
 
@@ -238,6 +242,7 @@ const Layout = ({ step, setStep }) => {
           isOpen={activePanel === 'visualization'}
           onClose={() => setActivePanel(null)}
           isCollapsed={isPanelCollapsed}
+          handlePanelOpen={handlePanelOpen}
         />
 
         <HypothesisPanel

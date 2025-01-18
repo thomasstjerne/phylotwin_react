@@ -13,8 +13,7 @@ import {
     setIndices, 
     resetResults,
     resetVisualization,
-    clearDrawnItems,
-    setAreaSelectionMode,
+    resetMapState,
     updateMapCenter,
     updateMapZoom
 } from "../store/actions";
@@ -27,17 +26,16 @@ const Workflow = ({ step, setStep, runID, setRunID }) => {
     const dispatch = useDispatch();
     const status = useSelector(state => state.results.status);
 
-    // Set initial step based on URL params and handle cleanup
+    // Reset all states when starting a new run (no params.id)
     useEffect(() => {
         if (params?.id) {
             setStep(1); // Run view
             setRunID(params.id); // Set the runID from params
-        } else {
+        } else if (status === 'idle') { // Only reset if we're in idle state
             // Clear all states and switch to settings panel for new analysis
             dispatch(resetResults());
             dispatch(resetVisualization());
-            dispatch(clearDrawnItems());
-            dispatch(setAreaSelectionMode(null));
+            dispatch(resetMapState());
             dispatch(updateMapCenter([20, 0]));
             dispatch(updateMapZoom(2));
             setStep(0); // Form view
@@ -45,7 +43,7 @@ const Workflow = ({ step, setStep, runID, setRunID }) => {
             handlePanelOpen('settings');
         }
         console.log("Workflow mounted with step:", step, "and params:", params);
-    }, [params, setStep, setRunID, step, dispatch, handlePanelOpen]);
+    }, [params, setStep, setRunID, step, dispatch, handlePanelOpen, status]);
 
     // Load results when job ID changes
     useEffect(() => {
@@ -85,8 +83,7 @@ const Workflow = ({ step, setStep, runID, setRunID }) => {
                     handlePanelOpen('visualization');
                 } catch (error) {
                     console.error('Failed to load results:', error);
-                    dispatch(setPipelineStatus('failed'));
-                    dispatch(setResultsError('Failed to load results'));
+                    dispatch(setResultsError(error.message || 'Failed to load results'));
                 }
             };
             

@@ -34,14 +34,9 @@ const mapSlice = createSlice({
     setAreaSelectionMode: (state, action) => {
       console.log('Setting area selection mode:', action.payload);
       state.areaSelectionMode = action.payload;
-      // Clear drawn items when changing mode (except for map mode)
-      if (action.payload !== 'map') {
-        console.log('Clearing drawn items due to mode change');
-        state.drawnItems = {
-          type: 'FeatureCollection',
-          features: []
-        };
-      }
+    },
+    resetMapState: (state) => {
+      return initialState;
     }
   }
 });
@@ -51,7 +46,8 @@ export const {
   updateMapZoom,
   updateDrawnItems,
   clearDrawnItems,
-  setAreaSelectionMode
+  setAreaSelectionMode,
+  resetMapState
 } = mapSlice.actions;
 
 export default mapSlice.reducer; 
