@@ -30,7 +30,7 @@ const JobStatusPoller = ({ handlePanelOpen }) => {
         // Extract indices from GeoJSON properties
         const properties = geoJSON.features?.[0]?.properties || {};
         const indices = Object.keys(properties).filter(key => 
-          !['h3_index', 'NumRecords', 'Redundancy'].includes(key)
+          ![ 'h3_index' ].includes(key)
         );
 
         console.log('Found indices:', indices);
