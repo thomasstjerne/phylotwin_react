@@ -443,7 +443,10 @@ const MyRuns = () => {
                                                 okText="Yes"
                                                 cancelText="No"
                                             >
-                                                <Button type="link" danger icon={<DeleteOutlined />}>
+                                                <Button 
+                                                    danger
+                                                    icon={<DeleteOutlined />}
+                                                >
                                                     Delete
                                                 </Button>
                                             </Popconfirm>
