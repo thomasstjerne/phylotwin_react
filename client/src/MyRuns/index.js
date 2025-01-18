@@ -1,14 +1,24 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { List, Button, Popconfirm, Space, Input, Typography, message, Tag, Alert } from "antd";
+import { List, Button, Popconfirm, Space, Input, Typography, message, Tag, Alert, Card, Row, Col, Statistic, Spin } from "antd";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
 import axiosWithAuth from "../utils/axiosWithAuth";
-import { DownloadOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from "@ant-design/icons";
+import { 
+  DownloadOutlined, 
+  DeleteOutlined, 
+  SearchOutlined, 
+  EyeOutlined,
+  HistoryOutlined,
+  CheckCircleOutlined,
+  SyncOutlined,
+  WarningOutlined
+} from "@ant-design/icons";
 import { useAuth } from '../Auth/AuthContext';
 import PageContent from "../Layout/PageContent";
 import config from "../config";
+import Logo from "../Layout/Logo";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 const MyRuns = () => {
     const [runs, setRuns] = useState([]);
@@ -216,22 +226,115 @@ const MyRuns = () => {
 
     console.log('Rendering MyRuns with filteredRuns:', filteredRuns);
 
+    const stats = useMemo(() => {
+        if (!runs || !Array.isArray(runs)) return { total: 0, completed: 0, running: 0, failed: 0 };
+        
+        return runs.reduce((acc, run) => {
+            acc.total++;
+            if (run.status === 'completed') acc.completed++;
+            else if (run.status === 'running') acc.running++;
+            else if (run.status === 'error') acc.failed++;
+            return acc;
+        }, { total: 0, completed: 0, running: 0, failed: 0 });
+    }, [runs]);
+
+    const renderLoading = () => (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+            <Space direction="vertical" align="center">
+                <Spin size="large" />
+                <Text type="secondary">Loading your analysis history...</Text>
+            </Space>
+        </div>
+    );
+
+    const renderEmpty = () => (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Space direction="vertical" align="center" size="large">
+                <HistoryOutlined style={{ fontSize: 48, color: '#bfbfbf' }} />
+                <Title level={4}>No analysis runs found</Title>
+                <Text type="secondary">
+                    Start a new analysis to see your runs here
+                </Text>
+                <Button type="primary" onClick={() => navigate('/run')}>
+                    Start New Analysis
+                </Button>
+            </Space>
+        </div>
+    );
+
     return (
         <PageContent>
-            <div style={{ width: '100%' }}>
+            <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
                 {loading ? (
-                    <div>Loading...</div>
+                    renderLoading()
                 ) : !user ? (
                     <Alert
                         message="Authentication Required"
                         description="Please login to view your analysis history."
                         type="warning"
                         showIcon
+                        style={{ marginTop: 24 }}
                     />
                 ) : (
                     <>
-                        <h1>Analysis history ({filteredRuns.length} runs)</h1>
-                        
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between',
+                            marginBottom: 24,
+                            marginTop: 24
+                        }}>
+                            <Space align="center" size={16}>
+                                <Logo />
+                                <Title level={2} style={{ margin: 0 }}>Analysis History</Title>
+                            </Space>
+                            <Button type="primary" onClick={() => navigate('/run')}>
+                                Start New Analysis
+                            </Button>
+                        </div>
+
+                        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                            <Col xs={12} sm={6}>
+                                <Card>
+                                    <Statistic 
+                                        title="Total Runs"
+                                        value={stats.total}
+                                        prefix={<HistoryOutlined />}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card>
+                                    <Statistic 
+                                        title="Completed"
+                                        value={stats.completed}
+                                        valueStyle={{ color: '#52c41a' }}
+                                        prefix={<CheckCircleOutlined />}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card>
+                                    <Statistic 
+                                        title="Running"
+                                        value={stats.running}
+                                        valueStyle={{ color: '#1890ff' }}
+                                        prefix={<SyncOutlined spin={stats.running > 0} />}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card>
+                                    <Statistic 
+                                        title="Failed"
+                                        value={stats.failed}
+                                        valueStyle={{ color: '#ff4d4f' }}
+                                        prefix={<WarningOutlined />}
+                                    />
+                                </Card>
+                            </Col>
+                        </Row>
+
                         {error && (
                             <Alert
                                 message="Error"
@@ -243,20 +346,16 @@ const MyRuns = () => {
                         )}
                         
                         <Input
+                            size="large"
                             placeholder="Search runs by tree, country, or date..."
                             prefix={<SearchOutlined />}
                             value={searchText}
                             onChange={e => setSearchText(e.target.value)}
-                            style={{ marginBottom: 16 }}
+                            style={{ marginBottom: 24 }}
                         />
 
                         {filteredRuns.length === 0 ? (
-                            <Alert
-                                message="No Runs Found"
-                                description="No analysis runs match your search criteria."
-                                type="info"
-                                showIcon
-                            />
+                            renderEmpty()
                         ) : (
                             <List
                                 loading={loading}
@@ -273,6 +372,13 @@ const MyRuns = () => {
                                 renderItem={(item) => (
                                     <List.Item 
                                         key={item.run}
+                                        style={{ 
+                                            background: '#fff',
+                                            padding: '16px 24px',
+                                            marginBottom: 8,
+                                            borderRadius: 8,
+                                            border: '1px solid #f0f0f0'
+                                        }}
                                         actions={[
                                             <Button 
                                                 key="view"
@@ -306,14 +412,20 @@ const MyRuns = () => {
                                         <List.Item.Meta
                                             title={
                                                 <Space>
-                                                    <Text strong>
-                                                        {item.params?.tree || item.tree || 'Unnamed Run'} - {moment(item.completed || item.started).format('LLL')}
+                                                    <Text strong style={{ fontSize: '16px' }}>
+                                                        {item.params?.tree || item.tree || 'Unnamed Run'}
                                                     </Text>
                                                     <Text type="secondary">
+                                                        {moment(item.completed || item.started).format('LLL')}
+                                                        {' '}
                                                         ({moment(item.completed || item.started).fromNow()})
                                                     </Text>
                                                     {item.status && (
-                                                        <Tag color={item.status === 'completed' ? 'success' : 'processing'}>
+                                                        <Tag color={
+                                                            item.status === 'completed' ? 'success' : 
+                                                            item.status === 'running' ? 'processing' :
+                                                            'error'
+                                                        }>
                                                             {item.status}
                                                         </Tag>
                                                     )}
