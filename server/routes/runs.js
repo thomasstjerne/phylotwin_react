@@ -408,12 +408,12 @@ router.delete('/job/:jobId', auth.appendUser(), async (req, res) => {
         // Read latest database state
         db.read();
         
-        // Check if job exists and belongs to user
+        // Check if job exists and belongs to user - check both username and userName fields
         const job = db.get('runs')
-            .find({ 
-                run: jobId,
-                username: req.user.userName 
-            })
+            .find(run => 
+                (run.run === jobId || run.id === jobId) && 
+                (run.username === req.user.userName || run.userName === req.user.userName)
+            )
             .value();
 
         if (!job) {
@@ -431,9 +431,12 @@ router.delete('/job/:jobId', auth.appendUser(), async (req, res) => {
             // Continue with database deletion even if files cannot be deleted
         }
 
-        // Delete job from database
+        // Delete job from database - handle both run and id fields
         db.get('runs')
-            .remove({ run: jobId })
+            .remove(run => 
+                (run.run === jobId || run.id === jobId) && 
+                (run.username === req.user.userName || run.userName === req.user.userName)
+            )
             .write();
             
         console.log('Deleted job from database');
