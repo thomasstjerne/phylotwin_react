@@ -409,15 +409,16 @@ const MyRuns = () => {
                                     showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} runs`,
                                     position: 'both'
                                 }}
-                                renderItem={(item) => (
+                                renderItem={(item, index) => (
                                     <List.Item 
                                         key={item.run}
                                         style={{ 
-                                            background: '#fff',
+                                            background: index % 2 === 0 ? '#fff' : '#fafafa',
                                             padding: '16px 24px',
                                             marginBottom: 8,
                                             borderRadius: 8,
-                                            border: '1px solid #f0f0f0'
+                                            border: '1px solid #f0f0f0',
+                                            transition: 'background-color 0.3s'
                                         }}
                                         actions={[
                                             <Button 
