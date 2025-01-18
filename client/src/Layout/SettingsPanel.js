@@ -598,6 +598,24 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                               <InfoIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
+                          {selectedCountries.length > 0 && (
+                            <Tooltip title="Reset selection">
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  ml: 1,
+                                  color: 'error.main',
+                                  '&:hover': {
+                                    backgroundColor: 'error.light',
+                                    color: 'error.dark'
+                                  }
+                                }}
+                                onClick={handleClearCountries}
+                              >
+                                <ClearIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                         </Box>
                         <Select
                           multiple
