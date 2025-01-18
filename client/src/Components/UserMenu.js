@@ -4,6 +4,15 @@ import { LogoutOutlined, BarsOutlined, PlayCircleOutlined } from "@ant-design/ic
 import { Menu, Dropdown, Avatar, Modal, Button } from "antd";
 import { useAuth } from '../Auth/AuthContext';
 import LoginForm from "./LoginForm";
+import { useDispatch } from 'react-redux';
+import { 
+  resetResults,
+  resetVisualization,
+  resetMapState,
+  updateMapCenter,
+  updateMapZoom,
+  setPipelineStatus
+} from '../store/actions';
 
 const hashCode = function (str) {
   if (!str) return 0;
@@ -21,7 +30,26 @@ const hashCode = function (str) {
 
 const MenuContent = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { logout } = useAuth();
+
+  const handleStartNewAnalysis = () => {
+    // First reset all Redux states
+    dispatch(setPipelineStatus('idle'));
+    dispatch(resetResults());
+    dispatch(resetVisualization());
+    dispatch(resetMapState());
+    dispatch(updateMapCenter([20, 0]));
+    dispatch(updateMapZoom(2));
+    
+    // Then navigate to /run with replace to clear URL params
+    navigate('/run', { replace: true });
+    
+    // Finally, force a reload to ensure a completely fresh state
+    setTimeout(() => {
+      window.location.reload();
+    }, 0);
+  };
 
   const handleLogout = () => {
     logout();
@@ -32,9 +60,9 @@ const MenuContent = () => {
     <Menu selectedKeys={[]}>
       <Menu.Item
         key="newrun"
-        onClick={() => navigate('/run')}
+        onClick={handleStartNewAnalysis}
       >
-        <PlayCircleOutlined /> Start new run
+        <PlayCircleOutlined /> Start new analysis
       </Menu.Item>
       <Menu.Item
         key="history"
