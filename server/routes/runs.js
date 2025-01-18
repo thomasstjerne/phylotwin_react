@@ -464,44 +464,51 @@ router.get('/job/:jobId/archive', auth.appendUser(), async (req, res) => {
         const jobId = req.params.jobId;
         
         // Check if job exists and belongs to user
-        const job = await db.query(
-            'SELECT * FROM jobs WHERE id = $1 AND username = $2',
-            [jobId, req.user.userName]
-        );
+        db.read();
+        const job = db.get('runs')
+            .find(run => 
+                (run.run === jobId || run.id === jobId) && 
+                (run.username === req.user.userName || run.userName === req.user.userName)
+            )
+            .value();
 
-        if (job.rows.length === 0) {
+        if (!job) {
             console.error('Job not found or unauthorized');
             return res.status(404).json({ error: 'Run not found' });
         }
 
-        const jobDir = path.join(config.OUTPUT_PATH, jobId);
+        const outputDir = path.join(config.OUTPUT_PATH, jobId, 'output');
         
         try {
-            await fs.access(jobDir, fs.constants.R_OK);
+            await fs.access(outputDir, fs.constants.R_OK);
         } catch (error) {
-            console.error('Job directory not found:', error);
-            return res.status(404).json({ error: 'Run files not found' });
+            console.error('Output directory not found:', error);
+            return res.status(404).json({ error: 'Run output not found' });
         }
 
-        res.attachment(`run_${jobId}.zip`);
+        // Set response headers
+        res.attachment(`phylotwin-run-${jobId}.zip`);
         
+        // Create zip archive
         const archive = archiver('zip', {
-            zlib: { level: 9 }
+            zlib: { level: 9 } // Maximum compression
         });
 
-        archive.on('error', (err) => {
-            console.error('Archive error:', err);
-            res.status(500).json({ error: 'Failed to create archive' });
-        });
-
+        // Pipe archive data to the response
         archive.pipe(res);
-        archive.directory(jobDir, false);
-        archive.finalize();
 
-        console.log('Archive streaming started');
+        // Add the output directory to the archive
+        archive.directory(outputDir, 'output');
+
+        // Finalize archive
+        await archive.finalize();
+
+        console.log('Archive created and streamed successfully');
     } catch (error) {
         console.error('Error creating archive:', error);
-        res.status(500).json({ error: 'Failed to create archive' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to create archive' });
+        }
     }
 });
 
