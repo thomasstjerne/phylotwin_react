@@ -6,34 +6,7 @@ const auth = require("./Auth/auth");
 const db = require("./db");
 
 module.exports = (app) => {
-  app.get("/phylonext/job/:jobid/cloropleth.html", function (req, res) {
-    if (!req.params.jobid) {
-      res.sendStatus(404);
-    } else {
-      fs.readdir(
-        `${config.OUTPUT_PATH}/${req.params.jobid}/output/03.Plots/`,
-        function (err, fileList) {
-          if (err) {
-            res.sendStatus(404);
-          } else {
-            const html = fileList.find((file) => file === "Choropleth.html");
-            if (html) {
-              try {
-                fs.createReadStream(
-                  `${config.OUTPUT_PATH}/${req.params.jobid}/output/03.Plots/Choropleth.html`
-                ).pipe(res);
-              } catch (error) {
-                res.sendStatus(500);
-              }
-            } else {
-              res.sendStatus(404);
-            }
-          }
-        }
-      );
-    }
-  });
-
+  // Pipeline DAG visualization
   app.get("/phylonext/job/:jobid/pipeline_dag.dot", function (req, res) {
     if (!req.params.jobid) {
       res.sendStatus(404);
@@ -58,6 +31,7 @@ module.exports = (app) => {
     }
   });
 
+  // Pipeline execution report
   app.get("/phylonext/job/:jobid/execution_report.html", function (req, res) {
     if (!req.params.jobid) {
       res.sendStatus(404);
@@ -89,82 +63,7 @@ module.exports = (app) => {
     }
   });
 
-  app.get("/phylonext/job/:jobid/pdf", function (req, res) {
-    if (!req.params.jobid) {
-      res.sendStatus(404);
-    } else {
-      fs.readdir(
-        `${config.OUTPUT_PATH}/${req.params.jobid}/output/03.Plots/`,
-        function (err, fileList) {
-          if (err) {
-            res.sendStatus(404);
-          } else {
-            const pdfs = fileList.filter((file) => file.endsWith(".pdf"));
-            res.json(pdfs);
-          }
-        }
-      );
-    }
-  });
-
-  app.get("/phylonext/job/:jobid/pdf/:filename", function (req, res) {
-    if (!req.params.jobid) {
-      res.sendStatus(404);
-    } else {
-      fs.readdir(
-        `${config.OUTPUT_PATH}/${req.params.jobid}/output/03.Plots/`,
-        function (err, fileList) {
-          if (err) {
-            res.sendStatus(404);
-          } else {
-            const pdf = fileList.find((file) => file === req.params.filename);
-            if (pdf) {
-              try {
-                fs.createReadStream(
-                  `${config.OUTPUT_PATH}/${req.params.jobid}/output/03.Plots/${pdf}`
-                ).pipe(res);
-              } catch (error) {
-                res.sendStatus(500);
-              }
-            } else {
-              res.sendStatus(404);
-            }
-          }
-        }
-      );
-    }
-  });
-
-  app.get("/phylonext/job/:jobid/archive.zip", function (req, res) {
-    if (!req.params.jobid) {
-      res.sendStatus(404);
-    } else {
-      fs.readdir(
-        `${config.OUTPUT_PATH}/${req.params.jobid}/`,
-        function (err, fileList) {
-          if (err) {
-            res.sendStatus(404);
-          } else {
-            const archive = fileList.find(
-              (file) => file === `${req.params.jobid}.zip`
-            );
-            if (archive) {
-              try {
-                fs.createReadStream(
-                  `${config.OUTPUT_PATH}/${req.params.jobid}/${req.params.jobid}.zip`
-                ).pipe(res);
-              } catch (error) {
-                res.sendStatus(500);
-              }
-            } else {
-              res.sendStatus(404);
-            }
-          }
-        }
-      );
-    }
-  });
-
+  // Get phylogenetic tree
   app.get("/phylonext/job/:jobid/tree", function (req, res) {
     if (!req.params.jobid) {
       res.sendStatus(404);
@@ -193,12 +92,13 @@ module.exports = (app) => {
     }
   });
 
+  // Get available phylogenetic trees
   app.get("/phylonext/phy_trees", function (req, res) {
     fs.readdir(`${config.TEST_DATA}/phy_trees`, function (err, fileList) {
       if (err) {
         res.sendStatus(404);
       } else {
-        const trees = fileList.filter((file) => file.endsWith(".nwk") || file.endsWith(".tre") );
+        const trees = fileList.filter((file) => file.endsWith(".nwk") || file.endsWith(".tre"));
         if (trees) {
           try {
             res.json(trees);
@@ -212,6 +112,7 @@ module.exports = (app) => {
     });
   });
 
+  // Get specific phylogenetic tree
   app.get("/phylonext/phy_trees/:tree", function (req, res) {
     fs.readdir(`${config.TEST_DATA}/phy_trees`, function (err, fileList) {
       if (err) {
@@ -220,9 +121,7 @@ module.exports = (app) => {
         const tree = fileList.find((file) => file === req.params.tree);
         if (tree) {
           try {
-            fs.createReadStream(`${config.TEST_DATA}/phy_trees/${tree}`).pipe(
-              res
-            );
+            fs.createReadStream(`${config.TEST_DATA}/phy_trees/${tree}`).pipe(res);
           } catch (error) {
             res.sendStatus(500);
           }
@@ -233,6 +132,7 @@ module.exports = (app) => {
     });
   });
 
+  // Get user's runs
   app.get("/phylonext/myruns", auth.appendUser(), function (req, res) {
     try {
       db.read();
@@ -243,6 +143,7 @@ module.exports = (app) => {
     }
   });
 
+  // Get GeoJSON results
   app.get("/api/phylonext/jobs/:jobid/output/02.Diversity_estimates/diversity_estimates.geojson", function (req, res) {
     console.log('\n=== GEOJSON REQUEST ===');
     console.log('Job ID:', req.params.jobid);
@@ -277,5 +178,4 @@ module.exports = (app) => {
       });
     }
   });
-
 };
