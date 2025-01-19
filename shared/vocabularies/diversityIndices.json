@@ -129,9 +129,17 @@
           "id": "canape",
           "displayName": "CANAPE",
           "description": "Categorical analysis of neo- and paleo-endemism",
-          "commandName": "bd_CANAPE",
+          "commandName": ["calc_pe", "calc_phylo_rpd2", "calc_phylo_rpe2"],
           "module": "biodiverse",
           "colorSchemeType": "CANAPE"
+        },
+        {
+          "id": "hurlbert",
+          "displayName": "Hurlbert's ES",
+          "description": "The number of unique species in a random sample of N occurrence records",
+          "commandName": "calc_hurlbert_es",
+          "module": "biodiverse",
+          "colorSchemeType": "sequential"
         },
         {
           "id": "rpd1",
