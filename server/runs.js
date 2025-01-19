@@ -74,24 +74,11 @@ const processParams = (body) => {
   }
 
   // 4. Diversity indices
-  if (body.selectedDiversityIndices?.length > 0) {
-    const mainIndices = [];
-    const biodiverseIndices = [];
-
-    body.selectedDiversityIndices.forEach(index => {
-      if (index.module === 'main') {
-        mainIndices.push(index.commandName);
-      } else if (index.module === 'biodiverse') {
-        biodiverseIndices.push(index.commandName);
-      }
-    });
-
-    if (mainIndices.length > 0) {
-      params.div = mainIndices;
-    }
-    if (biodiverseIndices.length > 0) {
-      params.bd_indices = biodiverseIndices;
-    }
+  if (body.div?.length > 0) {
+    params.div = body.div;
+  }
+  if (body.bd_indices?.length > 0) {
+    params.bd_indices = body.bd_indices;
   }
 
   if (body.randomizations) {

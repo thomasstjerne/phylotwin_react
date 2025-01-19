@@ -281,35 +281,11 @@ const processParams = (body, outputDir) => {
         }
 
         // Process diversity indices
-        if (body.selectedDiversityIndices?.length > 0) {
-            const mainIndices = [];
-            const biodiverseCommands = new Set();
-            
-            // Get all indices from the vocabulary
-            const allIndices = diversityIndices.groups.flatMap(group => group.indices);
-            
-            body.selectedDiversityIndices.forEach(selectedId => {
-                const index = allIndices.find(i => i.id === selectedId);
-                if (index) {
-                    if (index.module === 'main') {
-                        mainIndices.push(index.commandName);
-                    } else if (index.module === 'biodiverse') {
-                        // Handle both array and string commandNames
-                        if (Array.isArray(index.commandName)) {
-                            index.commandName.forEach(cmd => biodiverseCommands.add(cmd));
-                        } else {
-                            biodiverseCommands.add(index.commandName);
-                        }
-                    }
-                }
-            });
-
-            if (mainIndices.length > 0) {
-                params.div = mainIndices;
-            }
-            if (biodiverseCommands.size > 0) {
-                params.bd_indices = Array.from(biodiverseCommands).join(',');
-            }
+        if (body.div?.length > 0) {
+            params.div = body.div;
+        }
+        if (body.bd_indices?.length > 0) {
+            params.bd_indices = body.bd_indices;
         }
 
         // Process randomizations

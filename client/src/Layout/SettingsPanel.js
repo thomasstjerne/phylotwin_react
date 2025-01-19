@@ -278,7 +278,7 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
       
       // Split diversity indices by module
       const mainIndices = [];
-      const biodiverseIndices = [];
+      const biodiverseCommands = new Set();
       selectedDiversityIndices.forEach(id => {
         const index = diversityIndices.groups
           .flatMap(group => group.indices)
@@ -286,7 +286,12 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
         if (index?.module === 'main') {
           mainIndices.push(index.commandName);
         } else if (index?.module === 'biodiverse') {
-          biodiverseIndices.push(index.commandName);
+          // Handle both array and string commandNames
+          if (Array.isArray(index.commandName)) {
+            index.commandName.forEach(cmd => biodiverseCommands.add(cmd));
+          } else {
+            biodiverseCommands.add(index.commandName);
+          }
         }
       });
 
@@ -294,7 +299,8 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
       const params = {
         spatialResolution: parseInt(spatialResolution, 10),
         selectedPhyloTree: selectedPhyloTree,
-        selectedDiversityIndices: selectedDiversityIndices,
+        div: mainIndices,
+        bd_indices: Array.from(biodiverseCommands),
         randomizations: parseInt(randomizations, 10),
         recordFilteringMode,
         yearRange,
