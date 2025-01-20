@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
 import { Box } from "@mui/material";
 import Form from "../Form";
@@ -25,75 +25,127 @@ const Workflow = ({ step, setStep, runID, setRunID }) => {
     const { handlePanelOpen } = useOutletContext();
     const dispatch = useDispatch();
     const status = useSelector(state => state.results.status);
+    const currentJobId = useSelector(state => state.results.jobId);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Reset all states when starting a new run (no params.id)
+    // Reset states and set up initial configuration
     useEffect(() => {
-        if (params?.id) {
-            setStep(1); // Run view
-            setRunID(params.id); // Set the runID from params
-        } else if (status === 'idle') { // Only reset if we're in idle state
-            // Clear all states and switch to settings panel for new analysis
-            dispatch(resetResults());
-            dispatch(resetVisualization());
-            dispatch(resetMapState());
-            dispatch(updateMapCenter([20, 0]));
-            dispatch(updateMapZoom(2));
-            setStep(0); // Form view
-            setRunID(null); // Clear runID
-            handlePanelOpen('settings');
-        }
-        console.log("Workflow mounted with step:", step, "and params:", params);
-    }, [params, setStep, setRunID, step, dispatch, handlePanelOpen, status]);
-
-    // Load results when job ID changes
-    useEffect(() => {
-        if (params?.id && status !== 'completed') {
-            // Load existing results
-            const loadExistingResults = async () => {
-                try {
-                    // Fetch GeoJSON results
-                    console.log('Loading results for job:', params.id);
-                    const response = await axiosWithAuth.get(
-                        `${config.phylonextWebservice}/api/phylonext/runs/job/${params.id}/results`
-                    );
-                    
-                    const geoJSON = response.data;
-                    console.log('Received GeoJSON data:', {
-                        type: geoJSON.type,
-                        featureCount: geoJSON.features?.length,
-                        sampleProperties: geoJSON.features?.[0]?.properties
-                    });
-
-                    // Extract indices from GeoJSON properties
-                    const properties = geoJSON.features?.[0]?.properties || {};
-                    const indices = Object.keys(properties).filter(key => 
-                        !['h3_index', 'NumRecords', 'Redundancy'].includes(key)
-                    );
-
-                    console.log('Found indices:', indices);
-                    
-                    // Update Redux state
-                    dispatch(setIndices(indices));
-                    dispatch(setGeoJSON(response.data));
-                    dispatch(setPipelineStatus('completed'));
-                    dispatch(setJobId(params.id));
-                    
-                    // Switch to visualization panel
-                    console.log('Opening visualization panel');
-                    handlePanelOpen('visualization');
-                } catch (error) {
-                    console.error('Failed to load results:', error);
-                    dispatch(setResultsError(error.message || 'Failed to load results'));
+        const setupInitialState = async () => {
+            if (params?.id) {
+                console.log('Setting up for historical run:', params.id);
+                // Only reset if we're loading a different run
+                if (params.id !== currentJobId) {
+                    console.log('Resetting states for new run');
+                    await Promise.all([
+                        dispatch(resetResults()),
+                        dispatch(resetVisualization()),
+                        dispatch(resetMapState()),
+                        dispatch(updateMapCenter([20, 0])),
+                        dispatch(updateMapZoom(2))
+                    ]);
                 }
-            };
-            
-            loadExistingResults();
+                setStep(1); // Run view
+                setRunID(params.id); // Set the runID from params
+            } else if (status === 'idle') {
+                console.log('Setting up for new analysis');
+                await Promise.all([
+                    dispatch(resetResults()),
+                    dispatch(resetVisualization()),
+                    dispatch(resetMapState()),
+                    dispatch(updateMapCenter([20, 0])),
+                    dispatch(updateMapZoom(2))
+                ]);
+                setStep(0); // Form view
+                setRunID(null); // Clear runID
+                handlePanelOpen('settings');
+            }
+        };
+
+        setupInitialState();
+    }, [params?.id, currentJobId, status, setStep, setRunID, handlePanelOpen, dispatch]);
+
+    // Handle data loading separately
+    useEffect(() => {
+        const loadHistoricalRun = async () => {
+            // Skip loading if:
+            // 1. No params.id
+            // 2. Already loading this run (status is running)
+            // 3. Already completed loading this run (status is completed AND jobId matches)
+            // 4. Currently in loading state
+            if (!params?.id || 
+                isLoading || 
+                (status === 'completed' && currentJobId === params.id) ||
+                (status === 'running' && currentJobId === params.id)) {
+                console.log('Skipping data load:', {
+                    paramsId: params?.id,
+                    isLoading,
+                    status,
+                    currentJobId,
+                    reason: 'Already loading or completed'
+                });
+                return;
+            }
+
+            try {
+                setIsLoading(true);
+                console.log('Loading historical run data:', params.id);
+                
+                // Set loading status before fetching
+                dispatch(setPipelineStatus('running'));
+                dispatch(setJobId(params.id));
+                
+                const response = await axiosWithAuth.get(
+                    `${config.phylonextWebservice}/api/phylonext/runs/job/${params.id}/results`
+                );
+                
+                const geoJSON = response.data;
+                console.log('Received GeoJSON data:', {
+                    type: geoJSON.type,
+                    featureCount: geoJSON.features?.length,
+                    jobId: params.id
+                });
+
+                const properties = geoJSON.features?.[0]?.properties || {};
+                const indices = Object.keys(properties).filter(key => 
+                    !['h3_index', 'NumRecords', 'Redundancy'].includes(key)
+                );
+
+                console.log('Found indices:', indices);
+                
+                // Update visualization data
+                await Promise.all([
+                    dispatch(setIndices(indices)),
+                    dispatch(setGeoJSON(response.data)),
+                    dispatch(setPipelineStatus('completed'))
+                ]);
+                
+                handlePanelOpen('visualization');
+            } catch (error) {
+                console.error('Failed to load results:', error);
+                dispatch(setPipelineStatus('failed'));
+                dispatch(setResultsError(error.message || 'Failed to load results'));
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        // Load data if needed
+        if (params?.id) {
+            loadHistoricalRun();
         }
-    }, [params?.id, dispatch, handlePanelOpen, status]);
+    }, [params?.id, dispatch, handlePanelOpen, status, isLoading, currentJobId]);
 
     // Debug logging
-    console.log("Current step:", step);
-    console.log("Current runID:", runID);
+    useEffect(() => {
+        console.log("Workflow state:", {
+            step,
+            params,
+            status,
+            runID,
+            isLoading,
+            currentJobId
+        });
+    }, [step, params, status, runID, isLoading, currentJobId]);
 
     // Render the workflow content (Form or Map)
     const renderWorkflowContent = () => {

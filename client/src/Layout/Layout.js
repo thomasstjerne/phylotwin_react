@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { Layout as AntLayout, Button, theme, Spin, Dropdown } from 'antd';
 import { useSelector } from 'react-redux';
@@ -36,39 +36,80 @@ const Layout = ({ step, setStep }) => {
 
   // Set initial active panel based on conditions
   useEffect(() => {
-    if (isWorkflowPage) {
-      if (runId || status === 'completed' || status === 'running') {
-        // For historical runs or when analysis is running/completed
-        setActivePanel('visualization');
-      } else {
-        // For new analysis
-        setActivePanel('settings');
+    if (!isWorkflowPage) return;
+
+    const determineInitialPanel = () => {
+      if (runId) {
+        console.log('Initial panel: visualization (historical run)');
+        return 'visualization';
       }
+      if (status === 'completed' || status === 'running') {
+        console.log('Initial panel: visualization (active analysis)');
+        return 'visualization';
+      }
+      console.log('Initial panel: settings (new analysis)');
+      return 'settings';
+    };
+
+    const newPanel = determineInitialPanel();
+    if (activePanel !== newPanel) {
+      console.log(`Updating active panel from ${activePanel} to ${newPanel}`);
+      setActivePanel(newPanel);
     }
-  }, [isWorkflowPage, runId, status]);
+  }, [isWorkflowPage, runId, status, activePanel]);
 
   const handleMenuClick = (key) => {
     console.log('Menu click:', {
       key,
+      currentPanel: activePanel,
       currentStatus: status,
-      hasResults: status === 'completed'
+      runId
     });
     
-    // Allow visualization panel when analysis is running or completed
+    // Prevent unnecessary state updates
+    if (key === activePanel) {
+      console.log('Panel already active:', key);
+      return;
+    }
+
+    // Validate panel transitions
     if (key === 'visualization' && status !== 'completed' && status !== 'running') {
       console.log('Cannot open visualization panel - no analysis in progress or completed');
       return;
     }
-    setActivePanel(key);
-    setIsPanelCollapsed(false); // Expand panel when changing
-  };
 
-  // Separate function for programmatic panel switching
-  const handlePanelOpen = (key) => {
-    console.log('Opening panel:', key);
+    if (key === 'settings' && status === 'running') {
+      console.log('Cannot switch to settings while analysis is running');
+      return;
+    }
+
     setActivePanel(key);
     setIsPanelCollapsed(false);
   };
+
+  // Separate function for programmatic panel switching
+  const handlePanelOpen = useCallback((key) => {
+    console.log('Opening panel:', key, {
+      currentPanel: activePanel,
+      currentStatus: status,
+      runId
+    });
+    
+    // Prevent unnecessary state updates
+    if (key === activePanel) {
+      console.log('Panel already active:', key);
+      return;
+    }
+
+    // Validate panel transitions
+    if (key === 'settings' && status === 'running') {
+      console.log('Cannot switch to settings while analysis is running');
+      return;
+    }
+
+    setActivePanel(key);
+    setIsPanelCollapsed(false);
+  }, [activePanel, status, runId]);
 
   // Get panel title based on active panel
   const getPanelTitle = () => {

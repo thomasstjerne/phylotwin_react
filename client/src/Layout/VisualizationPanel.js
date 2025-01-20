@@ -79,13 +79,28 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
   useEffect(() => {
     if (isOpen && hasResults) {
       // Only set default index if this is the first time results are available
+      // and no indices are currently selected
       if (selectedIndices.length === 0 && computedIndices.includes('Richness') && !hasUserInteracted.current) {
         console.log('Setting default index to Richness in VisualizationPanel');
         dispatch(setSelectedIndices(['Richness']));
         hasUserInteracted.current = true;  // Mark that we've done the initial selection
       }
     }
+
+    // Reset user interaction flag when panel is closed
+    if (!isOpen) {
+      hasUserInteracted.current = false;
+    }
   }, [isOpen, hasResults, selectedIndices, computedIndices, dispatch]);
+
+  // Reset user interaction when jobId changes
+  useEffect(() => {
+    const jobId = geoJSON?.jobId;
+    if (jobId) {
+      console.log('Job ID changed, resetting user interaction state');
+      hasUserInteracted.current = false;
+    }
+  }, [geoJSON?.jobId]);
 
   // Add ref to track if user has interacted with index selection
   const hasUserInteracted = useRef(false);
