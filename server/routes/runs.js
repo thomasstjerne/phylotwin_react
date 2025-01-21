@@ -249,7 +249,10 @@ const processParams = (body, outputDir) => {
 
         // Process phylogenetic tree selection
         if (body.selectedPhyloTree) {
-            const selectedTree = phylogeneticTrees.find(tree => tree.id === body.selectedPhyloTree);
+            const selectedTree = phylogeneticTrees.groups
+                .flatMap(group => group.trees)
+                .find(tree => tree.id === body.selectedPhyloTree);
+                
             if (selectedTree) {
                 params.tree = selectedTree.fileName;
             } else {
