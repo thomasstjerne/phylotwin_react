@@ -38,6 +38,10 @@ const Layout = ({ step, setStep }) => {
   useEffect(() => {
     if (!isWorkflowPage) return;
 
+    // Only set initial panel if no panel is currently active
+    // or if we're just loading the page (no manual panel change has occurred)
+    const isInitialLoad = !activePanel;
+
     const determineInitialPanel = () => {
       if (runId) {
         console.log('Initial panel: visualization (historical run)');
@@ -51,19 +55,32 @@ const Layout = ({ step, setStep }) => {
       return 'settings';
     };
 
-    const newPanel = determineInitialPanel();
-    if (activePanel !== newPanel) {
-      console.log(`Updating active panel from ${activePanel} to ${newPanel}`);
-      setActivePanel(newPanel);
+    if (isInitialLoad) {
+      const newPanel = determineInitialPanel();
+      if (activePanel !== newPanel) {
+        console.log(`Updating active panel from ${activePanel} to ${newPanel}`);
+        setActivePanel(newPanel);
+      }
     }
   }, [isWorkflowPage, runId, status, activePanel]);
+
+  // Add a debug effect to track panel changes
+  useEffect(() => {
+    console.log('Active panel changed:', {
+      activePanel,
+      status,
+      runId,
+      isWorkflowPage
+    });
+  }, [activePanel, status, runId, isWorkflowPage]);
 
   const handleMenuClick = (key) => {
     console.log('Menu click:', {
       key,
       currentPanel: activePanel,
       currentStatus: status,
-      runId
+      runId,
+      isHistoricalRun: !!runId
     });
     
     // Prevent unnecessary state updates
@@ -72,7 +89,15 @@ const Layout = ({ step, setStep }) => {
       return;
     }
 
-    // Validate panel transitions
+    // For historical runs (when runId exists), allow switching between panels freely
+    if (runId) {
+      console.log('Historical run - allowing panel switch to:', key);
+      setActivePanel(key);
+      setIsPanelCollapsed(false);
+      return;
+    }
+
+    // For active sessions, validate panel transitions
     if (key === 'visualization' && status !== 'completed' && status !== 'running') {
       console.log('Cannot open visualization panel - no analysis in progress or completed');
       return;
@@ -83,6 +108,12 @@ const Layout = ({ step, setStep }) => {
       return;
     }
 
+    if (key === 'hypothesis' && status !== 'completed') {
+      console.log('Cannot open hypothesis panel - analysis not completed');
+      return;
+    }
+
+    console.log('Active session - allowing panel switch to:', key);
     setActivePanel(key);
     setIsPanelCollapsed(false);
   };
@@ -92,7 +123,8 @@ const Layout = ({ step, setStep }) => {
     console.log('Opening panel:', key, {
       currentPanel: activePanel,
       currentStatus: status,
-      runId
+      runId,
+      isHistoricalRun: !!runId
     });
     
     // Prevent unnecessary state updates
@@ -101,12 +133,21 @@ const Layout = ({ step, setStep }) => {
       return;
     }
 
-    // Validate panel transitions
+    // For historical runs (when runId exists), allow switching between panels freely
+    if (runId) {
+      console.log('Historical run - allowing panel switch to:', key);
+      setActivePanel(key);
+      setIsPanelCollapsed(false);
+      return;
+    }
+
+    // For active sessions, validate panel transitions
     if (key === 'settings' && status === 'running') {
       console.log('Cannot switch to settings while analysis is running');
       return;
     }
 
+    console.log('Active session - allowing panel switch to:', key);
     setActivePanel(key);
     setIsPanelCollapsed(false);
   }, [activePanel, status, runId]);
@@ -132,18 +173,22 @@ const Layout = ({ step, setStep }) => {
         key: 'settings',
         icon: <SettingOutlined />,
         label: 'Settings',
+        // Only disable settings in active runs when analysis is running
+        disabled: !runId && status === 'running'
       },
       {
         key: 'visualization',
         icon: <LineChartOutlined />,
         label: 'Visualization',
-        disabled: status !== 'completed' && status !== 'running',
+        // Enable visualization for historical runs or when analysis is running/completed
+        disabled: !runId && status !== 'completed' && status !== 'running'
       },
       {
         key: 'hypothesis',
         icon: <ExperimentOutlined />,
         label: 'Tests',
-        disabled: status !== 'completed',
+        // Enable hypothesis for historical runs or when analysis is completed
+        disabled: !runId && status !== 'completed'
       },
     ],
     onClick: ({ key }) => handleMenuClick(key),
@@ -209,10 +254,10 @@ const Layout = ({ step, setStep }) => {
                 if (e.domEvent) {
                   e.domEvent.stopPropagation();
                 }
-                if (!activePanel) {
-                  return;
+                // Only toggle collapse if we have an active panel
+                if (activePanel) {
+                  setIsPanelCollapsed(!isPanelCollapsed);
                 }
-                setIsPanelCollapsed(!isPanelCollapsed);
               }}
               style={{
                 fontSize: '16px',
