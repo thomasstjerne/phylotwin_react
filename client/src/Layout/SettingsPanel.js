@@ -274,8 +274,14 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
       const formData = new FormData();
       
       // Find the selected tree's filename
-      const selectedTreeData = phylogeneticTrees.find(t => t.id === selectedPhyloTree);
-      
+      const selectedTree = phylogeneticTrees.groups
+        .flatMap(group => group.trees)
+        .find(tree => tree.id === selectedPhyloTree);
+
+      if (!selectedTree) {
+        throw new Error(`Invalid phylogenetic tree selection: ${selectedPhyloTree}`);
+      }
+
       // Split diversity indices by module
       const mainIndices = [];
       const biodiverseCommands = new Set();
@@ -299,6 +305,7 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
       const params = {
         spatialResolution: parseInt(spatialResolution, 10),
         selectedPhyloTree: selectedPhyloTree,
+        tree: selectedTree.fileName,  // Use the fileName from the found tree
         div: mainIndices,
         bd_indices: Array.from(biodiverseCommands),
         randomizations: parseInt(randomizations, 10),
@@ -689,16 +696,35 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                         <MenuItem value="" disabled>
                           <em>Select a phylogenetic tree</em>
                         </MenuItem>
-                        {phylogeneticTrees.map((tree) => (
-                          <MenuItem key={tree.id} value={tree.id}>
-                            <Box>
-                              <Typography variant="body1">{tree.displayName}</Typography>
+                        {phylogeneticTrees.groups.map((group) => [
+                          <ListSubheader key={group.id}>
+                            <Box sx={{ pt: 1 }}>
+                              <Typography 
+                                variant="body1" 
+                                sx={{ 
+                                  fontWeight: 700,
+                                  fontSize: '1.1rem',   // Slightly larger than tree names
+                                  color: 'text.primary' // Ensure full opacity
+                                }}
+                              >
+                                {group.name}
+                              </Typography>
                               <Typography variant="caption" color="text.secondary">
-                                {tree.description}
+                                {group.description}
                               </Typography>
                             </Box>
-                          </MenuItem>
-                        ))}
+                          </ListSubheader>,
+                          ...group.trees.map((tree) => (
+                            <MenuItem key={tree.id} value={tree.id} sx={{ pl: 4 }}>
+                              <Box>
+                                <Typography variant="body1">{tree.displayName}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {tree.description}
+                                </Typography>
+                              </Box>
+                            </MenuItem>
+                          ))
+                        ])}
                       </Select>
                     </FormControl>
 
@@ -881,7 +907,16 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                         {diversityIndices.groups.map((group) => [
                           <ListSubheader key={group.id}>
                             <Box sx={{ pt: 1 }}>
-                              <Typography variant="subtitle2">{group.name}</Typography>
+                              <Typography 
+                                variant="body1" 
+                                sx={{ 
+                                  fontWeight: 700,
+                                  fontSize: '1.1rem',  // Slightly larger than tree names
+                                  color: 'text.primary' // Ensure full opacity
+                                }}
+                              >
+                                {group.name}
+                              </Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {group.description}
                               </Typography>
