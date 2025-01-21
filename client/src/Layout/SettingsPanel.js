@@ -517,7 +517,11 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Typography variant="body1">Draw area on map</Typography>
                               <Tooltip 
-                                title="Draw a polygon (or multiple polygons) directly on the map. To finish drawing, click the first point again. To activate freehand drawing, hold the Shift key. Polygons can be edited by clicking on them and dragging points."
+                                title={
+                                  <Box component="div" sx={{ typography: 'body2' }}>
+                                    Draw a polygon (or multiple polygons) directly on the map. To finish drawing, click the first point again. To activate freehand drawing, hold the Shift key. Polygons can be edited by clicking on them and dragging points.
+                                  </Box>
+                                }
                                 placement="right"
                               >
                                 <IconButton size="small" sx={{ ml: 1 }}>
@@ -558,7 +562,11 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Typography variant="body1">Upload polygon(s)</Typography>
                               <Tooltip 
-                                title="Import GeoPackage or GeoJSON file"
+                                title={
+                                  <Box component="div" sx={{ typography: 'body2' }}>
+                                    Import GeoPackage or GeoJSON file
+                                  </Box>
+                                }
                                 placement="right"
                               >
                                 <IconButton size="small" sx={{ ml: 1 }}>
@@ -593,7 +601,11 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Typography variant="body1">Select countries</Typography>
                               <Tooltip 
-                                title="Choose one or more countries from the list"
+                                title={
+                                  <Box component="div" sx={{ typography: 'body2' }}>
+                                    Select one or more countries from the list
+                                  </Box>
+                                }
                                 placement="right"
                               >
                                 <IconButton size="small" sx={{ ml: 1 }}>
@@ -611,7 +623,14 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                       <FormControl fullWidth>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                           <FormLabel>Countries</FormLabel>
-                          <Tooltip title="Select one or more countries" placement="right">
+                          <Tooltip 
+                            title={
+                              <Box component="div" sx={{ typography: 'body2' }}>
+                                Select one or more countries
+                              </Box>
+                            } 
+                            placement="right"
+                          >
                             <IconButton size="small" sx={{ ml: 1 }}>
                               <InfoIcon fontSize="small" />
                             </IconButton>
@@ -682,7 +701,14 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                     <FormControl fullWidth sx={{ mb: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <FormLabel>Phylogenetic tree</FormLabel>
-                        <Tooltip title="Select a pre-configured phylogenetic tree to use in the analysis" placement="right">
+                        <Tooltip 
+                          title={
+                            <Box component="div" sx={{ typography: 'body2' }}>
+                              Select a pre-configured phylogenetic tree to use in the analysis
+                            </Box>
+                          } 
+                          placement="right"
+                        >
                           <IconButton size="small" sx={{ ml: 1 }}>
                             <InfoIcon fontSize="small" />
                           </IconButton>
@@ -739,7 +765,11 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: -0.3 }}>
                           <FormLabel>{label}</FormLabel>
                           <Tooltip 
-                            title="Select one or more taxa. Suggestions are filtered by higher rank selections and exclude extinct taxa." 
+                            title={
+                              <Box component="div" sx={{ typography: 'body2' }}>
+                                Select one or more taxa. Suggestions are filtered by higher rank selections and exclude extinct taxa.
+                              </Box>
+                            } 
                             placement="right"
                           >
                             <IconButton size="small" sx={{ ml: 1 }}>
@@ -899,7 +929,14 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                     <FormControl fullWidth sx={{ mb: 3 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <FormLabel>Diversity indices</FormLabel>
-                        <Tooltip title="Select one or more diversity indices to calculate" placement="right">
+                        <Tooltip 
+                          title={
+                            <Box component="div" sx={{ typography: 'body2' }}>
+                              Select one or more diversity indices to calculate
+                            </Box>
+                          } 
+                          placement="right"
+                        >
                           <IconButton size="small" sx={{ ml: 1 }}>
                             <InfoIcon fontSize="small" />
                           </IconButton>
