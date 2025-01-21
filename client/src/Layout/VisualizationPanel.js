@@ -301,7 +301,7 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
           </Typography>
           <Box sx={{ mt: 2, width: '100%', maxWidth: 300 }}>
             <Typography variant="caption" color="text.secondary" align="center" display="block">
-              You can switch back to the Settings panel to review your configuration while waiting.
+              While we crunch the numbers, let the magic of biodiversity unfold - your results will be ready shortly.
             </Typography>
           </Box>
         </Box>
