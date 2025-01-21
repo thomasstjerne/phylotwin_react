@@ -515,7 +515,7 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                           control={<Radio />}
                           label={
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Typography variant="body1">Select on map</Typography>
+                              <Typography variant="body1">Draw area on map</Typography>
                               <Tooltip 
                                 title="Draw a polygon (or multiple polygons) directly on the map. To finish drawing, click the first point again. To activate freehand drawing, hold the Shift key. Polygons can be edited by clicking on them and dragging points."
                                 placement="right"
