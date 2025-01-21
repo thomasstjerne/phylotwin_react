@@ -756,20 +756,50 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                       </Box>
                     ))}
 
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      fullWidth
-                      sx={{ mb: 2 }}
-                    >
-                      Upload species keys
-                      <input
-                        type="file"
-                        hidden
-                        accept=".txt"
-                        onChange={(e) => handleFileUpload(e, 'species')}
-                      />
-                    </Button>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body2" color="text.secondary">Optional: Upload species keys</Typography>
+                        <Tooltip 
+                          title={
+                            <Box component="div" sx={{ typography: 'body2' }}>
+                              <p style={{ margin: '0 0 8px 0' }}>
+                                Upload a text file with species keys, one per row. Can be used in addition to or separately from the taxonomic rank selection above.
+                              </p>
+                              <p style={{ margin: '0' }}>
+                                Species keys can be retrieved using the{' '}
+                                <a 
+                                  href="https://www.gbif.org/tools/species-lookup" 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  style={{ color: '#90caf9' }}
+                                >
+                                  GBIF species lookup tool
+                                </a>
+                              </p>
+                            </Box>
+                          } 
+                          placement="right"
+                        >
+                          <IconButton size="small" sx={{ ml: 1 }}>
+                            <InfoIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        fullWidth
+                        sx={{ mb: 2 }}
+                      >
+                        Upload species keys
+                        <input
+                          type="file"
+                          hidden
+                          accept=".txt"
+                          onChange={(e) => handleFileUpload(e, 'species')}
+                        />
+                      </Button>
+                    </Box>
                   </Box>
                 </AccordionDetails>
               </Accordion>
