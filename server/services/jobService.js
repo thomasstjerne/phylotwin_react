@@ -262,7 +262,7 @@ function constructNextflowParams(params, outputDir, workDir) {
       }
     });
 
-  // TODO: update the command for production, add Docker profile
+  // TODO: update the command for production
   return [
     'run',
     '/mnt/Data/Dropbox/Proj/BioDT/phylotwin/main.nf',
@@ -270,7 +270,7 @@ function constructNextflowParams(params, outputDir, workDir) {
     '--occ', config.INPUT_PATH,
     '--outdir', outputDir,
     '-work-dir', workDir,
-    '-profile', 'singularity',
+    '-profile', 'docker',
     '--noviz', 'true',
     ...profile,
   ];
