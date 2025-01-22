@@ -1,5 +1,6 @@
 const child_process = require('child_process');
-const fs = require('fs').promises;
+const fs = require('fs');                   // for streams
+const fsPromises = require('fs').promises;  // for async operations
 const path = require('path');
 const config = require('../config');
 const db = require('../db');
@@ -53,7 +54,7 @@ async function zipRun(runid) {
 // Function to log file contents for debugging
 async function logFileContents(filePath, description) {
   try {
-    const content = await fs.readFile(filePath, 'utf8');
+    const content = await fsPromises.readFile(filePath, 'utf8');
     console.log(`\n${description} (${filePath}):`);
     console.log(content);
   } catch (error) {
@@ -103,7 +104,7 @@ function killJob(jobId) {
 
 async function removeJobData(jobId) {
   const jobDir = `${config.OUTPUT_PATH}/${jobId}`;
-  await fs.rm(jobDir, { recursive: true, force: true });
+  await fsPromises.rm(jobDir, { recursive: true, force: true });
 }
 
 // Add helper to generate/get session ID
@@ -143,6 +144,11 @@ async function startJob(options) {
     const outputDir = path.join(runDir, 'output');
     const workDir = path.join(WORK_DIR_BASE, sessionId);
     
+    // Create directories using fsPromises
+    await fsPromises.mkdir(runDir, { recursive: true });
+    await fsPromises.mkdir(outputDir, { recursive: true });
+    await fsPromises.mkdir(workDir, { recursive: true });
+    
     // Process parameters and construct command
     const nextflowParams = constructNextflowParams(params, outputDir, workDir);
     const fullCommand = `${NEXTFLOW} ${nextflowParams.join(' ')}`;
@@ -171,26 +177,57 @@ async function startJob(options) {
       cwd: runDir
     });
 
-    // Handle process events
+    // Create write stream for logging stdout
+    const logFile = path.join(runDir, 'nf_execution.log');
+    const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+
+    // Capture stdout
+    pcs.stdout.on('data', (data) => {
+      // Write to log file
+      logStream.write(data);
+      
+      // Keep existing stdout processing if needed
+      const job = jobs.get(options.req_id);
+      if (job) {
+        job.stdout.push(data.toString());
+        jobs.set(options.req_id, job);
+      }
+    });
+
+    // Capture stderr as well
+    pcs.stderr.on('data', (data) => {
+      // Write to log file
+      logStream.write(`[ERROR] ${data}`);
+      
+      // Keep existing stderr processing if needed
+      const job = jobs.get(options.req_id);
+      if (job) {
+        job.stderr.push(data.toString());
+        jobs.set(options.req_id, job);
+      }
+    });
+
+    // Clean up the write stream when the process exits
     pcs.on('exit', (code, signal) => {
+      logStream.end();
       const status = code === 0 ? 'completed' : 'error';
       console.log(`\n=== PIPELINE ${status.toUpperCase()} ===`);
-      console.log(`Job ID: ${req_id}`);
+      console.log(`Job ID: ${options.req_id}`);
       console.log(`Time: ${new Date().toISOString()}`);
       console.log(`Exit code: ${code}`);
       if (signal) console.log(`Signal: ${signal}`);
       console.log('='.repeat(status.length + 16), '\n');
 
       // Update job status
-      const job = jobs.get(req_id);
+      const job = jobs.get(options.req_id);
       if (job) {
         job.status = status;
-        jobs.set(req_id, job);
+        jobs.set(options.req_id, job);
       }
 
       // Update database
       db.get("runs")
-        .find({ run: req_id })
+        .find({ run: options.req_id })
         .assign({ 
           status,
           completed: new Date().toISOString(),
@@ -202,22 +239,22 @@ async function startJob(options) {
 
     pcs.on('error', (err) => {
       console.error('\n=== PIPELINE ERROR ===');
-      console.error(`Job ID: ${req_id}`);
+      console.error(`Job ID: ${options.req_id}`);
       console.error(`Time: ${new Date().toISOString()}`);
       console.error('Error:', err.message);
       console.error('===================\n');
 
       // Update job status
-      const job = jobs.get(req_id);
+      const job = jobs.get(options.req_id);
       if (job) {
         job.status = 'error';
         job.error = err.message;
-        jobs.set(req_id, job);
+        jobs.set(options.req_id, job);
       }
 
       // Update database
       db.get("runs")
-        .find({ run: req_id })
+        .find({ run: options.req_id })
         .assign({ 
           status: 'error',
           completed: new Date().toISOString(),
@@ -237,7 +274,7 @@ async function startJob(options) {
 
   } catch (error) {
     console.error('\n=== INITIALIZATION ERROR ===');
-    console.error(`Job ID: ${req_id}`);
+    console.error(`Job ID: ${options.req_id}`);
     console.error(`Time: ${new Date().toISOString()}`);
     console.error('Error:', error.message);
     console.error('=========================\n');
@@ -281,15 +318,15 @@ function constructNextflowParams(params, outputDir, workDir) {
 async function cleanupOldWorkDirs() {
   try {
     const now = Date.now();
-    const dirs = await fs.readdir(WORK_DIR_BASE);
+    const dirs = await fsPromises.readdir(WORK_DIR_BASE);
     
     for (const dir of dirs) {
       const dirPath = path.join(WORK_DIR_BASE, dir);
-      const stats = await fs.stat(dirPath);
+      const stats = await fsPromises.stat(dirPath);
       
       // Remove directories older than SESSION_TIMEOUT
       if (now - stats.mtime.getTime() > SESSION_TIMEOUT) {
-        await fs.rm(dirPath, { recursive: true, force: true });
+        await fsPromises.rm(dirPath, { recursive: true, force: true });
         console.log(`Cleaned up old work directory: ${dirPath}`);
       }
     }
