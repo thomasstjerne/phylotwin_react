@@ -267,6 +267,7 @@ function constructNextflowParams(params, outputDir, workDir) {
     'run',
     '/mnt/Data/Dropbox/Proj/BioDT/phylotwin/main.nf',
     '-resume',
+    '-ansi-log', 'false',
     '--occ', config.INPUT_PATH,
     '--outdir', outputDir,
     '-work-dir', workDir,
