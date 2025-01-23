@@ -192,13 +192,14 @@ html, body, #root {
   position: relative;
 }
 
-/* OpenLayers specific styles */
+/* OpenLayers map controls styling */
 .ol-control {
   background-color: rgba(255,255,255,0.4);
   border-radius: 4px;
   padding: 2px;
 }
 
+/* Style for map control buttons (zoom, rotate, etc.) */
 .ol-control button {
   display: block;
   margin: 1px;
@@ -216,21 +217,24 @@ html, body, #root {
   border-radius: 2px;
 }
 
+/* Hover effect for map control buttons */
 .ol-control button:hover {
   background-color: rgba(0,60,136,0.7);
 }
 
+/* Position for zoom controls */
 .ol-zoom {
   top: .5em;
   left: .5em;
 }
 
+/* Position for map rotation controls */
 .ol-rotate {
   top: .5em;
   right: .5em;
 }
 
-/* Map tooltip styles */
+/* Main tooltip container - appears on hover over map features */
 .map-tooltip {
   position: fixed !important;
   background: rgba(51, 51, 51, 0.95) !important;   /* Dark background */
@@ -239,26 +243,129 @@ html, body, #root {
   border-radius: 4px !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   font-size: 12px !important;
-  pointer-events: none !important;
+  pointer-events: none !important;                 /* Allows mouse events to pass through */
   z-index: 1000 !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
   display: none;
   line-height: 1.5 !important;
   min-width: 150px !important;
+  max-height: 80vh !important;                     /* Prevent tooltip from being taller than viewport */
+  overflow-y: auto !important;                     /* Add scrollbar if content is too long */
 }
 
+/* Flexbox container for tooltip content */
+.tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Header section of tooltip (e.g., H3 ID) */
+.tooltip-header {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Main content area of tooltip */
+.tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Container for a group of related tooltip items */
+.tooltip-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Individual row in tooltip (label: value pair) */
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Label styling in tooltip rows */
+.tooltip-row strong {
+  color: #fff !important;
+  font-weight: 600 !important;
+  margin-right: 4px !important;
+  white-space: nowrap;                            /* Prevent label wrapping */
+}
+
+/* Footer section of tooltip */
+.tooltip-footer {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Expand button styles (if needed in future) */
+.tooltip-expand-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  width: 100%;
+  text-align: center;
+  transition: background-color 0.2s;
+}
+
+/* Hover effect for expand button */
+.tooltip-expand-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Container for additional indices section */
+.tooltip-all-indices {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Class to show tooltip */
 .map-tooltip.visible {
   display: block;
 }
 
-.map-tooltip strong {
-  color: #fff !important;
-  font-weight: 600 !important;
-  margin-right: 4px !important;
+/* Hover effect for tooltip rows */
+.tooltip-row:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
 }
 
-/* H3 cell hover effect */
+/* Make tooltip interactive when expanded */
+.map-tooltip.expanded {
+  pointer-events: auto !important;                 /* Allow interaction when expanded */
+}
+
+/* Custom scrollbar styling for tooltip */
+.map-tooltip::-webkit-scrollbar {
+  width: 6px;                                     /* Narrow scrollbar */
+}
+
+.map-tooltip::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);           /* Subtle track */
+  border-radius: 3px;
+}
+
+.map-tooltip::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);           /* Semi-transparent thumb */
+  border-radius: 3px;
+}
+
+.map-tooltip::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);           /* Lighter on hover */
+}
+
+/* Highlight effect for H3 grid cells on hover */
 .h3-cell-hover {
-  stroke: rgba(255, 255, 255, 0.9) !important;
-  stroke-width: 2px !important;
+  stroke: rgba(255, 255, 255, 0.9) !important;    /* White border */
+  stroke-width: 2px !important;                   /* Thick border */
 }

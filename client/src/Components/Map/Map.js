@@ -14,6 +14,7 @@ import 'ol/ol.css';
 import { updateDrawnItems } from '../../store/mapSlice';
 import { getColorScale } from '../../utils/colorScales';
 import { selectColorSchemeType } from '../../store/visualizationSlice';
+import diversityIndices from '../../shared/vocabularies/diversityIndices.json';
 import html2canvas from 'html2canvas';
 
 // Import the swipe control from ol-ext
@@ -199,17 +200,20 @@ const MapComponent = () => {
   const [isLegendFolded, setIsLegendFolded] = useState(false);
 
   // Get state from Redux
+  const selectedIndices = useSelector(state => state.visualization.selectedIndices);
   const areaSelectionMode = useSelector(state => state.map.areaSelectionMode);
-  const selectedIndices = useSelector(state => state.visualization?.selectedIndices || []);
   const colorPalette = useSelector(state => state.visualization?.colorPalette);
   const useQuantiles = useSelector(state => state.visualization?.useQuantiles);
   const valueRange = useSelector(state => state.visualization?.valueRange);
   const minRecords = useSelector(state => state.visualization?.minRecords);
   const resultsGeoJSON = useSelector(state => state.results?.geoJSON);
   const drawnItems = useSelector(state => state.map.drawnItems);
-
-  // Get color scheme type from Redux
   const colorSchemeType = useSelector(selectColorSchemeType);
+
+  // Debug logging for tooltip
+  useEffect(() => {
+    console.log('Selected indices changed:', selectedIndices);
+  }, [selectedIndices]);
 
   // Create tooltip element
   useEffect(() => {
@@ -261,54 +265,83 @@ const MapComponent = () => {
       return;
     }
 
+    // Debug logging
+    console.log('Updating tooltip with:', {
+      selectedIndices,
+      properties: feature.getProperties()
+    });
+
     const h3Id = feature.get('h3_index');
     if (!h3Id) return;
 
-    let content = `<div style="color: #fff;"><strong style="color: #fff; font-weight: 600; margin-right: 4px;">H3 ID:</strong> ${h3Id}<br/>`;
-    
     // Get all properties of the feature
     const properties = feature.getProperties();
 
-    // List of properties to exclude from display
-    const excludeProps = ['h3_index', 'geometry'];
+    // Start with basic info (always shown)
+    let content = `
+      <div class="tooltip-content">
+        <div class="tooltip-section">
+          <div class="tooltip-row"><strong>H3 ID:</strong> ${h3Id}</div>
+    `;
 
-    // Add all numeric properties (indices)
-    Object.entries(properties)
-      .filter(([key, value]) => !excludeProps.includes(key) && typeof value === 'number')
-      .sort(([a], [b]) => a.localeCompare(b)) // Sort alphabetically
-      .forEach(([key, value]) => {
-        const formattedValue = formatValue(value);
-        content += `<strong style="color: #fff; font-weight: 600; margin-right: 4px;">${key}:</strong> ${formattedValue}<br/>`;
+    // Add Number of records (always shown)
+    const numRecords = properties['NumRecords'];
+    if (typeof numRecords === 'number') {
+      content += `<div class="tooltip-row"><strong>Number of records:</strong> ${formatValue(numRecords)}</div>`;
+    }
+
+    // Add selected indices first
+    if (selectedIndices && selectedIndices.length > 0) {
+      selectedIndices.forEach(indexId => {
+        const value = properties[indexId];
+        if (typeof value === 'number') {
+          // Get metadata for the index
+          const metadata = diversityIndices.groups
+            .flatMap(group => group.indices)
+            .find(index => index.commandName === indexId);
+          const displayName = metadata ? metadata.displayName : indexId;
+          content += `<div class="tooltip-row"><strong>${displayName}:</strong> ${formatValue(value)}</div>`;
+        }
       });
+    }
 
-    content += '</div>';
+    // Add Species richness only if it's not already selected
+    if (!selectedIndices.includes('Richness')) {
+      const richness = properties['Richness'];
+      if (typeof richness === 'number') {
+        content += `<div class="tooltip-row"><strong>Species richness:</strong> ${formatValue(richness)}</div>`;
+      }
+    }
+
+    content += `
+        </div>
+      </div>
+    `;
+
+    // Debug logging
+    console.log('Generated tooltip content:', content);
+
     tooltipRef.current.innerHTML = content;
     tooltipRef.current.style.display = 'block';
 
-    // Use the mouse coordinates directly for positioning
-    const x = pixel[0];
-    const y = pixel[1];
-
-    // Get viewport dimensions
+    // Calculate position
+    const tooltipWidth = tooltipRef.current.offsetWidth;
+    const tooltipHeight = tooltipRef.current.offsetHeight;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    // Get tooltip dimensions
-    const tooltipWidth = tooltipRef.current.offsetWidth;
-    const tooltipHeight = tooltipRef.current.offsetHeight;
-
-    // Calculate position, keeping tooltip within viewport
-    let left = x + 15; // 15px offset from cursor
-    let top = y + 15;
+    // Position tooltip with smart placement
+    let left = pixel[0] + 15;
+    let top = pixel[1] + 15;
 
     // Adjust if tooltip would go off right edge
     if (left + tooltipWidth > viewportWidth) {
-      left = x - tooltipWidth - 15;
+      left = pixel[0] - tooltipWidth - 15;
     }
 
     // Adjust if tooltip would go off bottom edge
     if (top + tooltipHeight > viewportHeight) {
-      top = y - tooltipHeight - 15;
+      top = pixel[1] - tooltipHeight - 15;
     }
 
     // Apply the position
@@ -490,7 +523,7 @@ const MapComponent = () => {
       });
 
       // Add pointer move handler for tooltips
-      mapInstanceRef.current.on('pointermove', (evt) => {
+      const handlePointerMove = (evt) => {
         if (evt.dragging) {
           if (tooltipRef.current) {
             tooltipRef.current.style.display = 'none';
@@ -528,7 +561,10 @@ const MapComponent = () => {
 
         // Update tooltip using mouse event coordinates
         updateTooltip([evt.originalEvent.clientX, evt.originalEvent.clientY], foundFeature);
-      });
+      };
+
+      // Bind the pointer move handler
+      mapInstanceRef.current.on('pointermove', handlePointerMove);
 
       // Hide tooltip when leaving the map
       mapInstanceRef.current.getViewport().addEventListener('mouseout', () => {
@@ -548,7 +584,60 @@ const MapComponent = () => {
         mapInstanceRef.current = null;
       }
     };
-  }, []);
+  }, []);  // Empty dependency array as this should only run once
+
+  // Update pointer move handler when selectedIndices changes
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      const map = mapInstanceRef.current;
+      
+      // Remove existing pointermove listeners
+      const listeners = map.getListeners('pointermove');
+      if (listeners) {
+        listeners.forEach(listener => map.removeEventListener('pointermove', listener));
+      }
+
+      // Add new pointer move handler
+      const handlePointerMove = (evt) => {
+        if (evt.dragging) {
+          if (tooltipRef.current) {
+            tooltipRef.current.style.display = 'none';
+          }
+          if (hoveredFeatureRef.current) {
+            hoveredFeatureRef.current = null;
+            resultsLayersRef.current.forEach(layer => layer.changed());
+          }
+          return;
+        }
+
+        const pixel = map.getEventPixel(evt.originalEvent);
+        const hit = map.hasFeatureAtPixel(pixel, {
+          layerFilter: layer => resultsLayersRef.current.includes(layer)
+        });
+
+        map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+
+        let foundFeature = null;
+        map.forEachFeatureAtPixel(pixel, (feature, layer) => {
+          if (resultsLayersRef.current.includes(layer)) {
+            foundFeature = feature;
+            return true;
+          }
+        }, {
+          layerFilter: layer => resultsLayersRef.current.includes(layer)
+        });
+
+        if (hoveredFeatureRef.current !== foundFeature) {
+          hoveredFeatureRef.current = foundFeature;
+          resultsLayersRef.current.forEach(layer => layer.changed());
+        }
+
+        updateTooltip([evt.originalEvent.clientX, evt.originalEvent.clientY], foundFeature);
+      };
+
+      map.on('pointermove', handlePointerMove);
+    }
+  }, [selectedIndices]); // Re-run when selectedIndices changes
 
   // Handle drawing interactions
   useEffect(() => {
