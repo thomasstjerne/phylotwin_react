@@ -19,7 +19,14 @@ export const PALETTES = {
     { id: 'RdBu', name: 'Red-Blue', scale: d3.interpolateRdBu },
     { id: 'RdYlBu', name: 'Red-Yellow-Blue', scale: d3.interpolateRdYlBu },
     { id: 'PiYG', name: 'Pink-Yellow-Green', scale: d3.interpolatePiYG }
-  ]
+  ],
+  CANAPE: {
+    NEO: "#FF0000",
+    PALAEO: "#4876FF",
+    "non-significant": "#FAFAD2",
+    MIXED: "#CB7FFF",
+    SUPER: "#9D00FF"
+  }
 };
 
 // Default palettes for each type
@@ -92,8 +99,29 @@ export const createDivergingScale = (domain, palette = DEFAULT_PALETTES.divergin
 };
 
 /**
+ * Creates a CANAPE color scale
+ * @returns {Function} Color scale function that maps CANAPE categories to colors
+ */
+export const createCanapeScale = () => {
+  return value => {
+    // Handle both string and numeric values for backward compatibility
+    if (typeof value === 'number') {
+      const numericToString = {
+        0: 'non-significant',
+        1: 'NEO',
+        2: 'PALAEO',
+        3: 'MIXED',
+        4: 'SUPER'
+      };
+      value = numericToString[value];
+    }
+    return PALETTES.CANAPE[value] || "#808080"; // Gray for missing values
+  };
+};
+
+/**
  * Get appropriate color scale based on data type and domain
- * @param {string} type - Data type ('sequential', 'bounded', or 'diverging')
+ * @param {string} type - Data type ('sequential', 'bounded', 'diverging', or 'CANAPE')
  * @param {[number, number]} domain - [min, max] values
  * @param {string} palette - Palette ID
  * @returns {Function} Color scale function
@@ -109,6 +137,8 @@ export const getColorScale = (type, domain, palette) => {
       return createBoundedScale(palette);
     case 'diverging':
       return createDivergingScale(domain, palette);
+    case 'CANAPE':
+      return createCanapeScale();
     default:
       console.warn(`Unknown data type: ${type}, falling back to sequential`);
       return createSequentialScale(domain, palette);

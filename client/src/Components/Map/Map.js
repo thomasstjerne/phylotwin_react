@@ -96,13 +96,13 @@ const ColorLegend = ({
 
   if (isCanape) {
     // Render discrete legend for CANAPE
-    const canapeValues = {
-      0: { color: "#FAFAD2", label: "Not significant" },
-      1: { color: "#FF0000", label: "Neo-endemism" },
-      2: { color: "#4876FF", label: "Paleo-endemism" },
-      3: { color: "#CB7FFF", label: "Mixed endemism" },
-      4: { color: "#9D00FF", label: "Super endemism" }
-    };
+    const canapeValues = [
+      { value: 'NEO', color: "#FF0000", label: "Neo-endemism" },
+      { value: 'PALAEO', color: "#4876FF", label: "Paleo-endemism" },
+      { value: 'non-significant', color: "#FAFAD2", label: "Not significant" },
+      { value: 'MIXED', color: "#CB7FFF", label: "Mixed endemism" },
+      { value: 'SUPER', color: "#9D00FF", label: "Super endemism" }
+    ];
 
     return (
       <div className="map-legend canape-legend">
@@ -118,7 +118,7 @@ const ColorLegend = ({
         <div className="legend-content">
           <div className="legend-title">{title}</div>
           <div className="legend-items">
-            {Object.entries(canapeValues).map(([value, { color, label }]) => (
+            {canapeValues.map(({ value, color, label }) => (
               <div key={value} className="legend-item">
                 <div className="color-box" style={{ backgroundColor: color }} />
                 <span>{label}</span>
@@ -347,12 +347,37 @@ const MapComponent = () => {
     const value = feature.get(indexId);
     const numRecords = feature.get('NumRecords') || 0;
     
-    // Hide cells with too few records or invalid values
-    if (numRecords < minRecords || value === undefined || value === null || isNaN(value)) {
+    // Hide cells with too few records
+    if (numRecords < minRecords) {
       return null;
     }
 
-    // Hide cells outside the value range
+    // For CANAPE, only check if value exists
+    if (indexId === 'CANAPE') {
+      if (value === undefined || value === null) {
+        return null;
+      }
+      // Get the appropriate color scale for CANAPE
+      const colorScale = getColorScale('CANAPE');
+      const fillColor = colorScale(value);
+      
+      return new Style({
+        fill: new Fill({
+          color: fillColor
+        }),
+        stroke: new Stroke({
+          color: isHovered ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0)',
+          width: isHovered ? 2 : 0
+        })
+      });
+    }
+
+    // For numeric indices, check for valid numbers and value range
+    if (value === undefined || value === null || isNaN(value)) {
+      return null;
+    }
+
+    // Hide cells outside the value range for numeric indices
     if (valueRange && (value < valueRange[0] || value > valueRange[1])) {
       return null;
     }
@@ -365,29 +390,22 @@ const MapComponent = () => {
     const min = valueRange ? valueRange[0] : Math.min(...allValues);
     const max = valueRange ? valueRange[1] : Math.max(...allValues);
 
-    // Get color based on value and color scheme type
-    let fillColor;
+    // Get the appropriate color scale based on the type
+    const colorScale = getColorScale(colorSchemeType, [min, max], palette);
+    
+    // Apply the color scale directly to the value
+    const fillColor = colorScale(value);
 
-    if (indexId === 'CANAPE') {
-      fillColor = colorSchemes.canape(value);
-    } else {
-      // Get the appropriate color scale based on the type
-      const colorScale = getColorScale(colorSchemeType, [min, max], palette);
-      
-      // Apply the color scale directly to the value
-      fillColor = colorScale(value);
-
-      // Add logging for debugging
-      console.log('Style calculation:', {
-        indexId,
-        value,
-        min,
-        max,
-        colorSchemeType,
-        palette,
-        fillColor
-      });
-    }
+    // Add logging for debugging
+    console.log('Style calculation:', {
+      indexId,
+      value,
+      min,
+      max,
+      colorSchemeType,
+      palette,
+      fillColor
+    });
 
     return new Style({
       fill: new Fill({

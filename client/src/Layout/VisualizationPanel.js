@@ -137,6 +137,7 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
   const renderColorPaletteSelection = () => {
     const availablePalettes = getAvailablePalettes();
     const isDivergingType = colorSchemeType === 'diverging';
+    const isCanapeType = colorSchemeType === 'CANAPE';
 
     if (selectedIndices.length !== 1) {
       return (
@@ -150,6 +151,14 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
       return (
         <Typography variant="caption" color="text.secondary">
           Color palette is fixed for SES values to ensure consistent interpretation
+        </Typography>
+      );
+    }
+
+    if (isCanapeType) {
+      return (
+        <Typography variant="caption" color="text.secondary">
+          Color palette is fixed for CANAPE categories to ensure consistent interpretation
         </Typography>
       );
     }
@@ -178,17 +187,23 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
       });
       return null;
     }
+
+    // Get index metadata to check if it's CANAPE
+    const metadata = getIndexMetadata(indexName);
+    if (metadata?.colorSchemeType === 'CANAPE') {
+      console.log('CANAPE index detected, skipping value range calculation');
+      return null; // CANAPE doesn't use value ranges as it's categorical
+    }
     
     console.log('Getting value range for index:', indexName);
     console.log('GeoJSON features count:', geoJSON.features.length);
-    console.log('First feature properties:', geoJSON.features[0]?.properties);
     
     const values = geoJSON.features
       .map(f => f.properties[indexName])
       .filter(v => typeof v === 'number' && !isNaN(v) && v !== null);
     
     if (values.length === 0) {
-      console.log('No valid values found for index:', indexName);
+      console.log('No valid numeric values found for index:', indexName);
       return null;
     }
     
@@ -216,17 +231,24 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
         <Typography variant="subtitle2">{group.name}</Typography>
       </ListSubheader>,
       ...group.indices
-        .filter(index => computedIndices.includes(index.commandName))
+        .filter(index => {
+          // Special case for CANAPE
+          if (index.id === 'canape') {
+            return computedIndices.includes('CANAPE');
+          }
+          // Normal case for other indices
+          return computedIndices.includes(index.commandName);
+        })
         .map((index) => (
           <MenuItem 
             key={index.id} 
-            value={index.commandName}
-            disabled={selectedIndices.length >= 2 && !selectedIndices.includes(index.commandName)}
+            value={index.id === 'canape' ? 'CANAPE' : index.commandName}
+            disabled={selectedIndices.length >= 2 && !selectedIndices.includes(index.id === 'canape' ? 'CANAPE' : index.commandName)}
           >
             <FormControlLabel
               control={
                 <Checkbox 
-                  checked={selectedIndices.includes(index.commandName)}
+                  checked={selectedIndices.includes(index.id === 'canape' ? 'CANAPE' : index.commandName)}
                 />
               }
               label={

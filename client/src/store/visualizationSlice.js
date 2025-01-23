@@ -14,6 +14,13 @@ const initialState = {
 
 // Helper function to get index metadata
 const getIndexMetadata = (indexId) => {
+  // Special case for CANAPE
+  if (indexId === 'CANAPE') {
+    return diversityIndices.groups
+      .flatMap(group => group.indices)
+      .find(index => index.id === 'canape');
+  }
+  // Normal case for other indices
   return diversityIndices.groups
     .flatMap(group => group.indices)
     .find(index => index.commandName === indexId);
