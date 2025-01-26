@@ -302,7 +302,7 @@ function constructNextflowParams(params, outputDir, workDir) {
   // TODO: update the command for production
   return [
     'run',
-    '/mnt/Data/Dropbox/Proj/BioDT/phylotwin/main.nf',
+    'vmikk/phylotwin', '-r', 'main',
     '-resume',
     '-ansi-log', 'false',
     '--occ', config.INPUT_PATH,
