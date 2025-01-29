@@ -30,6 +30,13 @@ curl -s https://get.nextflow.io | bash
 nextflow pull vmikk/phylotwin -r main
 ```
 
+Pull pipeline dependencies:
+
+```bash
+docker pull vmikk/phylotwin:0.6.0
+docker pull vmikk/biodiverse:1.6.0
+```
+
 
 Install Node.js and npm:  
 
