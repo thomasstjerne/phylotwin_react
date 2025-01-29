@@ -60,11 +60,11 @@ Install project dependencies:
 ```bash
 ## Install project dependencies for the client
 cd client
-npm install
+npm install --legacy-peer-deps
 
 ## Install project dependencies for the server
 cd ../server
-npm install
+npm install --legacy-peer-deps
 ```
 
 
