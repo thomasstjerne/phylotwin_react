@@ -418,27 +418,74 @@ const MapComponent = () => {
     // Get all values for the selected index to calculate min/max
     const allValues = vectorSourceRef.current.getFeatures()
       .map(f => f.get(indexId))
-      .filter(v => typeof v === 'number' && !isNaN(v));
+      .filter(v => typeof v === 'number' && !isNaN(v) && 
+        (!valueRange || (v >= valueRange[0] && v <= valueRange[1])));
     
     const min = valueRange ? valueRange[0] : Math.min(...allValues);
     const max = valueRange ? valueRange[1] : Math.max(...allValues);
 
     // Get the appropriate color scale based on the type
-    const colorScale = getColorScale(colorSchemeType, [min, max], palette);
-    
-    // Apply the color scale directly to the value
-    const fillColor = colorScale(value);
+    const metadata = diversityIndices.groups
+      .flatMap(group => group.indices)
+      .find(index => index.commandName === indexId);
+    const type = metadata?.colorSchemeType || 'sequential';
 
-    // Add logging for debugging
-    console.log('Style calculation:', {
-      indexId,
-      value,
-      min,
-      max,
-      colorSchemeType,
-      palette,
-      fillColor
-    });
+    let fillColor;
+    if (useQuantiles) {
+      // Step 1: Data Collection
+      const validValues = vectorSourceRef.current.getFeatures()
+        .map(f => f.get(indexId))
+        .filter(v => typeof v === 'number' && !isNaN(v));
+
+      // Sort values once
+      const sortedValues = [...validValues].sort((a, b) => a - b);
+
+      // Debug data collection
+      console.log('Data collection:', {
+        totalValues: validValues.length,
+        sortedRange: `${sortedValues[0]} to ${sortedValues[sortedValues.length - 1]}`
+      });
+
+      // Step 2: Calculate quintile boundaries (0%, 20%, 40%, 60%, 80%, 100%)
+      const boundaries = [];
+      for (let i = 0; i <= 5; i++) {
+        const index = Math.floor((i * (sortedValues.length - 1)) / 5);
+        boundaries.push(sortedValues[index]);
+      }
+
+      // Debug boundaries
+      console.log('Quintile boundaries:', boundaries);
+
+      // Step 3: Determine which bin the value falls into
+      let binValue;
+      for (let i = 0; i < 5; i++) {
+        if (value <= boundaries[i + 1]) {
+          // Use the midpoint of the bin for coloring
+          binValue = (boundaries[i] + boundaries[i + 1]) / 2;
+          break;
+        }
+      }
+
+      // If no bin was found (shouldn't happen), use the last bin
+      if (binValue === undefined) {
+        binValue = (boundaries[4] + boundaries[5]) / 2;
+      }
+
+      // Get color scale and apply it
+      const colorScale = getColorScale(type, [min, max], palette);
+      fillColor = colorScale(binValue);
+
+      // Debug final values
+      console.log('Quantile result:', {
+        value,
+        boundaries,
+        binValue,
+        fillColor
+      });
+    } else {
+      const colorScale = getColorScale(type, [min, max], palette);
+      fillColor = colorScale(value);
+    }
 
     return new Style({
       fill: new Fill({

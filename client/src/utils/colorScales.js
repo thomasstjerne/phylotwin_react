@@ -52,6 +52,15 @@ export const createSequentialScale = (domain, palette = DEFAULT_PALETTES.sequent
     .range([0, 1])
     .clamp(true);  // Clamp values to the domain
 
+  // If domain range is 4 (quantile bins), create discrete colors
+  if (domain[1] - domain[0] === 4) {
+    return value => {
+      // Map each bin index to an evenly spaced point in the color scale
+      const binPosition = (Math.floor(value) + 0.5) / 5;  // Center each bin's color
+      return colorScale(binPosition);
+    };
+  }
+
   // Return a function that normalizes the input and then applies the color scale
   return value => colorScale(normalizer(value));
 };
