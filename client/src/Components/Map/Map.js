@@ -376,10 +376,10 @@ const MapComponent = () => {
   };
 
   // Style function for results layer
-  const getResultStyle = (feature, indexId, palette, useQuantiles, valueRange, minRecords, isHovered = false) => {
+  const getResultStyle = (feature, indexId, palette, useQuantiles, valueRange, minRecords, isHovered = false, source) => {
     const value = feature.get(indexId);
     const numRecords = feature.get('NumRecords') || 0;
-    
+
     // Hide cells with too few records
     if (numRecords < minRecords) {
       return null;
@@ -416,7 +416,7 @@ const MapComponent = () => {
     }
 
     // Get all values for the selected index to calculate min/max
-    const allValues = vectorSourceRef.current.getFeatures()
+    const allValues = source.getFeatures()
       .map(f => f.get(indexId))
       .filter(v => typeof v === 'number' && !isNaN(v) && 
         (!valueRange || (v >= valueRange[0] && v <= valueRange[1])));
@@ -800,9 +800,10 @@ const MapComponent = () => {
           indexId, 
           colorPalette, 
           useQuantiles, 
-          valueRange, 
+          (selectedIndices.length < 2 ? valueRange : null), 
           minRecords,
-          feature === hoveredFeatureRef.current
+          feature === hoveredFeatureRef.current,
+          source,
         ),
         // Ensure layers are above the base map
         zIndex: idx + 1,
@@ -925,14 +926,29 @@ const MapComponent = () => {
               .map(f => f.properties[indexId])
               .filter(v => typeof v === 'number' && !isNaN(v));
             
-            const min = valueRange ? valueRange[0] : Math.min(...values);
-            const max = valueRange ? valueRange[1] : Math.max(...values);
+            let min = Math.min(...values);
+            let max = Math.max(...values);
+
+            if (valueRange && selectedIndices.length < 2) {
+              min = Math.max(min, valueRange[0]);
+              max = Math.min(max, valueRange[1]);
+            }
+
+            const appliedPalette = indexId === 'SES.PD' ? 'RdBu' : colorPalette
+
+            let appliedColorSchemeType = colorSchemeType;
+
+            if (indexId === 'CANAPE') {
+              appliedColorSchemeType = 'canape';
+            } else if (indexId === 'SES.PD') {
+              appliedColorSchemeType = 'diverging';
+            }
             
             // Get the appropriate color scale
             const scale = getColorScale(
-              indexId === 'CANAPE' ? 'canape' : colorSchemeType,
+              appliedColorSchemeType,
               [min, max],
-              colorPalette
+              appliedPalette
             );
 
             return (
@@ -941,7 +957,7 @@ const MapComponent = () => {
                 colorScale={scale}
                 domain={[min, max]}
                 title={indexId}
-                type={indexId === 'CANAPE' ? 'canape' : colorSchemeType}
+                type={appliedColorSchemeType}
                 isCanape={indexId === 'CANAPE'}
                 onFoldClick={() => setIsLegendFolded(!isLegendFolded)}
                 isFolded={isLegendFolded}
