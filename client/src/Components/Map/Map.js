@@ -433,7 +433,7 @@ const MapComponent = () => {
     let fillColor;
     if (useQuantiles) {
       // Step 1: Data Collection
-      const validValues = vectorSourceRef.current.getFeatures()
+      const validValues = source.getFeatures()
         .map(f => f.get(indexId))
         .filter(v => typeof v === 'number' && !isNaN(v));
 
