@@ -529,7 +529,9 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                                 </IconButton>
                               </Tooltip>
                               {areaSelectionMode === 'map' && drawnItems?.features?.length > 0 && (
-                                <Tooltip title="Reset selection">
+                                <Tooltip title={
+                                  <Typography variant="body2">Reset selection</Typography>
+                                }>
                                   <IconButton 
                                     size="small" 
                                     sx={{ 
@@ -636,7 +638,9 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                             </IconButton>
                           </Tooltip>
                           {selectedCountries.length > 0 && (
-                            <Tooltip title="Reset selection">
+                            <Tooltip title={
+                              <Typography variant="body2">Reset selection</Typography>
+                            }>
                               <IconButton 
                                 size="small" 
                                 sx={{ 
