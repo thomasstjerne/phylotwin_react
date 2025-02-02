@@ -1011,13 +1011,36 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                       </Select>
                     </FormControl>
 
-                    <TextField
-                      label="Number of randomizations"
-                      type="number"
-                      value={randomizations}
-                      onChange={(e) => handleRandomizationsChange(e.target.value)}
-                      fullWidth
-                    />
+                    {/* Show randomizations field only when Biodiverse indices are selected */}
+                    {selectedDiversityIndices.some(indexId => {
+                      const biodiverseGroup = diversityIndices.groups.find(group => group.id === 'biodiverse');
+                      return biodiverseGroup?.indices.some(index => index.id === indexId);
+                    }) && (
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <FormLabel>Number of randomizations</FormLabel>
+                          <Tooltip 
+                            title={
+                              <Box component="div" sx={{ typography: 'body2' }}>
+                                Number of randomizations for estimating standardized effect sizes (SES) for Biodiverse-based metrics
+                              </Box>
+                            } 
+                            placement="right"
+                          >
+                            <IconButton size="small" sx={{ ml: 1 }}>
+                              <InfoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                        <TextField
+                          type="number"
+                          value={randomizations}
+                          onChange={(e) => handleRandomizationsChange(e.target.value)}
+                          fullWidth
+                          inputProps={{ min: 1 }}
+                        />
+                      </Box>
+                    )}
                   </Box>
                 </AccordionDetails>
               </Accordion>
