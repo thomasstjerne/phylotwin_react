@@ -1,4 +1,3 @@
-
 # Application Flow
 
 ## 1. Frontend Configuration (Client)
@@ -199,4 +198,56 @@ All these directories are created automatically if missing.
 - Verify nextflow installation
 - Ensure directory permissions
 - Monitor database access
+
+
+## Frontend Routes
+
+### Core Routes
+- `/` - Home page with application overview and getting started information
+- `/run` - Main workflow page for new analysis
+- `/run/:id` - Specific workflow run with results and visualization
+- `/myruns` - List of user's previous and current runs
+
+
+## API Endpoints
+
+### Job Management
+- GET `/api/phylonext/jobs/:jobid`
+  * Returns job status and details
+  * Response: `{ jobid, status, started, completed, exitCode, error, signal }`
+  * Status codes: 200, 404, 500
+
+- PUT `/api/phylonext/jobs/:jobid/abort`
+  * Aborts a running job
+  * Status codes: 204, 404, 500
+
+- DELETE `/api/phylonext/jobs/:jobid`
+  * Deletes a job and its data
+  * Status codes: 204, 404, 500
+
+### Run Management
+- POST `/api/phylonext/runs`
+  * Creates new analysis run
+  * Accepts form data with parameters and files
+  * Returns: `{ jobId, runId }`
+
+- GET `/api/phylonext/runs/job/:jobId`
+  * Returns run status and details
+  * Response: `{ status, ... }`
+
+- GET `/api/phylonext/myruns`
+  * Lists user's runs
+  * Response: Array of run objects
+
+### Results Access
+- GET `/job/:jobid/cloropleth.html` - Map visualization (legacy, will be deprecated)
+- GET `/job/:jobid/execution_report.html` - Execution report
+- GET `/job/:jobid/archive.zip` - Complete results package
+- GET `/job/:jobid/pdf` - Generated PDF reports (legacy, will be deprecated)
+- GET `/api/phylonext/jobs/:jobid/output/02.Diversity_estimates/diversity_estimates.geojson` - GeoJSON results
+
+### Authentication
+- POST `/auth/login` - User login
+- POST `/auth/logout` - User logout
+- GET `/auth/status` - Check authentication status
 
