@@ -69,7 +69,7 @@ const TaxonAutoComplete = ({ value, onChange, rank, higherTaxonKey }) => {
 
   // Create debounced version of search
   const debouncedSearch = useRef(
-    debounce(searchTaxa, 300)
+    debounce(searchTaxa, 50, { leading: true })
   ).current;
 
   // Cleanup on unmount
