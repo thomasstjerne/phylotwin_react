@@ -152,6 +152,12 @@ const Layout = ({ step, setStep }) => {
     setIsPanelCollapsed(false);
   }, [activePanel, status, runId]);
 
+  useEffect(() => {
+    if (status === 'completed') {
+      handlePanelOpen('visualization');
+    }
+  }, [status]);
+
   // Get panel title based on active panel
   const getPanelTitle = () => {
     switch (activePanel) {
@@ -219,7 +225,6 @@ const Layout = ({ step, setStep }) => {
   // For workflow page, render the full layout with panels
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
-      <JobStatusPoller handlePanelOpen={handlePanelOpen} />
       <Header style={{ 
         padding: '0 16px', 
         background: colorBgContainer, 
