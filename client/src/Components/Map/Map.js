@@ -765,7 +765,9 @@ const MapComponent = () => {
 
   // Handle results visualization
   useEffect(() => {
-    if (!mapInstanceRef.current || !resultsGeoJSON) return;
+    const map = mapInstanceRef.current;
+
+    if (!map || !resultsGeoJSON) return;
 
     // Reset the view fitting flag when new results are loaded
     if (resultsGeoJSON !== prevResultsGeoJSONRef.current) {
@@ -775,13 +777,13 @@ const MapComponent = () => {
 
     // Remove existing results layers
     resultsLayersRef.current.forEach(layer => {
-      mapInstanceRef.current.removeLayer(layer);
+      map.removeLayer(layer);
     });
     resultsLayersRef.current = [];
 
     // Remove existing swipe control
     if (swipeControlRef.current) {
-      mapInstanceRef.current.removeControl(swipeControlRef.current);
+      map.removeControl(swipeControlRef.current);
       swipeControlRef.current = null;
     }
 
@@ -812,13 +814,13 @@ const MapComponent = () => {
         updateWhileInteracting: true
       });
 
-      mapInstanceRef.current.addLayer(layer);
+      map.addLayer(layer);
       resultsLayersRef.current.push(layer);
 
       // Fit view to layer extent only once when results are first loaded
       if (idx === 0 && source.getFeatures().length > 0 && !hasInitiallyFitView.current) {
         const extent = source.getExtent();
-        mapInstanceRef.current.getView().fit(extent, {
+        map.getView().fit(extent, {
           padding: [50, 50, 50, 50],
           maxZoom: 12
         });
@@ -842,21 +844,20 @@ const MapComponent = () => {
         orientation: 'vertical'
       });
 
-      mapInstanceRef.current.addControl(swipeControlRef.current);
+      map.addControl(swipeControlRef.current);
 
       // Force map render when swipe position changes
       swipeControlRef.current.on('moving', function() {
-        mapInstanceRef.current.render();
+        map.render();
       });
     }
 
     return () => {
       if (swipeControlRef.current) {
-        mapInstanceRef.current.removeControl(swipeControlRef.current);
+        map.removeControl(swipeControlRef.current);
         swipeControlRef.current = null;
       }
     };
-
   }, [resultsGeoJSON, selectedIndices, colorPalette, useQuantiles, valueRange, minRecords, colorSchemeType]);
 
   // Handle map export
