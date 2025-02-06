@@ -490,30 +490,33 @@ const MapComponent = () => {
         // Debug boundaries
         console.log('Quintile boundaries:', boundaries);
 
-        // Step 3: Determine which bin the value falls into
-        let binValue;
+        // Step 3: Determine which bin the value falls into and map to evenly distributed colors
+        let colorPosition; // Will be 0, 0.25, 0.5, 0.75, or 1
         for (let i = 0; i < 5; i++) {
           if (value <= boundaries[i + 1]) {
-            // Use the midpoint of the bin for coloring
-            binValue = (boundaries[i] + boundaries[i + 1]) / 2;
+            // Map each bin to evenly distributed points in the color scale
+            colorPosition = i / 4; // Dividing by 4 to get 0, 0.25, 0.5, 0.75, 1
             break;
           }
         }
 
         // If no bin was found (shouldn't happen), use the last bin
-        if (binValue === undefined) {
-          binValue = (boundaries[4] + boundaries[5]) / 2;
+        if (colorPosition === undefined) {
+          colorPosition = 1;
         }
 
-        // Get color scale and apply it
+        // Get color scale and apply it using the full range
         const colorScale = getColorScale(type, [min, max], palette);
-        fillColor = colorScale(binValue);
+        // Map the color position to the actual value range
+        const mappedValue = min + colorPosition * (max - min);
+        fillColor = colorScale(mappedValue);
 
         // Debug final values
         console.log('Quantile result:', {
           value,
           boundaries,
-          binValue,
+          colorPosition,
+          mappedValue,
           fillColor
         });
       }
