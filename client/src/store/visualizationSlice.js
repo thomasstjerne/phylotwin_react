@@ -35,17 +35,19 @@ const calculateQuantileBins = (values, indexId) => {
   
   console.log('Calculating bins for:', indexId, values.length, 'data points');
   
-  // Special handling for SES metrics
-  if (indexId === 'SES.PD') {
-    // Z-score thresholds for 95% and 99% confidence levels
+  // Get index metadata to check if it's a diverging type
+  const metadata = getIndexMetadata(indexId);
+  
+  // Special handling for diverging metrics (SES and other diverging indices)
+  if (metadata?.colorSchemeType === 'diverging') {
     const bins = [
       { label: '≤ -2.58 (p ≤ 0.01)', range: [Number.NEGATIVE_INFINITY, -2.58] },
-      { label: '≤ -1.96 (p ≤ 0.05)', range: [-2.58, -1.96] },
+      { label: '-2.58 to -1.96 (p ≤ 0.05)', range: [-2.58, -1.96] },
       { label: 'Not significant', range: [-1.96, 1.96] },
-      { label: '≥ 1.96 (p ≤ 0.05)', range: [1.96, 2.58] },
+      { label: '1.96 to 2.58 (p ≤ 0.05)', range: [1.96, 2.58] },
       { label: '≥ 2.58 (p ≤ 0.01)', range: [2.58, Number.POSITIVE_INFINITY] }
     ];
-    console.log('Using Z-score thresholds for SES:', bins);
+    console.log('Using Z-score thresholds for diverging index:', indexId, bins);
     return bins;
   }
   

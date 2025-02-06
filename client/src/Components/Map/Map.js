@@ -432,56 +432,91 @@ const MapComponent = () => {
 
     let fillColor;
     if (useQuantiles) {
-      // Step 1: Data Collection
-      const validValues = source.getFeatures()
-        .map(f => f.get(indexId))
-        .filter(v => typeof v === 'number' && !isNaN(v));
+      // Step 1: Check if this is a diverging index
+      if (type === 'diverging') {
+        // Use fixed Z-score thresholds for diverging indices (SES and others)
+        const boundaries = [-2.58, -1.96, 1.96, 2.58];
+        let binValue;
 
-      // Sort values once
-      const sortedValues = [...validValues].sort((a, b) => a - b);
-
-      // Debug data collection
-      console.log('Data collection:', {
-        totalValues: validValues.length,
-        sortedRange: `${sortedValues[0]} to ${sortedValues[sortedValues.length - 1]}`
-      });
-
-      // Step 2: Calculate quintile boundaries (0%, 20%, 40%, 60%, 80%, 100%)
-      const boundaries = [];
-      for (let i = 0; i <= 5; i++) {
-        const index = Math.floor((i * (sortedValues.length - 1)) / 5);
-        boundaries.push(sortedValues[index]);
-      }
-
-      // Debug boundaries
-      console.log('Quintile boundaries:', boundaries);
-
-      // Step 3: Determine which bin the value falls into
-      let binValue;
-      for (let i = 0; i < 5; i++) {
-        if (value <= boundaries[i + 1]) {
-          // Use the midpoint of the bin for coloring
-          binValue = (boundaries[i] + boundaries[i + 1]) / 2;
-          break;
+        // Determine which bin the value falls into
+        if (value <= -2.58) {
+          binValue = -3; // Use a value beyond -2.58 for the most extreme negative bin
+        } else if (value <= -1.96) {
+          binValue = -2.27; // Midpoint between -2.58 and -1.96
+        } else if (value < 1.96) {
+          binValue = 0; // Center value for non-significant results
+        } else if (value < 2.58) {
+          binValue = 2.27; // Midpoint between 1.96 and 2.58
+        } else {
+          binValue = 3; // Use a value beyond 2.58 for the most extreme positive bin
         }
+
+        // Get color scale and apply it
+        const absMax = 3; // Use 3 as the max to ensure proper color scaling
+        const colorScale = getColorScale(type, [-absMax, absMax], palette);
+        fillColor = colorScale(binValue);
+
+        // Debug final values
+        console.log('Diverging index binning result:', {
+          indexId,
+          value,
+          boundaries,
+          binValue,
+          fillColor
+        });
+      } else {
+        // Original percentile-based binning for non-diverging indices
+        // Step 1: Data Collection
+        const validValues = source.getFeatures()
+          .map(f => f.get(indexId))
+          .filter(v => typeof v === 'number' && !isNaN(v));
+
+        // Sort values once
+        const sortedValues = [...validValues].sort((a, b) => a - b);
+
+        // Debug data collection
+        console.log('Data collection:', {
+          totalValues: validValues.length,
+          sortedRange: `${sortedValues[0]} to ${sortedValues[sortedValues.length - 1]}`
+        });
+
+        // Step 2: Calculate quintile boundaries (0%, 20%, 40%, 60%, 80%, 100%)
+        const boundaries = [];
+        for (let i = 0; i <= 5; i++) {
+          const index = Math.floor((i * (sortedValues.length - 1)) / 5);
+          boundaries.push(sortedValues[index]);
+        }
+
+        // Debug boundaries
+        console.log('Quintile boundaries:', boundaries);
+
+        // Step 3: Determine which bin the value falls into
+        let binValue;
+        for (let i = 0; i < 5; i++) {
+          if (value <= boundaries[i + 1]) {
+            // Use the midpoint of the bin for coloring
+            binValue = (boundaries[i] + boundaries[i + 1]) / 2;
+            break;
+          }
+        }
+
+        // If no bin was found (shouldn't happen), use the last bin
+        if (binValue === undefined) {
+          binValue = (boundaries[4] + boundaries[5]) / 2;
+        }
+
+        // Get color scale and apply it
+        const colorScale = getColorScale(type, [min, max], palette);
+        fillColor = colorScale(binValue);
+
+        // Debug final values
+        console.log('Quantile result:', {
+          value,
+          boundaries,
+          binValue,
+          fillColor
+        });
       }
-
-      // If no bin was found (shouldn't happen), use the last bin
-      if (binValue === undefined) {
-        binValue = (boundaries[4] + boundaries[5]) / 2;
-      }
-
-      // Get color scale and apply it
-      const colorScale = getColorScale(type, [min, max], palette);
-      fillColor = colorScale(binValue);
-
-      // Debug final values
-      console.log('Quantile result:', {
-        value,
-        boundaries,
-        binValue,
-        fillColor
-      });
     } else {
       const colorScale = getColorScale(type, [min, max], palette);
       fillColor = colorScale(value);
