@@ -402,11 +402,7 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
 
   const renderQuantileBins = () => {
     if (!quantileBins) {
-      return (
-        <Typography variant="caption" color="text.secondary">
-          No data available for quantile binning
-        </Typography>
-      );
+      return null;
     }
 
     return (
