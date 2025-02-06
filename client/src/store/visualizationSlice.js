@@ -27,25 +27,45 @@ const getIndexMetadata = (indexId) => {
 };
 
 // Helper function to calculate quantile bins
-const calculateQuantileBins = (values) => {
+const calculateQuantileBins = (values, indexId) => {
   if (!values || values.length === 0) {
-    console.log('No values provided for quantile calculation');
+    console.log('No values provided for bin calculation');
     return null;
   }
   
-  console.log('Calculating quantiles for values:', values.length, 'data points');
+  console.log('Calculating bins for:', indexId, values.length, 'data points');
   
-  // Sort values for percentile calculation
+  // Special handling for SES metrics
+  if (indexId === 'SES.PD') {
+    // Z-score thresholds for 95% and 99% confidence levels
+    const bins = [
+      { label: '≤ -2.58 (p ≤ 0.01)', range: [Number.NEGATIVE_INFINITY, -2.58] },
+      { label: '≤ -1.96 (p ≤ 0.05)', range: [-2.58, -1.96] },
+      { label: 'Not significant', range: [-1.96, 1.96] },
+      { label: '≥ 1.96 (p ≤ 0.05)', range: [1.96, 2.58] },
+      { label: '≥ 2.58 (p ≤ 0.01)', range: [2.58, Number.POSITIVE_INFINITY] }
+    ];
+    console.log('Using Z-score thresholds for SES:', bins);
+    return bins;
+  }
+  
+  // For other metrics, use percentile bins
   const sortedValues = [...values].sort((a, b) => a - b);
-  
-  // Calculate percentiles (20%, 40%, 60%, 80%)
-  const bins = [0.2, 0.4, 0.6, 0.8].map(percentile => {
-    const index = Math.floor(sortedValues.length * percentile);
+  const percentiles = [0.2, 0.4, 0.6, 0.8].map(p => {
+    const index = Math.floor(sortedValues.length * p);
     return sortedValues[index];
   });
   
-  console.log('Calculated quantile bins:', bins);
-  return bins;
+  const result = [
+    { label: '0-20%', range: [Number.NEGATIVE_INFINITY, percentiles[0]] },
+    { label: '20-40%', range: [percentiles[0], percentiles[1]] },
+    { label: '40-60%', range: [percentiles[1], percentiles[2]] },
+    { label: '60-80%', range: [percentiles[2], percentiles[3]] },
+    { label: '80-100%', range: [percentiles[3], Number.POSITIVE_INFINITY] }
+  ];
+  
+  console.log('Using percentile bins:', result);
+  return result;
 };
 
 // Helper function to get quantile category (0-4)
@@ -80,7 +100,7 @@ const visualizationSlice = createSlice({
         const values = state.geoJSON.features
           .map(f => f.properties[state.selectedIndices[0]])
           .filter(v => typeof v === 'number' && !isNaN(v));
-        state.quantileBins = calculateQuantileBins(values);
+        state.quantileBins = calculateQuantileBins(values, state.selectedIndices[0]);
       }
     },
     setColorPalette: (state, action) => {
@@ -94,18 +114,19 @@ const visualizationSlice = createSlice({
     },
     setUseQuantiles: (state, action) => {
       state.useQuantiles = action.payload;
-      console.log('Quantile mode toggled:', action.payload);
+      console.log('Binning mode toggled:', action.payload);
       
-      // Calculate quantile bins when enabled
+      // Calculate bins when enabled
       if (action.payload && state.geoJSON && state.selectedIndices.length === 1) {
-        console.log('Calculating quantiles for index:', state.selectedIndices[0]);
+        const indexId = state.selectedIndices[0];
+        console.log('Calculating bins for index:', indexId);
         const values = state.geoJSON.features
-          .map(f => f.properties[state.selectedIndices[0]])
+          .map(f => f.properties[indexId])
           .filter(v => typeof v === 'number' && !isNaN(v));
-        console.log('Found values for quantile calculation:', values.length);
-        state.quantileBins = calculateQuantileBins(values);
+        console.log('Found values for bin calculation:', values.length);
+        state.quantileBins = calculateQuantileBins(values, indexId);
       } else {
-        console.log('Clearing quantile bins');
+        console.log('Clearing bins');
         state.quantileBins = null;
       }
     },
@@ -128,7 +149,7 @@ const visualizationSlice = createSlice({
             .map(f => f.properties[state.selectedIndices[0]])
             .filter(v => typeof v === 'number' && !isNaN(v));
           console.log('Found values for quantile calculation:', values.length);
-          state.quantileBins = calculateQuantileBins(values);
+          state.quantileBins = calculateQuantileBins(values, state.selectedIndices[0]);
         }
         
         // Set value range from all numeric values

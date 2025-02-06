@@ -511,7 +511,7 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
           </AccordionDetails>
         </Accordion>
 
-        {/* Quantile Toggle */}
+        {/* Binning Toggle */}
         <Box sx={{ px: 2, py: 1.5 }}>
           <FormControlLabel
             control={
@@ -523,7 +523,23 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
             }
             label={
               <Box>
-                <Typography>Use quantile bins</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography>
+                    {selectedIndices.includes('SES.PD') ? 'Use significance thresholds' : 'Use percentile bins'}
+                  </Typography>
+                  <Tooltip 
+                    title={
+                      selectedIndices.includes('SES.PD')
+                        ? "Group values into significance levels using Z-score thresholds (±1.96 for p≤0.05, ±2.58 for p≤0.01)"
+                        : "Group values into five equal-sized groups (quintiles: 0-20%, 20-40%, 40-60%, 60-80%, 80-100%)"
+                    }
+                    placement="right"
+                  >
+                    <IconButton size="small" sx={{ ml: 1 }}>
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
                 {selectedIndices.length !== 1 && (
                   <Typography variant="caption" color="text.secondary" display="block">
                     Available only when one index is selected
