@@ -349,39 +349,86 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
 
         context.translate(0, LEGEND_LINE_HEIGHT);
 
-        // Gradient
         // XXX TODO: DRY with <ColorLegend />
-        const gradient = context.createLinearGradient(0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL, 0);
-
-        for (let i = 0; i < 100; i++) {
-          const t = i / 99;
-          let color;
-          
+        if (useQuantiles) {
+          // Draw discrete bins for binned data
+          let bins;
           if (appliedColorSchemeType === 'diverging') {
-            // Map t from [0, 1] to [-1, 1] for diverging scales
-            const mappedT = t * 2 - 1;
-            const absMax = Math.max(Math.abs(min), Math.abs(max));
-            color = scale(mappedT * absMax);
+            bins = [
+              { label: '≤ -2.58 (p ≤ 0.01)', value: -3, color: scale(-3) },
+              { label: '-2.58 to -1.96 (p ≤ 0.05)', value: -2.27, color: scale(-2.27) },
+              { label: 'Not significant', value: 0, color: scale(0) },
+              { label: '1.96 to 2.58 (p ≤ 0.05)', value: 2.27, color: scale(2.27) },
+              { label: '≥ 2.58 (p ≤ 0.01)', value: 3, color: scale(3) }
+            ];
           } else {
-            // For sequential scales, map t directly to domain
-            color = scale(min + t * (max - min));
+            const positions = [0, 0.25, 0.5, 0.75, 1];
+            bins = [
+              { label: '0-20%', value: min + positions[0] * (max - min), color: scale(min) },
+              { label: '20-40%', value: min + positions[1] * (max - min), color: scale(min + 0.25 * (max - min)) },
+              { label: '40-60%', value: min + positions[2] * (max - min), color: scale(min + 0.5 * (max - min)) },
+              { label: '60-80%', value: min + positions[3] * (max - min), color: scale(min + 0.75 * (max - min)) },
+              { label: '80-100%', value: min + positions[4] * (max - min), color: scale(max) }
+            ];
           }
 
-          gradient.addColorStop(t, color);
+          const BOX_SIZE = 16;
+          const BOX_MARGIN = 8;
+          const LINE_HEIGHT = 20;
+
+          bins.forEach((bin, i) => {
+            // Draw color box
+            context.fillStyle = bin.color;
+            context.fillRect(0, i * LINE_HEIGHT, BOX_SIZE, BOX_SIZE);
+            
+            // Add subtle border to color box
+            context.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            context.strokeRect(0, i * LINE_HEIGHT, BOX_SIZE, BOX_SIZE);
+
+            // Draw label
+            context.fillStyle = '#333';
+            context.font = `12px ${fontFamily}`;
+            context.textAlign = 'left';
+            context.fillText(
+              bin.label,
+              BOX_SIZE + BOX_MARGIN,
+              i * LINE_HEIGHT + BOX_SIZE * 0.8
+            );
+          });
+        } else {
+          // Original continuous gradient code
+          const gradient = context.createLinearGradient(0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL, 0);
+
+          for (let i = 0; i < 100; i++) {
+            const t = i / 99;
+            let color;
+            
+            if (appliedColorSchemeType === 'diverging') {
+              // Map t from [0, 1] to [-1, 1] for diverging scales
+              const mappedT = t * 2 - 1;
+              const absMax = Math.max(Math.abs(min), Math.abs(max));
+              color = scale(mappedT * absMax);
+            } else {
+              // For sequential scales, map t directly to domain
+              color = scale(min + t * (max - min));
+            }
+
+            gradient.addColorStop(t, color);
+          }
+
+          context.fillStyle = gradient;
+          context.fillRect(0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL, LEGEND_SCALE_HEIGHT);
+
+          context.translate(0, LEGEND_SCALE_HEIGHT + LEGEND_LINE_HEIGHT);
+
+          // Domain labels
+          context.font = `16px ${fontFamily}`;
+          context.fillStyle = '#666';
+          context.fillText(min.toFixed(2), 0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL);
+
+          context.textAlign = 'right';
+          context.fillText(max.toFixed(2), LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL, 0);
         }
-
-        context.fillStyle = gradient;
-        context.fillRect(0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL, LEGEND_SCALE_HEIGHT);
-
-        context.translate(0, LEGEND_SCALE_HEIGHT + LEGEND_LINE_HEIGHT);
-
-        // Domain labels
-        context.font = `16px ${fontFamily}`;
-        context.fillStyle = '#666';
-        context.fillText(min.toFixed(2), 0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL);
-
-        context.textAlign = 'right';
-        context.fillText(max.toFixed(2), LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL, 0);
 
         // Done with this block
         context.restore();

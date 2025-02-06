@@ -140,4 +140,44 @@
   height: 16px;
   border-radius: 2px;
   border: 1px solid rgba(0, 0, 0, 0.1);  /* Subtle border */
+}
+
+/* Styles for discrete legend items (both CANAPE and binned data) */
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #333;
+}
+
+.legend-item .color-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+/* Adjust spacing for binned legend */
+.legend-content {
+  padding: 12px 15px;
+  min-width: 200px;
+}
+
+/* Make sure text wraps properly */
+.legend-item span {
+  flex: 1;
+  word-break: break-word;
+}
+
+/* Ensure proper spacing between title and items */
+.legend-title {
+  margin-bottom: 8px;
 } 

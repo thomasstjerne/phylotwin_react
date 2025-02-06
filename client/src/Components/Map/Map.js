@@ -32,7 +32,8 @@ const ColorLegend = ({
   type = 'sequential',
   isCanape = false,
   onFoldClick,
-  isFolded
+  isFolded,
+  useQuantiles = false
 }) => {
   const legendRef = useRef(null);
   const tooltipRef = useRef(null);
@@ -106,7 +107,7 @@ const ColorLegend = ({
     ];
 
     return (
-      <div className="map-legend canape-legend">
+      <div className="map-legend">
         <button 
           className="legend-fold-button"
           onClick={onFoldClick}
@@ -123,6 +124,54 @@ const ColorLegend = ({
               <div key={value} className="legend-item">
                 <div className="color-box" style={{ backgroundColor: color }} />
                 <span>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (useQuantiles) {
+    // Create discrete bins for binned data
+    let bins;
+    if (type === 'diverging') {
+      bins = [
+        { label: '≤ -2.58 (p ≤ 0.01)', value: -3, color: colorScale(-3) },
+        { label: '-2.58 to -1.96 (p ≤ 0.05)', value: -2.27, color: colorScale(-2.27) },
+        { label: 'Not significant', value: 0, color: colorScale(0) },
+        { label: '1.96 to 2.58 (p ≤ 0.05)', value: 2.27, color: colorScale(2.27) },
+        { label: '≥ 2.58 (p ≤ 0.01)', value: 3, color: colorScale(3) }
+      ];
+    } else {
+      const positions = [0, 0.25, 0.5, 0.75, 1];
+      bins = [
+        { label: '0-20%', value: domain[0] + positions[0] * (domain[1] - domain[0]), color: colorScale(domain[0]) },
+        { label: '20-40%', value: domain[0] + positions[1] * (domain[1] - domain[0]), color: colorScale(domain[0] + 0.25 * (domain[1] - domain[0])) },
+        { label: '40-60%', value: domain[0] + positions[2] * (domain[1] - domain[0]), color: colorScale(domain[0] + 0.5 * (domain[1] - domain[0])) },
+        { label: '60-80%', value: domain[0] + positions[3] * (domain[1] - domain[0]), color: colorScale(domain[0] + 0.75 * (domain[1] - domain[0])) },
+        { label: '80-100%', value: domain[0] + positions[4] * (domain[1] - domain[0]), color: colorScale(domain[1]) }
+      ];
+    }
+
+    return (
+      <div className="map-legend">
+        <button 
+          className="legend-fold-button"
+          onClick={onFoldClick}
+          title={isFolded ? "Show legend" : "Hide legend"}
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+          </svg>
+        </button>
+        <div className="legend-content">
+          <div className="legend-title">{title}</div>
+          <div className="legend-items">
+            {bins.map((bin, index) => (
+              <div key={index} className="legend-item">
+                <div className="color-box" style={{ backgroundColor: bin.color }} />
+                <span>{bin.label}</span>
               </div>
             ))}
           </div>
@@ -1000,6 +1049,7 @@ const MapComponent = () => {
                 isCanape={indexId === 'CANAPE'}
                 onFoldClick={() => setIsLegendFolded(!isLegendFolded)}
                 isFolded={isLegendFolded}
+                useQuantiles={useQuantiles}
               />
             );
           })}
