@@ -17,8 +17,10 @@ export const PALETTES = {
   ],
   diverging: [
     { id: 'RdBu', name: 'Red-Blue', scale: d3.interpolateRdBu },
-    { id: 'RdYlBu', name: 'Red-Yellow-Blue', scale: d3.interpolateRdYlBu },
-    { id: 'PiYG', name: 'Pink-Yellow-Green', scale: d3.interpolatePiYG }
+    { id: 'PRGn', name: 'Purple-Green', scale: d3.interpolatePRGn },
+    { id: 'BrBG', name: 'Brown-Green', scale: d3.interpolateBrBG },
+    { id: 'PiYG', name: 'Pink-Green', scale: d3.interpolatePiYG },
+    { id: 'PuOr', name: 'Purple-Orange', scale: d3.interpolatePuOr }
   ],
   CANAPE: {
     NEO: "#FF0000",

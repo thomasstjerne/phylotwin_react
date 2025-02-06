@@ -147,14 +147,6 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
       );
     }
 
-    if (isDivergingType) {
-      return (
-        <Typography variant="caption" color="text.secondary">
-          Color palette is fixed for SES values to ensure consistent interpretation
-        </Typography>
-      );
-    }
-
     if (isCanapeType) {
       return (
         <Typography variant="caption" color="text.secondary">
@@ -324,7 +316,7 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
           max = Math.min(max, valueRange[1]);
         }
 
-        const appliedPalette = indexId === 'SES.PD' ? 'RdBu' : colorPalette
+        const appliedPalette = colorPalette;
 
         let appliedColorSchemeType = colorSchemeType;
 
@@ -629,7 +621,7 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
                   <Tooltip 
                     title={
                       colorSchemeType === 'diverging' 
-                        ? "SES values use a fixed diverging color scheme (red-blue) for consistent interpretation"
+                        ? "Select a diverging color scheme for SES values centered at zero"
                         : "Select a color scheme for visualizing the data"
                     }
                     placement="right"

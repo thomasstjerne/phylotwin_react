@@ -935,7 +935,7 @@ const MapComponent = () => {
               max = Math.min(max, valueRange[1]);
             }
 
-            const appliedPalette = indexId === 'SES.PD' ? 'RdBu' : colorPalette
+            const appliedPalette = colorPalette;
 
             let appliedColorSchemeType = colorSchemeType;
 

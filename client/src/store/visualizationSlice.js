@@ -87,7 +87,7 @@ const visualizationSlice = createSlice({
       // Only update if the selected index allows custom palettes
       if (state.selectedIndices.length === 1) {
         const metadata = getIndexMetadata(state.selectedIndices[0]);
-        if (metadata?.colorSchemeType !== 'diverging') {
+        if (metadata?.colorSchemeType !== 'CANAPE') {  // Block CANAPE palette (it's fixed)
           state.colorPalette = action.payload;
         }
       }
