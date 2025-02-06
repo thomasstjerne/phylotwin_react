@@ -310,6 +310,8 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
 
       for (const indexId of selectedIndices) {
         // XXX TODO: DRY with exactly the same code in Map component
+        // This duplication exists because we need to recreate the legend on a canvas for export, 
+        // separate from the DOM-based legend used for display
         const values = geoJSON.features
           .map(f => f.properties[indexId])
           .filter(v => typeof v === 'number' && !isNaN(v));
@@ -347,7 +349,8 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
 
         context.translate(0, LEGEND_LINE_HEIGHT);
 
-        const fontFamily = map.computedStyleMap().get('font-family').toString();
+        // Get font family (NB! don't use computedStyleMap() as it's not supported in Firefox)
+        const fontFamily = window.getComputedStyle(map).fontFamily || 'sans-serif';
         context.font = `20px ${fontFamily}`;
         context.fillStyle = 'black';
         context.fillText(indexId, 0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL);
