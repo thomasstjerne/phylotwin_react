@@ -34,7 +34,7 @@ import {
   selectQuantileBins,
   selectColorSchemeType
 } from '../store/visualizationSlice';
-import { PALETTES, getPalettesForType } from '../utils/colorScales';
+import { PALETTES, getPalettesForType, getColorScale } from '../utils/colorScales';
 
 const drawerWidth = 340;
 
@@ -284,9 +284,123 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
   const handleExportMap = () => {
     const map = document.querySelector('.ol-viewport canvas');
     if (map) {
+      const canvas = document.createElement('canvas');
+      canvas.width = map.width;
+      canvas.height = map.height;
+
+      const context = canvas.getContext('2d');
+
+      context.drawImage(map, 0, 0);
+
+      const LEGEND_WIDTH = 360;
+      const LEGEND_HEIGHT = 120;
+      const LEGEND_PADDING_VERTICAL = 12;
+      const LEGEND_PADDING_HORIZONTAL = 15;
+      const LEGEND_MARGIN = 48;
+
+      const LEGEND_LINE_HEIGHT = 20;
+      const LEGEND_SCALE_HEIGHT = 36;
+
+      context.save()
+
+      context.translate(
+        canvas.width - LEGEND_WIDTH - LEGEND_MARGIN,
+        canvas.height - selectedIndices.length * (LEGEND_HEIGHT + LEGEND_MARGIN),
+      );
+
+      for (const indexId of selectedIndices) {
+        // XXX TODO: DRY with exactly the same code in Map component
+        const values = geoJSON.features
+          .map(f => f.properties[indexId])
+          .filter(v => typeof v === 'number' && !isNaN(v));
+        
+        let min = Math.min(...values);
+        let max = Math.max(...values);
+
+        if (valueRange && selectedIndices.length < 2) {
+          min = Math.max(min, valueRange[0]);
+          max = Math.min(max, valueRange[1]);
+        }
+
+        const appliedPalette = indexId === 'SES.PD' ? 'RdBu' : colorPalette
+
+        let appliedColorSchemeType = colorSchemeType;
+
+        if (indexId === 'CANAPE') {
+          appliedColorSchemeType = 'canape';
+        } else if (indexId === 'SES.PD') {
+          appliedColorSchemeType = 'diverging';
+        }
+
+        const scale = getColorScale(
+          appliedColorSchemeType,
+          [min, max],
+          appliedPalette
+        );
+
+        context.save();
+
+        context.fillStyle = 'white';
+        context.fillRect(0, 0, LEGEND_WIDTH, LEGEND_HEIGHT);
+
+        context.translate(LEGEND_PADDING_HORIZONTAL, LEGEND_PADDING_VERTICAL);
+
+        context.translate(0, LEGEND_LINE_HEIGHT);
+
+        const fontFamily = map.computedStyleMap().get('font-family').toString();
+        context.font = `20px ${fontFamily}`;
+        context.fillStyle = 'black';
+        context.fillText(indexId, 0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL);
+
+        context.translate(0, LEGEND_LINE_HEIGHT);
+
+        // Gradient
+        // XXX TODO: DRY with <ColorLegend />
+        const gradient = context.createLinearGradient(0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL, 0);
+
+        for (let i = 0; i < 100; i++) {
+          const t = i / 99;
+          let color;
+          
+          if (appliedColorSchemeType === 'diverging') {
+            // Map t from [0, 1] to [-1, 1] for diverging scales
+            const mappedT = t * 2 - 1;
+            const absMax = Math.max(Math.abs(min), Math.abs(max));
+            color = scale(mappedT * absMax);
+          } else {
+            // For sequential scales, map t directly to domain
+            color = scale(min + t * (max - min));
+          }
+
+          gradient.addColorStop(t, color);
+        }
+
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL, LEGEND_SCALE_HEIGHT);
+
+        context.translate(0, LEGEND_SCALE_HEIGHT + LEGEND_LINE_HEIGHT);
+
+        // Domain labels
+        context.font = `16px ${fontFamily}`;
+        context.fillStyle = '#666';
+        context.fillText(min.toFixed(2), 0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL);
+
+        context.textAlign = 'right';
+        context.fillText(max.toFixed(2), LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL, 0);
+
+        // Done with this block
+        context.restore();
+
+        // Translate to the next block position
+        context.translate(0, LEGEND_HEIGHT + LEGEND_MARGIN);
+      }
+
+      context.restore();
+
+
       const link = document.createElement('a');
       link.download = 'map_export.png';
-      link.href = map.toDataURL();
+      link.href = canvas.toDataURL();
       link.click();
     }
   };
