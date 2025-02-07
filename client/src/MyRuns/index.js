@@ -26,6 +26,7 @@ import {
   updateMapZoom,
   setPipelineStatus
 } from '../store/actions';
+import phylogeneticTrees from '../shared/vocabularies/phylogeneticTrees.json';
 
 const { Text, Title } = Typography;
 
@@ -40,16 +41,37 @@ const MyRuns = () => {
 
     console.log('MyRuns render - user:', user);
 
+    // Create a map of tree IDs to display names
+    const treeDisplayNames = useMemo(() => {
+        console.log('Building tree display names map from:', 
+            phylogeneticTrees.groups.map(g => g.trees.map(t => ({id: t.id, display: t.displayName}))));
+        const names = {};
+        phylogeneticTrees.groups.forEach(group => {
+            group.trees.forEach(tree => {
+                names[tree.fileName] = tree.displayName; // Map by fileName instead of id
+                names[tree.id] = tree.displayName;      // Also map by id for backwards compatibility
+            });
+        });
+        console.log('Created tree display names map:', names);
+        return names;
+    }, []);
+
     const getDescription = useCallback(item => {
         const parts = [];
 
         // Add phylogenetic tree
-        const tree = item.params?.tree || item.tree;
-        if (tree) {
+        const treeId = item.params?.tree || item.tree;
+        if (treeId) {
+            console.log('Processing tree:', {
+                treeId,
+                mappedName: treeDisplayNames[treeId],
+                allMappings: treeDisplayNames
+            });
+            const displayName = treeDisplayNames[treeId] || treeId;
             parts.push(
-                <Tooltip title={`Tree: ${tree}`} key="tree">
+                <Tooltip title={`Tree: ${displayName}`} key="tree">
                     <Tag color="blue" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        Tree: {tree}
+                        Tree: {displayName}
                     </Tag>
                 </Tooltip>
             );
@@ -155,7 +177,7 @@ const MyRuns = () => {
                 {parts}
             </Space>
         );
-    }, []);
+    }, [treeDisplayNames]);
 
     const getRuns = useCallback(async () => {
         if (!user?.userName) {
@@ -169,7 +191,11 @@ const MyRuns = () => {
             setError(null);
             console.log('Fetching runs for user:', user.userName);
             const res = await axiosWithAuth.get(`${config.phylonextWebservice}/api/phylonext/runs/myruns`);
-            console.log('Fetched runs:', res.data);
+            console.log('Fetched runs with tree data:', res.data?.map(run => ({
+                runId: run.run,
+                tree: run.params?.tree || run.tree,
+                params: run.params
+            })));
             setRuns(res.data || []);
         } catch (error) {
             console.error('Failed to fetch runs:', error);
@@ -481,7 +507,16 @@ const MyRuns = () => {
                                             title={
                                                 <Space>
                                                     <Text strong style={{ fontSize: '16px' }}>
-                                                        {item.params?.tree || item.tree || 'Unnamed Run'}
+                                                        {(() => {
+                                                            const treeId = item.params?.tree || item.tree;
+                                                            console.log('Rendering title for tree:', {
+                                                                treeId,
+                                                                mappedName: treeDisplayNames[treeId],
+                                                                params: item.params,
+                                                                tree: item.tree
+                                                            });
+                                                            return treeDisplayNames[treeId] || treeId || 'Unnamed Run';
+                                                        })()}
                                                     </Text>
                                                     <Text type="secondary">
                                                         {moment(item.completed || item.started).format('LLL')}
