@@ -137,6 +137,22 @@ const MyRuns = () => {
             );
         }
 
+        // Add record filtering mode
+        const basisOfRecord = item.params?.basis_of_record || item.basis_of_record;
+        if (basisOfRecord) {
+            const isSpecimenFocused = basisOfRecord === 'PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION';
+            const isObservationEnhanced = basisOfRecord === 'PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION,HUMAN_OBSERVATION';
+            
+            if (isSpecimenFocused || isObservationEnhanced) {
+                const text = isSpecimenFocused ? 'Records: Specimen-focused' : 'Records: Observation-enhanced';
+                parts.push(
+                    <Tooltip title={text} key="records">
+                        <Tag color="blue">{text}</Tag>
+                    </Tooltip>
+                );
+            }
+        }
+
         // Add diversity indices
         const div = item.params?.div || item.div || [];
         if (div.length) {
