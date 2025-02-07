@@ -27,6 +27,7 @@ import {
   setPipelineStatus
 } from '../store/actions';
 import phylogeneticTrees from '../shared/vocabularies/phylogeneticTrees.json';
+import countryVocabulary from '../Vocabularies/country.json';
 
 const { Text, Title } = Typography;
 
@@ -43,18 +44,121 @@ const MyRuns = () => {
 
     // Create a map of tree IDs to display names
     const treeDisplayNames = useMemo(() => {
-        console.log('Building tree display names map from:', 
-            phylogeneticTrees.groups.map(g => g.trees.map(t => ({id: t.id, display: t.displayName}))));
         const names = {};
         phylogeneticTrees.groups.forEach(group => {
             group.trees.forEach(tree => {
-                names[tree.fileName] = tree.displayName; // Map by fileName instead of id
-                names[tree.id] = tree.displayName;      // Also map by id for backwards compatibility
+                names[tree.fileName] = tree.displayName;
+                names[tree.id] = tree.displayName;
             });
         });
-        console.log('Created tree display names map:', names);
         return names;
     }, []);
+
+    // Create a map of country codes to full names
+    const countryNames = useMemo(() => {
+        const names = {};
+        countryVocabulary.forEach(country => {
+            names[country.A2] = country.Country;
+        });
+        return names;
+    }, []);
+
+    // Generate a descriptive name for the run
+    const getRunName = useCallback((item) => {
+        // Get taxonomic scope - collect all specified taxonomic filters
+        const taxonomicRanks = ['phylum', 'classs', 'order', 'family', 'genus'];
+        const taxonomicFilters = {};
+        taxonomicRanks.forEach(rank => {
+            const values = item.params?.[rank] || item[rank] || [];
+            if (values.length) {
+                taxonomicFilters[rank] = values;
+            }
+        });
+
+        // Get the most specific taxonomic filter
+        let taxonomicGroup = null;
+        if (Object.keys(taxonomicFilters).length > 0) {
+            // Get the most specific rank that has filters
+            const lowestRank = taxonomicRanks
+                .filter(rank => taxonomicFilters[rank])
+                .pop();
+            
+            if (lowestRank) {
+                taxonomicGroup = taxonomicFilters[lowestRank].join(' and ');
+            }
+        }
+
+        // Get tree name and its main group
+        const treeId = item.params?.tree || item.tree;
+        const treeName = treeDisplayNames[treeId] || treeId;
+        
+        // Extract the main group name more carefully
+        const getMainGroupFromTree = (treeName) => {
+            // Handle special cases based on the vocabulary
+            if (treeName.includes('Seed plants')) return 'Seed plants';
+            if (treeName.includes('Ray-finned fishes')) return 'Ray-finned fishes';
+            if (treeName.includes('Mushroom-forming fungi')) return 'Mushroom-forming fungi';
+            
+            // For other cases, take everything before the first parenthesis or special character
+            const mainPart = treeName.split(/[(]/)[0].trim();
+            // Ensure we don't cut off important parts of the name
+            return mainPart.endsWith('s') ? mainPart : mainPart + 's';
+        };
+        
+        // Get geographic scope with full country names
+        const countryCodes = item.params?.country || item.country || [];
+        const polygon = item.params?.polygon || item.polygon;
+        let locationPart = '';
+        if (countryCodes.length) {
+            if (countryCodes.length > 2) {
+                locationPart = `across ${countryCodes.length} countries`;
+            } else {
+                const countryNames = countryCodes
+                    .map(code => countryVocabulary.find(c => c.A2 === code)?.Country || code)
+                    .join(' and ');
+                locationPart = `in ${countryNames}`;
+            }
+        } else if (polygon) {
+            locationPart = 'in selected area';
+        } else {
+            locationPart = 'globally';
+        }
+
+        // Get time period if significantly different from default
+        const minyear = item.params?.minyear || item.minyear;
+        const maxyear = item.params?.maxyear || item.maxyear;
+        let timePart = '';
+        if (minyear && maxyear && (minyear > 1950 || maxyear < 2024)) {
+            if (minyear === maxyear) {
+                timePart = ` (${minyear})`;
+            } else {
+                timePart = ` (${minyear}–${maxyear})`;
+            }
+        }
+
+        // Construct the name based on available information
+        let name;
+        if (taxonomicGroup) {
+            // If we have a specific taxonomic group
+            name = `${taxonomicGroup} ${locationPart}${timePart}`;
+        } else {
+            // If we're looking at the whole tree
+            const mainGroup = getMainGroupFromTree(treeName);
+            name = `${mainGroup} ${locationPart}${timePart}`;
+        }
+
+        // If the name is too long, create a more concise version
+        if (name.length > 100) {
+            if (taxonomicGroup) {
+                name = `${taxonomicGroup} ${locationPart.includes('countries') ? locationPart : 'analysis'}`;
+            } else {
+                const mainGroup = getMainGroupFromTree(treeName);
+                name = `${mainGroup} ${locationPart.includes('countries') ? locationPart : 'analysis'}`;
+            }
+        }
+
+        return name;
+    }, [treeDisplayNames, countryVocabulary]);
 
     const getDescription = useCallback(item => {
         const parts = [];
@@ -525,16 +629,7 @@ const MyRuns = () => {
                                             title={
                                                 <Space>
                                                     <Text strong style={{ fontSize: '16px' }}>
-                                                        {(() => {
-                                                            const treeId = item.params?.tree || item.tree;
-                                                            console.log('Rendering title for tree:', {
-                                                                treeId,
-                                                                mappedName: treeDisplayNames[treeId],
-                                                                params: item.params,
-                                                                tree: item.tree
-                                                            });
-                                                            return treeDisplayNames[treeId] || treeId || 'Unnamed Run';
-                                                        })()}
+                                                        {getRunName(item)}
                                                     </Text>
                                                     <Text type="secondary">
                                                         {moment(item.completed || item.started).format('LLL')}
