@@ -561,7 +561,7 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
               <Checkbox
                 checked={useQuantiles}
                 onChange={handleQuantileToggle}
-                disabled={selectedIndices.length !== 1}
+                disabled={selectedIndices.length !== 1 || selectedIndices[0] === 'CANAPE'}
               />
             }
             label={
@@ -588,10 +588,15 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
                     Available only when one index is selected
                   </Typography>
                 )}
+                {selectedIndices.length === 1 && selectedIndices[0] === 'CANAPE' && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Not available for CANAPE as it uses fixed categorical colors
+                  </Typography>
+                )}
               </Box>
             }
           />
-          {useQuantiles && selectedIndices.length === 1 && (
+          {useQuantiles && selectedIndices.length === 1 && selectedIndices[0] !== 'CANAPE' && (
             <Box sx={{ mt: 1, ml: 4 }}>
               {renderQuantileBins()}
             </Box>
