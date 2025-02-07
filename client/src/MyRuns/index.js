@@ -17,6 +17,15 @@ import { useAuth } from '../Auth/AuthContext';
 import PageContent from "../Layout/PageContent";
 import config from "../config";
 import Logo from "../Layout/Logo";
+import { useDispatch } from 'react-redux';
+import { 
+  resetResults,
+  resetVisualization,
+  resetMapState,
+  updateMapCenter,
+  updateMapZoom,
+  setPipelineStatus
+} from '../store/actions';
 
 const { Text, Title } = Typography;
 
@@ -26,6 +35,7 @@ const MyRuns = () => {
     const [error, setError] = useState(null);
     const [searchText, setSearchText] = useState('');
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const { user, logout } = useAuth();
 
     console.log('MyRuns render - user:', user);
@@ -287,20 +297,23 @@ const MyRuns = () => {
         </div>
     );
 
-    const renderEmpty = () => (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <Space direction="vertical" align="center" size="large">
-                <HistoryOutlined style={{ fontSize: 48, color: '#bfbfbf' }} />
-                <Title level={4}>No analysis runs found</Title>
-                <Text type="secondary">
-                    Start a new analysis to see your runs here
-                </Text>
-                <Button type="primary" onClick={() => navigate('/run')}>
-                    Start New Analysis
-                </Button>
-            </Space>
-        </div>
-    );
+    const handleStartNewAnalysis = () => {
+        // First reset all Redux states
+        dispatch(setPipelineStatus('idle'));
+        dispatch(resetResults());
+        dispatch(resetVisualization());
+        dispatch(resetMapState());
+        dispatch(updateMapCenter([20, 0]));
+        dispatch(updateMapZoom(2));
+        
+        // Then navigate to /run with replace to clear URL params
+        navigate('/run', { replace: true });
+        
+        // Finally, force a reload to ensure a completely fresh state
+        setTimeout(() => {
+            window.location.reload();
+        }, 0);
+    };
 
     return (
         <PageContent>
@@ -328,7 +341,7 @@ const MyRuns = () => {
                                 <Logo />
                                 <Title level={2} style={{ margin: 0 }}>Analysis History</Title>
                             </Space>
-                            <Button type="primary" onClick={() => navigate('/run')}>
+                            <Button type="primary" onClick={handleStartNewAnalysis}>
                                 Start New Analysis
                             </Button>
                         </div>
@@ -395,7 +408,18 @@ const MyRuns = () => {
                         />
 
                         {filteredRuns.length === 0 ? (
-                            renderEmpty()
+                            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                                <Space direction="vertical" align="center" size="large">
+                                    <HistoryOutlined style={{ fontSize: 48, color: '#bfbfbf' }} />
+                                    <Title level={4}>No analysis runs found</Title>
+                                    <Text type="secondary">
+                                        Start a new analysis to see your runs here
+                                    </Text>
+                                    <Button type="primary" onClick={handleStartNewAnalysis}>
+                                        Start New Analysis
+                                    </Button>
+                                </Space>
+                            </div>
                         ) : (
                             <List
                                 loading={loading}
