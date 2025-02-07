@@ -297,9 +297,26 @@ const MapComponent = () => {
   }, []);
 
   // Function to format value for display
-  const formatValue = (value) => {
+  const formatValue = (value, indexId) => {
+    // Special handling for CANAPE values
+    if (indexId === 'CANAPE') {
+      const canapeCategories = {
+        0: 'Not significant',
+        1: 'Neo-endemism',
+        2: 'Paleo-endemism',
+        3: 'Mixed endemism',
+        4: 'Super endemism',
+        'non-significant': 'Not significant',
+        'NEO': 'Neo-endemism',
+        'PALAEO': 'Paleo-endemism',
+        'MIXED': 'Mixed endemism',
+        'SUPER': 'Super endemism'
+      };
+      return canapeCategories[value] || 'Unknown';
+    }
+    
+    // For numeric values
     if (typeof value === 'number') {
-      // Check if value is an integer
       return Number.isInteger(value) ? value : value.toFixed(2);
     }
     return value;
@@ -343,13 +360,13 @@ const MapComponent = () => {
     if (selectedIndices && selectedIndices.length > 0) {
       selectedIndices.forEach(indexId => {
         const value = properties[indexId];
-        if (typeof value === 'number') {
+        if (value !== undefined && value !== null) {  // to show CANAPE values
           // Get metadata for the index
           const metadata = diversityIndices.groups
             .flatMap(group => group.indices)
             .find(index => index.commandName === indexId);
           const displayName = metadata ? metadata.displayName : indexId;
-          content += `<div class="tooltip-row"><strong>${displayName}:</strong> ${formatValue(value)}</div>`;
+          content += `<div class="tooltip-row"><strong>${displayName}:</strong> ${formatValue(value, indexId)}</div>`;
         }
       });
     }
