@@ -149,6 +149,8 @@ const MyRuns = () => {
                 </Tooltip>
             );
         }
+
+        // Add biodiverse indices
         const bd_indices = item.params?.bd_indices || item.bd_indices || [];
         if (bd_indices.length) {
             const text = `Biodiverse: ${bd_indices.join(', ')}`;
@@ -159,17 +161,17 @@ const MyRuns = () => {
                     </Tag>
                 </Tooltip>
             );
-        }
 
-        // Add randomizations
-        const rnd = item.params?.rnd || item.rnd;
-        if (rnd) {
-            const text = `Randomizations: ${rnd}`;
-            parts.push(
-                <Tooltip title={text} key="rnd">
-                    <Tag color="gold">{text}</Tag>
-                </Tooltip>
-            );
+            // Add randomizations only if biodiverse indices were used
+            const rnd = item.params?.rnd || item.rnd;
+            if (rnd) {
+                const text = `Randomizations: ${rnd}`;
+                parts.push(
+                    <Tooltip title={text} key="rnd">
+                        <Tag color="gold">{text}</Tag>
+                    </Tooltip>
+                );
+            }
         }
 
         return (
