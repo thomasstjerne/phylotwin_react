@@ -32,7 +32,10 @@ const ALLOWED_PARAMS = [
   "maxyear",        // collection year range
   "div",            // diversity indices (main module)
   "bd_indices",     // diversity indices (biodiverse module)
-  "rnd"             // number of randomizations
+  "rnd",            // number of randomizations
+  "recordFilteringMode",  // specimen/observation mode for data path
+  "outlierSensitivity",   // outlier removal sensitivity for data path
+  "spatialResolution"     // H3 resolution for data path
 ];
 
 // Helper functions
