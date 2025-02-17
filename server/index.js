@@ -15,9 +15,10 @@ const addRequestId = (req, res, next) => {
 };
 
 // Middleware
+// TODO: speciefy the URL of the frontend
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? 'https://your-production-domain.com' 
+    ? 'https://phylonext2.gbif.org/' 
     : 'http://localhost:3000',
   credentials: true
 }));
