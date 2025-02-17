@@ -91,7 +91,12 @@ const storage = multer.diskStorage({
         }
     },
     filename: function (req, file, cb) {
-        cb(null, file.originalname);
+        // For species list, use a consistent filename
+        if (file.fieldname === 'species') {
+            cb(null, 'uploaded_species_list.txt');
+        } else {
+            cb(null, file.originalname);
+        }
     },
 });
 
@@ -114,7 +119,7 @@ router.post('/',
     auth.appendUser(),
     upload.fields([
         { name: 'polygon', maxCount: 1 },
-        { name: 'specieskeys', maxCount: 1 }
+        { name: 'species', maxCount: 1 }
     ]),
     async (req, res) => {
         const jobId = req.id;
@@ -123,6 +128,7 @@ router.post('/',
         console.log(`Job ID: ${jobId}`);
         console.log(`User: ${req.user?.userName}`);
         console.log('Request body data:', req.body.data);
+        console.log('Files received:', req.files);
         console.log('===============================\n');
 
         if (!req.user) {
@@ -195,8 +201,11 @@ router.post('/',
                 console.log('Using uploaded polygon file:', polygonPath);
             }
             
-            if (req.files?.specieskeys?.[0]) {
-                body.specieskeys = req.files.specieskeys[0].path;
+            // Handle species list file
+            if (req.files?.species?.[0]) {
+                const speciesListPath = path.join(outputDir, 'species_list.txt');
+                body.specieslist = speciesListPath;
+                console.log('Using species list file:', speciesListPath);
             }
 
             // Process parameters and start job
@@ -206,6 +215,7 @@ router.post('/',
             // Log the final parameters
             console.log('\n=== PROCESSED PARAMETERS ===');
             console.log('Polygon path:', processedParams.polygon || 'None');
+            console.log('Species list path:', processedParams.specieslist || 'None');
             console.log('Full processed parameters:', processedParams);
             console.log('===========================\n');
 
@@ -268,6 +278,12 @@ const processParams = (body, outputDir) => {
                     params[paramName] = body.taxonomicFilters[rank].map(t => t.name || t.scientificName || t);
                 }
             });
+        }
+
+        // Process species list file if provided
+        if (body.specieslist) {
+            params.specieslist = body.specieslist;
+            console.log('Setting species list path:', params.specieslist);
         }
 
         // Process record filtering mode and outlier sensitivity
