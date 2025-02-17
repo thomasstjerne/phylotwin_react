@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const NEXTFLOW = config.NEXTFLOW;
 const jobs = new Map();
 
-// Add new constants for work directories
+// Constants for work directories
 const WORK_DIR_BASE = path.join(config.PERSISTANT_ACCESS_PATH, 'work_dirs');
 const SESSION_TIMEOUT = 1000 * 60 * 60 * 24; // 24 hours in milliseconds
 
@@ -299,13 +299,44 @@ function constructNextflowParams(params, outputDir, workDir) {
       }
     });
 
-  // TODO: update the command for production
+
+  // Input data under `config.INPUT_PATH` are organized in a hierarchical manner:
+  // ├── h3_res_3
+  // │   ├── human_obs_enhanced
+  // │   │   ├── outlier_high
+  // │   │   ├── outlier_low
+  // │   │   └── outlier_none
+  // │   └── specimens_only
+  // │       ├── outlier_high
+  // │       ├── outlier_low
+  // │       └── outlier_none
+  // ├── h3_res_4/
+  // │   ├── ...
+  // ├── h3_res_5/
+  // │   ├── ...
+  // └── h3_res_6/
+  //     ├── ...
+
+  // Construct the data path based on parameters
+  const resolution = params.spatialResolution || params.resolution || 3;
+  const recordMode = params.recordFilteringMode === 'specimen' ? 'specimens_only' : 'human_obs_enhanced';
+  const outlierMode = params.outlierSensitivity || 'none';
+  
+  // Construct the hierarchical path
+  const dataPath = path.join(
+    config.INPUT_PATH,
+    `h3_res_${resolution}`,
+    recordMode,
+    `outlier_${outlierMode}`
+  );
+
+  // Core command
   return [
     'run',
     'vmikk/phylotwin', '-r', 'main',
     '-resume',
     '-ansi-log', 'false',
-    '--occ', config.INPUT_PATH,
+    '--occ', dataPath,
     '--outdir', outputDir,
     '-work-dir', workDir,
     '-profile', 'docker',
