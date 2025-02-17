@@ -26,7 +26,7 @@ const ALLOWED_PARAMS = [
   "order",          // taxonomic filters
   "family",         // taxonomic filters
   "genus",          // taxonomic filters
-  "specieskeys",    // species keys file
+  "specieslist",    // path to species list file
   "basis_of_record", // record filtering mode
   "minyear",        // collection year range
   "maxyear",        // collection year range
