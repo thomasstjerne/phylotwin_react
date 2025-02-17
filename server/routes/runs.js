@@ -270,12 +270,14 @@ const processParams = (body, outputDir) => {
             });
         }
 
-        // Process record filtering mode
-        if (body.recordFilteringMode) {
-            params.basis_of_record = body.recordFilteringMode === 'specimen' 
-                ? "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION"
-                : "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION,HUMAN_OBSERVATION";
-        }
+        // Process record filtering mode and outlier sensitivity
+        params.recordFilteringMode = body.recordFilteringMode || 'specimen';
+        params.outlierSensitivity = body.outlierSensitivity || 'none';
+
+        // Process basis of record (will be used by the pipeline)
+        params.basis_of_record = params.recordFilteringMode === 'specimen' 
+            ? "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION"
+            : "PRESERVED_SPECIMEN,MATERIAL_SAMPLE,MATERIAL_CITATION,MACHINE_OBSERVATION,HUMAN_OBSERVATION";
 
         // Process year range
         if (body.yearRange && Array.isArray(body.yearRange) && body.yearRange.length === 2) {
