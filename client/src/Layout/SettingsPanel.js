@@ -792,22 +792,22 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
 
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">Optional: Upload species keys</Typography>
+                        <Typography variant="body2" color="text.secondary">Optional: Upload species names</Typography>
                         <Tooltip 
                           title={
                             <Box component="div" sx={{ typography: 'body2' }}>
                               <p style={{ margin: '0 0 8px 0' }}>
-                                Upload a text file with species keys, one per row. Can be used in addition to or separately from the taxonomic rank selection above.
+                                Upload a text file with species names, one per row. Can be used in addition to or separately from the taxonomic rank selection above.
                               </p>
                               <p style={{ margin: '0' }}>
-                                Species keys can be retrieved using the{' '}
+                                Species names can be validated using the{' '}
                                 <a 
                                   href="https://www.gbif.org/tools/species-lookup" 
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   style={{ color: '#90caf9' }}
                                 >
-                                  GBIF species lookup tool
+                                  GBIF species lookup tool (to match species occurrence data)
                                 </a>
                               </p>
                             </Box>
@@ -825,7 +825,7 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                         fullWidth
                         sx={{ mb: 2 }}
                       >
-                        Upload species keys
+                        Upload species names
                         <input
                           type="file"
                           hidden
