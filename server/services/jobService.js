@@ -333,6 +333,14 @@ function constructNextflowParams(params, outputDir, workDir) {
     `outlier_${outlierMode}`
   );
 
+  // Log the constructed data path
+  console.log('\n=== DATA PATH CONSTRUCTION ===');
+  console.log('Resolution:', resolution);
+  console.log('Record Mode:', recordMode);
+  console.log('Outlier Mode:', outlierMode);
+  console.log('Final Data Path:', dataPath);
+  console.log('============================\n');
+
   // Core command
   return [
     'run',
