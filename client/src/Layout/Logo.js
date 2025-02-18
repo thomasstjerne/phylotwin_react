@@ -12,7 +12,7 @@ const Logo = () => {
       }}>
         <img 
           src="/logo.png"
-          alt="PhyloTwin Logo" 
+          alt="PhyloNext-v2 Logo" 
           style={{ 
             height: 32,
             width: 'auto'
@@ -26,7 +26,7 @@ const Logo = () => {
             color: '#1890ff'
           }}
         >
-          PhyloTwin
+          PhyloNext-v2
         </Typography>
       </Box>
     </Link>
