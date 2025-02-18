@@ -485,18 +485,37 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {/* Spatial Resolution */}
                     <FormControl component="fieldset" sx={{ mb: 3 }}>
-                      <FormLabel>Spatial resolution</FormLabel>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <FormLabel>Spatial resolution (km)</FormLabel>
+                        <Tooltip 
+                          title={
+                            <Box component="div" sx={{ typography: 'body2' }}>
+                              Select H3 discrete global grid system resolution by <span style={{ fontWeight: 'bold', textDecoration: 'underline' }}>hexagon edge length</span> (e.g., 69 km = Res 3, 26 km = Res 4, 10 km = Res 5, 3.7 km = Res 6). Note: High resolutions (smaller hexagons) on large areas may cause performance issues when visualizaing the data.
+                            </Box>
+                          } 
+                          placement="right"
+                        >
+                          <IconButton size="small" sx={{ ml: 1 }}>
+                            <InfoIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                       <RadioGroup
                         row
                         value={spatialResolution}
                         onChange={(e) => handleSpatialResolutionChange(e.target.value)}
                       >
-                        {[3, 4, 5, 6].map((value) => (
+                        {[
+                          { value: '3', label: '69' },
+                          { value: '4', label: '26' },
+                          { value: '5', label: '10' },
+                          { value: '6', label: '3.7' }
+                        ].map(({ value, label }) => (
                           <FormControlLabel
                             key={value}
-                            value={value.toString()}
+                            value={value}
                             control={<Radio />}
-                            label={value}
+                            label={label}
                           />
                         ))}
                       </RadioGroup>
