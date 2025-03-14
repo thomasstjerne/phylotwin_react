@@ -345,6 +345,55 @@ async function collectLogFiles(jobId, workDir) {
   }
 }
 
+// Function to save pipeline parameters to a JSON file
+async function saveParametersToFile(jobId, params) {
+  try {
+    console.log('\n=== SAVING PIPELINE PARAMETERS ===');
+    console.log(`Job ID: ${jobId}`);
+    
+    const runDir = path.join(config.OUTPUT_PATH, jobId);
+    const outputDir = path.join(runDir, 'output');
+    const logsDir = path.join(outputDir, 'logs');
+    
+    // Create logs directory if it doesn't exist
+    await fsPromises.mkdir(logsDir, { recursive: true });
+    
+    // Filter parameters to include only those in ALLOWED_PARAMS
+    const filteredParams = {};
+    Object.keys(params).forEach(key => {
+      if (ALLOWED_PARAMS.includes(key)) {
+        filteredParams[key] = params[key];
+      }
+    });
+    
+    // Add timestamp and nextflow command
+    const paramsWithMetadata = {
+      timestamp: new Date().toISOString(),
+      parameters: filteredParams
+    };
+    
+    // Get the full nextflow command if available
+    const jobRecord = db.get("runs").find({ run: jobId }).value();
+    if (jobRecord && jobRecord.nextflow_command) {
+      paramsWithMetadata.nextflow_command = jobRecord.nextflow_command;
+    }
+    
+    // Save to JSON file
+    const paramsFilePath = path.join(logsDir, 'pipeline_parameters.json');
+    await fsPromises.writeFile(
+      paramsFilePath, 
+      JSON.stringify(paramsWithMetadata, null, 2)
+    );
+    
+    console.log(`Parameters saved to ${paramsFilePath}`);
+    console.log('=== PARAMETERS SAVED ===\n');
+    
+    return paramsFilePath;
+  } catch (error) {
+    console.error('Error saving pipeline parameters:', error);
+  }
+}
+
 async function startJob(options) {
   try {
     const { username, req_id, params } = options;
@@ -453,6 +502,13 @@ async function startJob(options) {
         })
         .write();
         
+      // Save parameters to file
+      try {
+        await saveParametersToFile(options.req_id, options.params);
+      } catch (error) {
+        console.error('Error saving parameters to file:', error);
+      }
+        
       // Collect log files
       try {
         const sessionId = getSessionId(options.username, options.params);
@@ -487,6 +543,13 @@ async function startJob(options) {
           error: err.message
         })
         .write();
+        
+      // Save parameters to file
+      try {
+        await saveParametersToFile(options.req_id, options.params);
+      } catch (error) {
+        console.error('Error saving parameters to file:', error);
+      }
         
       // Collect log files
       try {
@@ -621,4 +684,5 @@ module.exports = {
   getSessionId,
   cleanupOldWorkDirs,
   collectLogFiles,
+  saveParametersToFile,
 }; 
