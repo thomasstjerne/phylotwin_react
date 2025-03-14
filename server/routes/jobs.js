@@ -5,7 +5,7 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const config = require('../config');
 const auth = require('../Auth/auth');
-const { jobs, killJob, removeJobData, collectLogFiles, getSessionId } = require('../services/jobService');
+const { jobs, killJob, removeJobData, collectLogFiles, getSessionId, saveParametersToFile } = require('../services/jobService');
 const path = require('path');
 
 // Track last logged status for each job to prevent duplicate logs
@@ -142,6 +142,13 @@ router.post('/:jobid/logs', auth.appendUser(), async (req, res) => {
     
     if (!jobRecord) {
       return res.status(404).json({ error: 'Job not found' });
+    }
+    
+    // Save parameters to file
+    try {
+      await saveParametersToFile(jobId, jobRecord.params);
+    } catch (error) {
+      console.error('Error saving parameters to file:', error);
     }
     
     // Get session ID and work directory
