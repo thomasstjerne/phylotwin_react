@@ -7,6 +7,8 @@ const db = require('../db');
 const logger = require('../utils/logger');
 const { execSync } = require('child_process');
 const crypto = require('crypto');
+const { glob } = require('glob');
+const util = require('util');
 
 // Constants
 const NEXTFLOW = config.NEXTFLOW;
@@ -131,6 +133,218 @@ function getSessionId(username, params) {
   return hash;
 }
 
+// Function to collect and organize log files after Nextflow execution
+async function collectLogFiles(jobId, workDir) {
+  try {
+    console.log('\n=== COLLECTING LOG FILES ===');
+    console.log(`Job ID: ${jobId}`);
+    console.log(`Work Directory: ${workDir}`);
+    
+    // Check if work directory exists
+    try {
+      await fsPromises.access(workDir, fs.constants.F_OK);
+    } catch (error) {
+      console.error(`Work directory does not exist: ${workDir}`);
+      console.error(`Error: ${error.message}`);
+      // Continue with the function to at least try to copy the logs from the run directory
+    }
+    
+    const runDir = path.join(config.OUTPUT_PATH, jobId);
+    const outputDir = path.join(runDir, 'output');
+    const logsDir = path.join(outputDir, 'logs');
+    
+    // Create logs directory
+    await fsPromises.mkdir(logsDir, { recursive: true });
+    
+    // Copy .nextflow.log and nf_execution.log to logs directory
+    const nextflowLogSrc = path.join(runDir, '.nextflow.log');
+    const executionLogSrc = path.join(runDir, 'nf_execution.log');
+    const nextflowLogDest = path.join(logsDir, 'nextflow.log');
+    const executionLogDest = path.join(logsDir, 'nf_execution.log');
+    
+    // Copy files if they exist
+    try {
+      await fsPromises.access(nextflowLogSrc, fs.constants.F_OK);
+      await fsPromises.copyFile(nextflowLogSrc, nextflowLogDest);
+      console.log(`Copied ${nextflowLogSrc} to ${nextflowLogDest}`);
+    } catch (error) {
+      console.error(`Error copying .nextflow.log: ${error.message}`);
+    }
+    
+    try {
+      await fsPromises.access(executionLogSrc, fs.constants.F_OK);
+      await fsPromises.copyFile(executionLogSrc, executionLogDest);
+      console.log(`Copied ${executionLogSrc} to ${executionLogDest}`);
+    } catch (error) {
+      console.error(`Error copying nf_execution.log: ${error.message}`);
+    }
+    
+    // Parse nf_execution.log to find process IDs
+    let executionLogContent;
+    try {
+      await fsPromises.access(executionLogSrc, fs.constants.F_OK);
+      executionLogContent = await fsPromises.readFile(executionLogSrc, 'utf8');
+    } catch (error) {
+      console.error(`Error reading nf_execution.log: ${error.message}`);
+      console.log('=== LOG COLLECTION COMPLETE (PARTIAL) ===\n');
+      return;
+    }
+    
+    // Extract process IDs from log
+    const processRegex = /\[([a-z0-9]{2}\/[a-z0-9]{6})\] Submitted process > (.+?)( \(\d+\))?$/gm;
+    const processes = [];
+    let match;
+    
+    while ((match = processRegex.exec(executionLogContent)) !== null) {
+      processes.push({
+        id: match[1],
+        name: match[2].replace(/\s+\(\d+\)$/, ''), // Remove trailing (N) if present
+        shortId: match[1].replace('/', '_')
+      });
+    }
+    
+    console.log(`Found ${processes.length} processes in execution log`);
+    
+    // Check if work directory exists before trying to find log files
+    let workDirExists = true;
+    try {
+      await fsPromises.access(workDir, fs.constants.F_OK);
+    } catch (error) {
+      console.error(`Work directory does not exist: ${workDir}`);
+      workDirExists = false;
+    }
+    
+    if (!workDirExists) {
+      console.log('Skipping process log collection as work directory does not exist');
+      console.log('=== LOG COLLECTION COMPLETE (PARTIAL) ===\n');
+      return;
+    }
+    
+    // Find all process directories in the work directory
+    // This is more reliable than using glob with partial IDs
+    const findProcessDirs = async () => {
+      try {
+        // Get all first-level directories (hash prefixes)
+        const firstLevelDirs = await fsPromises.readdir(workDir);
+        
+        // Process directories structure
+        const processDirs = [];
+        
+        // For each first-level directory, find matching process directories
+        for (const firstDir of firstLevelDirs) {
+          const firstDirPath = path.join(workDir, firstDir);
+          
+          // Skip if not a directory
+          try {
+            const stats = await fsPromises.stat(firstDirPath);
+            if (!stats.isDirectory()) continue;
+          } catch (error) {
+            continue;
+          }
+          
+          // Get second-level directories
+          try {
+            const secondLevelDirs = await fsPromises.readdir(firstDirPath);
+            
+            for (const secondDir of secondLevelDirs) {
+              const fullPath = path.join(firstDirPath, secondDir);
+              
+              // Skip if not a directory
+              try {
+                const stats = await fsPromises.stat(fullPath);
+                if (!stats.isDirectory()) continue;
+              } catch (error) {
+                continue;
+              }
+              
+              // Check if .command.out exists in this directory
+              const commandOutPath = path.join(fullPath, '.command.out');
+              try {
+                await fsPromises.access(commandOutPath, fs.constants.F_OK);
+                processDirs.push({
+                  path: fullPath,
+                  id: `${firstDir}/${secondDir}`,
+                  logFile: commandOutPath
+                });
+              } catch (error) {
+                // .command.out doesn't exist, skip
+              }
+            }
+          } catch (error) {
+            console.error(`Error reading directory ${firstDirPath}:`, error.message);
+          }
+        }
+        
+        return processDirs;
+      } catch (error) {
+        console.error('Error finding process directories:', error.message);
+        return [];
+      }
+    };
+    
+    // Find all process directories
+    const processDirs = await findProcessDirs();
+    console.log(`Found ${processDirs.length} process directories with log files`);
+    
+    // Match process directories to processes from the execution log
+    let matchedCount = 0;
+    for (const process of processes) {
+      const [prefix, hash] = process.id.split('/');
+      
+      // Find matching process directory
+      const matchingDirs = processDirs.filter(dir => {
+        const dirId = dir.id;
+        return dirId.startsWith(`${prefix}/`) && dirId.includes(hash);
+      });
+      
+      if (matchingDirs.length > 0) {
+        // Use the first matching directory
+        const matchingDir = matchingDirs[0];
+        const sourcePath = matchingDir.logFile;
+        const destPath = path.join(logsDir, `${process.shortId}_${process.name}.log`);
+        
+        try {
+          await fsPromises.copyFile(sourcePath, destPath);
+          console.log(`Copied ${sourcePath} to ${destPath}`);
+          matchedCount++;
+        } catch (error) {
+          console.error(`Error copying log for process ${process.id}: ${error.message}`);
+        }
+      } else {
+        console.warn(`No matching directory found for process ${process.id} (${process.name})`);
+        
+        // Try using glob as a fallback
+        try {
+          const pattern = path.join(workDir, `${prefix}*/${hash}*/.command.out`);
+          const files = await glob(pattern);
+          
+          if (files.length > 0) {
+            const sourcePath = files[0];
+            const destPath = path.join(logsDir, `${process.shortId}_${process.name}.log`);
+            
+            try {
+              await fsPromises.copyFile(sourcePath, destPath);
+              console.log(`Copied ${sourcePath} to ${destPath} (using glob fallback)`);
+              matchedCount++;
+            } catch (error) {
+              console.error(`Error copying log for process ${process.id}: ${error.message}`);
+            }
+          } else {
+            console.warn(`No log file found for process ${process.id} using glob fallback`);
+          }
+        } catch (error) {
+          console.error(`Error finding log for process ${process.id} using glob: ${error.message}`);
+        }
+      }
+    }
+    
+    console.log(`Successfully copied logs for ${matchedCount} out of ${processes.length} processes`);
+    console.log('=== LOG COLLECTION COMPLETE ===\n');
+  } catch (error) {
+    console.error('Error collecting log files:', error);
+  }
+}
+
 async function startJob(options) {
   try {
     const { username, req_id, params } = options;
@@ -211,7 +425,7 @@ async function startJob(options) {
     });
 
     // Clean up the write stream when the process exits
-    pcs.on('exit', (code, signal) => {
+    pcs.on('exit', async (code, signal) => {
       logStream.end();
       const status = code === 0 ? 'completed' : 'error';
       console.log(`\n=== PIPELINE ${status.toUpperCase()} ===`);
@@ -238,9 +452,18 @@ async function startJob(options) {
           signal
         })
         .write();
+        
+      // Collect log files
+      try {
+        const sessionId = getSessionId(options.username, options.params);
+        const workDir = path.join(WORK_DIR_BASE, sessionId);
+        await collectLogFiles(options.req_id, workDir);
+      } catch (error) {
+        console.error('Error collecting log files:', error);
+      }
     });
 
-    pcs.on('error', (err) => {
+    pcs.on('error', async (err) => {
       console.error('\n=== PIPELINE ERROR ===');
       console.error(`Job ID: ${options.req_id}`);
       console.error(`Time: ${new Date().toISOString()}`);
@@ -264,6 +487,15 @@ async function startJob(options) {
           error: err.message
         })
         .write();
+        
+      // Collect log files
+      try {
+        const sessionId = getSessionId(options.username, options.params);
+        const workDir = path.join(WORK_DIR_BASE, sessionId);
+        await collectLogFiles(options.req_id, workDir);
+      } catch (error) {
+        console.error('Error collecting log files:', error);
+      }
     });
 
     // Store process reference
@@ -388,4 +620,5 @@ module.exports = {
   ALLOWED_PARAMS,
   getSessionId,
   cleanupOldWorkDirs,
+  collectLogFiles,
 }; 
