@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsPromises = require('fs').promises;
 const config = require('../config');
 const auth = require('../Auth/auth');
-const { jobs, killJob, removeJobData } = require('../services/jobService');
+const { jobs, killJob, removeJobData, collectLogFiles, getSessionId } = require('../services/jobService');
+const path = require('path');
 
 // Track last logged status for each job to prevent duplicate logs
 const lastLoggedStatus = new Map();
@@ -126,6 +128,97 @@ router.delete("/:jobid", auth.appendUser(), async (req, res) => {
 
     res.status(204).send();
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to manually collect logs for a job
+router.post('/:jobid/logs', auth.appendUser(), async (req, res) => {
+  try {
+    const jobId = req.params.jobid;
+    
+    // Check if job exists in database
+    const jobRecord = db.get('runs').find({ run: jobId }).value();
+    
+    if (!jobRecord) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    
+    // Get session ID and work directory
+    const sessionId = jobRecord.session_id || getSessionId(jobRecord.userName, jobRecord.params);
+    const workDir = path.join(config.PERSISTANT_ACCESS_PATH, 'work_dirs', sessionId);
+    
+    // Collect logs
+    await collectLogFiles(jobId, workDir);
+    
+    res.status(200).json({ message: 'Logs collected successfully' });
+  } catch (error) {
+    console.error('Error collecting logs:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to list available logs for a job
+router.get('/:jobid/logs', auth.appendUser(), async (req, res) => {
+  try {
+    const jobId = req.params.jobid;
+    const logsDir = path.join(config.OUTPUT_PATH, jobId, 'output', 'logs');
+    
+    try {
+      // Check if logs directory exists
+      await fsPromises.access(logsDir, fs.constants.F_OK);
+    } catch (error) {
+      return res.status(404).json({ error: 'Logs directory not found', message: 'No logs available for this job' });
+    }
+    
+    // Get list of log files
+    const files = await fsPromises.readdir(logsDir);
+    
+    // Get file stats for each log
+    const logFiles = await Promise.all(
+      files.map(async (file) => {
+        const filePath = path.join(logsDir, file);
+        const stats = await fsPromises.stat(filePath);
+        
+        return {
+          name: file,
+          size: stats.size,
+          created: stats.birthtime,
+          modified: stats.mtime,
+          path: `/api/phylonext/jobs/${jobId}/logs/${file}`
+        };
+      })
+    );
+    
+    res.status(200).json({ logs: logFiles });
+  } catch (error) {
+    console.error('Error listing logs:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to get a specific log file
+router.get('/:jobid/logs/:filename', auth.appendUser(), async (req, res) => {
+  try {
+    const jobId = req.params.jobid;
+    const filename = req.params.filename;
+    const logPath = path.join(config.OUTPUT_PATH, jobId, 'output', 'logs', filename);
+    
+    try {
+      // Check if log file exists
+      await fsPromises.access(logPath, fs.constants.F_OK);
+    } catch (error) {
+      return res.status(404).json({ error: 'Log file not found' });
+    }
+    
+    // Set content type based on file extension
+    res.setHeader('Content-Type', 'text/plain');
+    
+    // Stream the file to the response
+    const fileStream = fs.createReadStream(logPath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('Error retrieving log file:', error);
     res.status(500).json({ error: error.message });
   }
 });
