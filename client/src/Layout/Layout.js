@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
-import { Layout as AntLayout, Button, theme, Spin, Dropdown } from 'antd';
+import { Layout as AntLayout, Button, theme, Spin, Dropdown, Tooltip, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
   LineChartOutlined,
-  ExperimentOutlined
+  ExperimentOutlined,
+  QuestionCircleOutlined
 } from '@ant-design/icons';
 import { Box, Typography } from '@mui/material';
 
@@ -23,6 +24,7 @@ const { Header, Content } = AntLayout;
 const Layout = ({ step, setStep }) => {
   const [activePanel, setActivePanel] = useState('settings');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [isTourActive, setIsTourActive] = useState(false);
   const location = useLocation();
   const { id: runId } = useParams();
   const { status } = useSelector(state => state.results);
@@ -73,6 +75,31 @@ const Layout = ({ step, setStep }) => {
       isWorkflowPage
     });
   }, [activePanel, status, runId, isWorkflowPage]);
+
+  // Effect to handle tour state changes
+  useEffect(() => {
+    if (isTourActive) {
+      console.log('Starting application tour...');
+      // TODO: initialize and start the app tour
+ 
+      
+      // Show a message to the user
+      const hideMessage = message.loading('Starting guided tour...', 0);
+      
+      // For now, we'll just log and reset the state after a delay
+      const timer = setTimeout(() => {
+        hideMessage();
+        message.success('Tour completed! You can click the question mark icon anytime to restart the tour.');
+        console.log('Tour completed');
+        setIsTourActive(false);
+      }, 2000);
+      
+      return () => {
+        clearTimeout(timer);
+        hideMessage();
+      };
+    }
+  }, [isTourActive]);
 
   const handleMenuClick = (key) => {
     console.log('Menu click:', {
@@ -213,7 +240,26 @@ const Layout = ({ step, setStep }) => {
           height: 48,
           lineHeight: '48px'
         }}>
-          <UserMenu />
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Tooltip title="Start a guided tour to learn about the application features and how to use them">
+              <Button 
+                type="text" 
+                icon={<QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '20px' }} />} 
+                style={{ 
+                  marginRight: 8,
+                  background: 'rgba(24, 144, 255, 0.1)',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onClick={() => setIsTourActive(true)}
+              />
+            </Tooltip>
+            <UserMenu />
+          </Box>
         </Header>
         <Content style={{ margin: '0 16px' }}>
           <Outlet />
@@ -297,7 +343,26 @@ const Layout = ({ step, setStep }) => {
             )}
           </Box>
         </Box>
-        <UserMenu />
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Tooltip title="Start a guided tour to learn about the application features and how to use them">
+            <Button 
+              type="text" 
+              icon={<QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '20px' }} />} 
+              style={{ 
+                marginRight: 8,
+                background: 'rgba(24, 144, 255, 0.1)',
+                borderRadius: '50%',
+                width: 32,
+                height: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onClick={() => setIsTourActive(true)}
+            />
+          </Tooltip>
+          <UserMenu />
+        </Box>
       </Header>
 
       <Content style={{ 
