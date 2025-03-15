@@ -11,6 +11,7 @@ import {
   QuestionCircleOutlined
 } from '@ant-design/icons';
 import { Box, Typography } from '@mui/material';
+import { useAuth } from '../Auth/AuthContext';
 
 import SettingsPanel from './SettingsPanel';
 import VisualizationPanel from './VisualizationPanel';
@@ -29,6 +30,7 @@ const Layout = ({ step, setStep }) => {
   const { id: runId } = useParams();
   const { status } = useSelector(state => state.results);
   const isAnalysisRunning = status === 'running';
+  const { user } = useAuth();
   const {
     token: { colorBgContainer },
   } = theme.useToken();
@@ -78,7 +80,7 @@ const Layout = ({ step, setStep }) => {
 
   // Effect to handle tour state changes
   useEffect(() => {
-    if (isTourActive) {
+    if (isTourActive && user) {
       console.log('Starting application tour...');
       // TODO: initialize and start the app tour
  
@@ -98,8 +100,11 @@ const Layout = ({ step, setStep }) => {
         clearTimeout(timer);
         hideMessage();
       };
+    } else if (isTourActive && !user) {
+      // If somehow the tour is activated without a user, reset it
+      setIsTourActive(false);
     }
-  }, [isTourActive]);
+  }, [isTourActive, user]);
 
   const handleMenuClick = (key) => {
     console.log('Menu click:', {
@@ -241,21 +246,23 @@ const Layout = ({ step, setStep }) => {
           lineHeight: '48px'
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Tooltip title="Start a guided tour to learn about the application features and how to use them">
+            <Tooltip title={user ? "Start a guided tour to learn about the application features and how to use them" : "Please log in to access the guided tour"}>
               <Button 
                 type="text" 
-                icon={<QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '20px' }} />} 
+                icon={<QuestionCircleOutlined style={{ color: user ? '#1890ff' : '#bfbfbf', fontSize: '20px' }} />} 
                 style={{ 
                   marginRight: 8,
-                  background: 'rgba(24, 144, 255, 0.1)',
+                  background: user ? 'rgba(24, 144, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)',
                   borderRadius: '50%',
                   width: 32,
                   height: 32,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  cursor: user ? 'pointer' : 'not-allowed'
                 }}
-                onClick={() => setIsTourActive(true)}
+                onClick={() => user && setIsTourActive(true)}
+                disabled={!user}
               />
             </Tooltip>
             <UserMenu />
@@ -344,21 +351,23 @@ const Layout = ({ step, setStep }) => {
           </Box>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Tooltip title="Start a guided tour to learn about the application features and how to use them">
+          <Tooltip title={user ? "Start a guided tour to learn about the application features and how to use them" : "Please log in to access the guided tour"}>
             <Button 
               type="text" 
-              icon={<QuestionCircleOutlined style={{ color: '#1890ff', fontSize: '20px' }} />} 
+              icon={<QuestionCircleOutlined style={{ color: user ? '#1890ff' : '#bfbfbf', fontSize: '20px' }} />} 
               style={{ 
                 marginRight: 8,
-                background: 'rgba(24, 144, 255, 0.1)',
+                background: user ? 'rgba(24, 144, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)',
                 borderRadius: '50%',
                 width: 32,
                 height: 32,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                cursor: user ? 'pointer' : 'not-allowed'
               }}
-              onClick={() => setIsTourActive(true)}
+              onClick={() => user && setIsTourActive(true)}
+              disabled={!user}
             />
           </Tooltip>
           <UserMenu />
