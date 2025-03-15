@@ -401,8 +401,8 @@ const MapComponent = () => {
       }
     }
 
-    // Add Hurlbert's ES only if no ES_X is already selected
-    if (!selectedIndices.some(idx => idx.startsWith('ES_'))) {
+    // Add Hurlbert's ES only if no ES_X is already selected and we're not in swipe mode
+    if (!selectedIndices.some(idx => idx.startsWith('ES_')) && selectedIndices.length < 2) {
       // Get the Hurlbert's ES metadata to find the exact resultName values
       const hurlbertMetadata = diversityIndices.groups
         .flatMap(group => group.indices)
