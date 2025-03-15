@@ -129,6 +129,18 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
       return;
     }
     
+    // Special case for deselecting Hurlbert's ES
+    // If we had an ES_X selected but it's no longer in the value array, that means we're deselecting it
+    const hadHurlbertES = selectedIndices.some(idx => idx.startsWith('ES_'));
+    const stillHasHurlbertES = value.some(idx => idx.startsWith('ES_'));
+    
+    if (hadHurlbertES && !stillHasHurlbertES) {
+      console.log('Deselecting Hurlbert\'s ES');
+      hasUserInteracted.current = true;
+      dispatch(setSelectedIndices(value.filter(idx => !idx.startsWith('ES_'))));
+      return;
+    }
+    
     // Allow empty selection and limit to max 2 indices
     if (value.length <= 2) {
       hasUserInteracted.current = true;  // Mark that user has made a selection
@@ -363,10 +375,13 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
           else if (index.id === 'hurlbert') {
             // Use the first available ES_X value
             const availableESValues = getAvailableESValues();
-            indexValue = availableESValues.length > 0 ? `ES_${availableESValues[0]}` : null;
             
             // If no ES values are available, skip this item
-            if (!indexValue) return null;
+            if (availableESValues.length === 0) return null;
+            
+            // Use the currently selected ES value if one is selected, otherwise use the first available
+            const selectedESIndex = selectedIndices.find(idx => idx.startsWith('ES_'));
+            indexValue = selectedESIndex || `ES_${availableESValues[0]}`;
           } 
           // Normal case
           else {
@@ -717,7 +732,7 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
                 <Tooltip 
                   title={
                     selectedIndices.some(idx => idx.startsWith('ES_'))
-                      ? "Hurlbert's ES cannot be used in swipe comparison due to its sample size dependency. You can only select one index at a time."
+                      ? "Hurlbert's ES cannot be used in swipe comparison due to its sample size dependency. Click on the checkbox to deselect it."
                       : "Select up to two indices to visualize. If two are selected, a swipe comparison will be enabled. Note: Hurlbert's ES cannot be used in swipe comparison."
                   }
                   placement="right"
