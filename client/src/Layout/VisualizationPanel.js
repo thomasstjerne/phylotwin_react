@@ -108,6 +108,27 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
   // Handle index selection
   const handleIndicesChange = (event) => {
     const value = event.target.value;
+    
+    // Check if we're trying to add a second index when Hurlbert's ES is already selected
+    const hasHurlbertES = selectedIndices.some(idx => idx.startsWith('ES_'));
+    const isAddingSecondIndex = value.length > selectedIndices.length && value.length > 1;
+    
+    // If Hurlbert's ES is already selected and we're trying to add another index, prevent it
+    if (hasHurlbertES && isAddingSecondIndex) {
+      console.log('Preventing selection of second index when Hurlbert\'s ES is selected');
+      return;
+    }
+    
+    // Check if we're trying to add Hurlbert's ES as a second index
+    const isAddingHurlbertES = value.some(idx => idx.startsWith('ES_')) && 
+                              !selectedIndices.some(idx => idx.startsWith('ES_'));
+    
+    // If we already have an index and we're trying to add Hurlbert's ES, prevent it
+    if (selectedIndices.length === 1 && isAddingHurlbertES) {
+      console.log('Preventing adding Hurlbert\'s ES as a second index');
+      return;
+    }
+    
     // Allow empty selection and limit to max 2 indices
     if (value.length <= 2) {
       hasUserInteracted.current = true;  // Mark that user has made a selection
@@ -356,7 +377,14 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
             <MenuItem 
               key={index.id} 
               value={indexValue}
-              disabled={selectedIndices.length >= 2 && !selectedIndices.includes(indexValue)}
+              disabled={
+                // Disable if we already have 2 indices and this one isn't selected
+                (selectedIndices.length >= 2 && !selectedIndices.includes(indexValue)) ||
+                // Disable other indices if Hurlbert's ES is selected
+                (selectedIndices.some(idx => idx.startsWith('ES_')) && !indexValue.startsWith('ES_')) ||
+                // Disable Hurlbert's ES if another index is already selected
+                (index.id === 'hurlbert' && selectedIndices.length === 1 && !selectedIndices.some(idx => idx.startsWith('ES_')))
+              }
             >
               <FormControlLabel
                 control={
@@ -687,7 +715,11 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <FormLabel>Diversity indices</FormLabel>
                 <Tooltip 
-                  title="Select up to two indices to visualize. If two are selected, a swipe comparison will be enabled."
+                  title={
+                    selectedIndices.some(idx => idx.startsWith('ES_'))
+                      ? "Hurlbert's ES cannot be used in swipe comparison due to its sample size dependency. You can only select one index at a time."
+                      : "Select up to two indices to visualize. If two are selected, a swipe comparison will be enabled. Note: Hurlbert's ES cannot be used in swipe comparison."
+                  }
                   placement="right"
                 >
                   <IconButton size="small" sx={{ ml: 1 }}>
