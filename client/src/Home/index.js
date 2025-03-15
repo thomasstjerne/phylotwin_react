@@ -3,8 +3,18 @@ import axios from "axios"
 import { useNavigate } from "react-router-dom";
 import PageContent from "../Layout/PageContent";
 import { marked } from "marked"
-import { Image, Row, Col, Typography, Space, Card } from "antd";
+import { Image, Row, Col, Typography, Space, Card, Button } from "antd";
 import styled from '@emotion/styled';
+import { useAuth } from '../Auth/AuthContext';
+import { useDispatch } from 'react-redux';
+import { 
+  resetResults,
+  resetVisualization,
+  resetMapState,
+  updateMapCenter,
+  updateMapZoom,
+  setPipelineStatus
+} from '../store/actions';
 
 const { Title, Text, Link } = Typography;
 
@@ -30,6 +40,9 @@ const StyledCard = styled(Card)`
 function App() {
   const [markdown, setMarkdown] = useState(null);
   const [error, setError] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useAuth();
 
   useEffect(() => {
     const getAbout = async () => {
@@ -44,6 +57,24 @@ function App() {
     }
     getAbout();
   }, []);
+  
+  const handleStartNewAnalysis = () => {
+    // First reset all Redux states
+    dispatch(setPipelineStatus('idle'));
+    dispatch(resetResults());
+    dispatch(resetVisualization());
+    dispatch(resetMapState());
+    dispatch(updateMapCenter([20, 0]));
+    dispatch(updateMapZoom(2));
+    
+    // Then navigate to /run with replace to clear URL params
+    navigate('/run', { replace: true });
+    
+    // Finally, force a reload to ensure a completely fresh state
+    setTimeout(() => {
+      window.location.reload();
+    }, 0);
+  };
   
   return (
     <PageContent>
@@ -64,6 +95,13 @@ function App() {
           <Title level={1} style={{ margin: 0 }}>PhyloNext v2</Title>
           <Text>A powerful tool for phylogenetic analysis and visualization</Text>
         </Col>
+        {user && (
+          <Col>
+            <Button type="primary" size="large" onClick={handleStartNewAnalysis}>
+              Start New Analysis
+            </Button>
+          </Col>
+        )}
       </Row>
 
       <StyledCard>
