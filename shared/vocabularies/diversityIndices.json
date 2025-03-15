@@ -7,18 +7,20 @@
       "indices": [
         {
           "id": "richness",
-          "displayName": "Species richness",
-          "description": "Number of unique species in the area",
-          "commandName": "Richness",
-          "module": "main",
+          "displayName":     "Species richness",
+          "description":     "Number of unique species in the area",
+          "commandName":     "Richness",
+          "resultName":      "Richness",
+          "module":          "main",
           "colorSchemeType": "sequential"
         },
         {
           "id": "shannon",
-          "displayName": "Shannon index",
-          "description": "Measure of species diversity considering both abundance and evenness",
-          "commandName": "Shannon",
-          "module": "main",
+          "displayName":     "Shannon index",
+          "description":     "Measure of species diversity considering both abundance and evenness",
+          "commandName":     "Shannon",
+          "resultName":      "Shannon",
+          "module":          "main",
           "colorSchemeType": "sequential"
         }
       ]
@@ -31,58 +33,65 @@
       "indices": [
         {
           "id": "pd",
-          "displayName": "Phylogenetic diversity (PD)",
-          "description": "Sum of branch lengths in the phylogenetic tree",
-          "commandName": "PD",
-          "module": "main",
+          "displayName":     "Phylogenetic diversity (PD)",
+          "description":     "Sum of branch lengths in the phylogenetic tree",
+          "commandName":     "PD",
+          "resultName":      "PD",
+          "module":          "main",
           "colorSchemeType": "sequential"
         },
         {
           "id": "rpd",
-          "displayName": "Relative phylogenetic diversity (RPD)",
-          "description": "Relative phylogenetic diversity",
-          "commandName": "RPD",
-          "module": "main",
+          "displayName":     "Relative phylogenetic diversity (RPD)",
+          "description":     "Relative phylogenetic diversity",
+          "commandName":     "RPD",
+          "resultName":      "RPD",
+          "module":          "main",
           "colorSchemeType": "bounded"
         },
         {
           "id": "mpd",
-          "displayName": "Mean phylogenetic distance (MPD)",
-          "description": "Mean phylogenetic distance",
-          "commandName": "MPD",
-          "module": "main",
+          "displayName":     "Mean phylogenetic distance (MPD)",
+          "description":     "Mean phylogenetic distance",
+          "commandName":     "MPD",
+          "resultName":      "MPD",
+          "module":          "main",
           "colorSchemeType": "sequential"
         },
         {
           "id": "mntd",
-          "displayName": "Mean nearest taxon distance (MNTD)",
-          "description": "Mean nearest taxon distance",
-          "commandName": "MNTD",
-          "module": "main",
+          "displayName":     "Mean nearest taxon distance (MNTD)",
+          "description":     "Mean nearest taxon distance",
+          "commandName":     "MNTD",
+          "resultName":      "MNTD",
+          "module":          "main",
           "colorSchemeType": "sequential"
         },
         {
           "id": "ses.pd",
-          "displayName": "SES PD",
-          "description": "Standardized effect size for phylogenetic diversity",
-          "commandName": "SES.PD",
-          "module": "main",
+          "displayName":     "SES PD",
+          "description":     "Standardized effect size for phylogenetic diversity",
+          "commandName":     "SES.PD",
+          "resultName":      "SES.PD",
+          "module":          "main",
           "colorSchemeType": "diverging"
         },
         {
           "id": "ses.mpd",
-          "displayName": "SES MPD",
-          "description": "Standardized effect size for mean phylogenetic distance",
-          "commandName": "SES.MPD",
-          "module": "main",
+          "displayName":     "SES MPD",
+          "description":     "Standardized effect size for mean phylogenetic distance",
+          "commandName":     "SES.MPD",
+          "resultName":      "SES.MPD",
+          "module":          "main",
           "colorSchemeType": "diverging"
         },
         {
           "id": "ses.mntd",
-          "displayName": "SES MNTD",
-          "description": "Standardized effect size for mean nearest taxon distance",
-          "commandName": "SES.MNTD",
-          "module": "main",
+          "displayName":     "SES MNTD",
+          "description":     "Standardized effect size for mean nearest taxon distance",
+          "commandName":     "SES.MNTD",
+          "resultName":      "SES.MNTD",
+          "module":          "main",
           "colorSchemeType": "diverging"
         }
       ]
@@ -95,26 +104,29 @@
       "indices": [
         {
           "id": "endemism",
-          "displayName": "Weighted endemism",
-          "description": "Measure of species uniqueness weighted by their range size",
-          "commandName": "WeightedEndemism",
-          "module": "main",
+          "displayName":     "Weighted endemism",
+          "description":     "Measure of species uniqueness weighted by their range size",
+          "commandName":     "WeightedEndemism",
+          "resultName":      "WeightedEndemism",
+          "module":          "main",
           "colorSchemeType": "sequential"
         },
         {
           "id": "pde",
-          "displayName": "Phylogenetic endemism (PD-endemism)",
-          "description": "The total amount of branch length found only in the sample/s (Faith et al., 2004)",
-          "commandName": "PhyloEndemismStrict",
-          "module": "main",
+          "displayName":     "Phylogenetic endemism (PD-endemism)",
+          "description":     "The total amount of branch length found only in the sample/s (Faith et al., 2004)",
+          "commandName":     "PhyloEndemismStrict",
+          "resultName":      "PhyloEndemismStrict",
+          "module":          "main",
           "colorSchemeType": "sequential"
         },
         {
           "id": "pe",
-          "displayName": "Phylogenetic endemism (PE)",
-          "description": "Spatial uniqueness is calculated by summing branch lengths weighted by the reciprocal of their range for each branch at a sample/site (Rosauer et al., 2009)",
-          "commandName": "PhyloEndemismWeighted",
-          "module": "main",
+          "displayName":     "Phylogenetic endemism (PE)",
+          "description":     "Spatial uniqueness is calculated by summing branch lengths weighted by the reciprocal of their range for each branch at a sample/site (Rosauer et al., 2009)",
+          "commandName":     "PhyloEndemismWeighted",
+          "resultName":      "PhyloEndemismWeighted",
+          "module":          "main",
           "colorSchemeType": "sequential"
         }
       ]
@@ -127,58 +139,47 @@
       "indices": [
         {
           "id": "canape",
-          "displayName": "CANAPE",
-          "description": "Categorical analysis of neo- and paleo-endemism",
-          "commandName": ["calc_pe", "calc_phylo_rpd2", "calc_phylo_rpe2"],
-          "module": "biodiverse",
+          "displayName":     "CANAPE",
+          "description":     "Categorical analysis of neo- and paleo-endemism",
+          "commandName":     ["calc_pe", "calc_phylo_rpd2", "calc_phylo_rpe2"],
+          "resultName":      "CANAPE",
+          "module":          "biodiverse",
           "colorSchemeType": "CANAPE"
         },
         {
           "id": "hurlbert",
-          "displayName": "Hurlbert's ES",
-          "description": "The number of unique species in a random sample of N occurrence records",
-          "commandName": "calc_hurlbert_es",
-          "module": "biodiverse",
+          "displayName":     "Hurlbert's ES",
+          "description":     "The number of unique species in a random sample of N occurrence records",
+          "commandName":     "calc_hurlbert_es",
+          "resultName":      ["ES_5", "ES_10", "ES_20", "ES_50", "ES_100", "ES_200", "ES_500", "ES_1000", "ES_2000", "ES_5000"],
+          "module":          "biodiverse",
           "colorSchemeType": "sequential"
         },
         {
-          "id": "rpd1",
-          "displayName": "Relative PD Type 1",
-          "description": "Relative phylogenetic diversity using type 1 randomization",
-          "commandName": "calc_phylo_rpd1",
-          "module": "biodiverse",
-          "colorSchemeType": "bounded"
-        },
-        {
           "id": "rpd2",
-          "displayName": "Relative PD Type 2",
-          "description": "Relative phylogenetic diversity using type 2 randomization",
-          "commandName": "calc_phylo_rpd2",
-          "module": "biodiverse",
-          "colorSchemeType": "bounded"
-        },
-        {
-          "id": "rpe1",
-          "displayName": "Relative PE Type 1",
-          "description": "Relative phylogenetic endemism using type 1 randomization",
-          "commandName": "calc_phylo_rpe1",
-          "module": "biodiverse",
+          "displayName":     "Relative phylogenetic diversity (RPD)",
+          "description":     "The ratio of the tree's PD to a null model of PD evenly distributed across all nodes (all branches are of equal length); randomization type 2",
+          "commandName":     "calc_phylo_rpd2",
+          "resultName":      "PHYLO_RPD2",
+          "module":          "biodiverse",
           "colorSchemeType": "bounded"
         },
         {
           "id": "rpe2",
-          "displayName": "Relative PE Type 2",
-          "description": "Relative phylogenetic endemism using type 2 randomization",
-          "commandName": "calc_phylo_rpe2",
-          "module": "biodiverse",
+          "displayName":     "Relative phylogenetic endemism (RPE)",
+          "description":     "The ratio of the tree's PE to a null model where PE is calculated using a tree where all non-zero branches are of equal length; type 2 randomization",
+          "commandName":     "calc_phylo_rpe2",
+          "resultName":      "PHYLO_RPE2",
+          "module":          "biodiverse",
           "colorSchemeType": "bounded"
         },
         {
           "id": "PHYLO_RARITY_CWR",
-          "displayName": "Corrected weighted phylogenetic rarity",
-          "description": "Analogue of corrected weighted endemism",
-          "commandName": "calc_phylo_corrected_weighted_rarity",
-          "module": "biodiverse",
+          "displayName":     "Corrected weighted phylogenetic rarity",
+          "description":     "Analogue of corrected weighted endemism",
+          "commandName":     "calc_phylo_corrected_weighted_rarity",
+          "resultName":      "PHYLO_RARITY_CWR",
+          "module":          "biodiverse",
           "colorSchemeType": "sequential"
         }
       ]
