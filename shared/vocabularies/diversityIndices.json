@@ -192,18 +192,20 @@
       "indices": [
         {
           "id": "Redundancy",
-          "displayName": "Redundancy",
-          "description": "Identifies potential bias in undersampled grid cells. Defined as 1 - (richness / number of records)",
-          "commandName": "Redundancy",
-          "module": "main",
+          "displayName":     "Redundancy",
+          "description":     "Identifies potential bias in undersampled grid cells. Defined as 1 - (richness / number of records)",
+          "commandName":     "Redundancy",
+          "resultName":      "Redundancy",
+          "module":          "main",
           "colorSchemeType": "bounded"
         },
         {
           "id": "NumRecords",
-          "displayName": "Number or records",
-          "description": "Number of records in species occurrences per grid cell",
-          "commandName": "NumRecords",
-          "module": "main",
+          "displayName":     "Number or records",
+          "description":     "Number of records in species occurrences per grid cell",
+          "commandName":     "NumRecords",
+          "resultName":      "NumRecords",
+          "module":          "main",
           "colorSchemeType": "sequential"
         }
       ]
