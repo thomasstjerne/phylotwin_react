@@ -1,3 +1,21 @@
+
+
+- [Application Flow](#application-flow)
+  - [1. Frontend Configuration (Client)](#1-frontend-configuration-client)
+  - [2. Job Submission](#2-job-submission)
+  - [3. Server Processing](#3-server-processing)
+  - [4. Job Monitoring](#4-job-monitoring)
+  - [5. Results Processing](#5-results-processing)
+  - [6. Development vs Production](#6-development-vs-production)
+- [Required Setup](#required-setup)
+  - [Core Pipeline Requirements](#core-pipeline-requirements)
+  - [External Dependencies](#external-dependencies)
+- [Debugging Tips](#debugging-tips)
+- [Frontend Routes](#frontend-routes)
+- [API Endpoints](#api-endpoints)
+- [Developer Guide](#developer-guide)
+  - [Diversity Metrics](#diversity-metrics)
+
 # Application Flow
 
 ## 1. Frontend Configuration (Client)
