@@ -272,7 +272,7 @@ Each metric has several key properties:
   "resultName":      "Name of the variable in the GeoJSON/tabular results",
   "module":          "Module name responsible for estimating the metric ('main' or 'biodiverse')",
   "colorSchemeType": "Type of color scheme to use for the metric",
-  "resultProcessor": "optional special handler for the metric"
+  "resultProcessor": "optional special handler for the metric"   <----- NOT YET IMPLEMENTED
 }
 ```
 
