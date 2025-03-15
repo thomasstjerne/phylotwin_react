@@ -373,7 +373,21 @@ const MapComponent = () => {
               }
               return index.resultName === indexId || index.commandName === indexId;
             });
-          const displayName = metadata ? metadata.displayName : indexId;
+          let displayName = metadata ? metadata.displayName : indexId;
+          
+          // Special case for Hurlbert's ES
+          if (indexId.startsWith('ES_')) {
+            const match = indexId.match(/ES_(\d+)/);
+            const sampleSize = match ? match[1] : '';
+            const hurlbertMetadata = diversityIndices.groups
+              .flatMap(group => group.indices)
+              .find(index => index.id === 'hurlbert');
+            
+            if (hurlbertMetadata) {
+              displayName = `${hurlbertMetadata.displayName} (n=${sampleSize})`;
+            }
+          }
+          
           content += `<div class="tooltip-row"><strong>${displayName}:</strong> ${formatValue(value, indexId)}</div>`;
         }
       });
@@ -384,6 +398,53 @@ const MapComponent = () => {
       const richness = properties['Richness'];
       if (typeof richness === 'number') {
         content += `<div class="tooltip-row"><strong>Species richness:</strong> ${formatValue(richness)}</div>`;
+      }
+    }
+
+    // Add Hurlbert's ES only if no ES_X is already selected
+    if (!selectedIndices.some(idx => idx.startsWith('ES_'))) {
+      // Get the Hurlbert's ES metadata to find the exact resultName values
+      const hurlbertMetadata = diversityIndices.groups
+        .flatMap(group => group.indices)
+        .find(index => index.id === 'hurlbert');
+      
+      // Get the exact ES_X values from resultName
+      const validESKeys = hurlbertMetadata?.resultName || [];
+      
+      // Find all valid ES_X properties
+      const esKeys = Object.keys(properties).filter(key => 
+        validESKeys.includes(key) && key.startsWith('ES_')
+      );
+      
+      if (esKeys.length > 0) {
+        // Sort by sample size and get the one with the lowest sample size
+        const sortedESKeys = esKeys.sort((a, b) => {
+          const aMatch = a.match(/ES_(\d+)$/);
+          const bMatch = b.match(/ES_(\d+)$/);
+          const aValue = aMatch ? parseInt(aMatch[1], 10) : Infinity;
+          const bValue = bMatch ? parseInt(bMatch[1], 10) : Infinity;
+          return aValue - bValue;
+        });
+        
+        const esKey = sortedESKeys[0];
+        const esValue = properties[esKey];
+        
+        if (typeof esValue === 'number') {
+          // Get the sample size from the key
+          const match = esKey.match(/ES_(\d+)/);
+          const sampleSize = match ? match[1] : '';
+          
+          // Get the Hurlbert's ES metadata
+          const hurlbertMetadata = diversityIndices.groups
+            .flatMap(group => group.indices)
+            .find(index => index.id === 'hurlbert');
+          
+          const displayName = hurlbertMetadata 
+            ? `${hurlbertMetadata.displayName} (n=${sampleSize})` 
+            : esKey;
+          
+          content += `<div class="tooltip-row"><strong>${displayName}:</strong> ${formatValue(esValue)}</div>`;
+        }
       }
     }
 
@@ -1085,7 +1146,20 @@ const MapComponent = () => {
                 return index.resultName === indexId || index.commandName === indexId;
               });
             
-            const displayTitle = metadata?.displayName || indexId;
+            let displayTitle = metadata?.displayName || indexId;
+            
+            // Special case for Hurlbert's ES
+            if (indexId.startsWith('ES_')) {
+              const match = indexId.match(/ES_(\d+)/);
+              const sampleSize = match ? match[1] : '';
+              const hurlbertMetadata = diversityIndices.groups
+                .flatMap(group => group.indices)
+                .find(index => index.id === 'hurlbert');
+              
+              if (hurlbertMetadata) {
+                displayTitle = `${hurlbertMetadata.displayName} (n=${sampleSize})`;
+              }
+            }
 
             return (
               <ColorLegend

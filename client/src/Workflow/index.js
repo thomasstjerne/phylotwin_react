@@ -17,6 +17,7 @@ import {
     updateMapCenter,
     updateMapZoom
 } from "../store/actions";
+import { setSelectedIndices } from "../store/visualizationSlice";
 import axiosWithAuth from "../utils/axiosWithAuth";
 import config from "../config";
 import diversityIndices from '../shared/vocabularies/diversityIndices.json';
@@ -139,6 +140,38 @@ const Workflow = ({ step, setStep, runID, setRunID }) => {
                     dispatch(setGeoJSON(response.data)),
                     dispatch(setPipelineStatus('completed'))
                 ]);
+                
+                // Set default index (Richness or Hurlbert's ES with lowest sample size)
+                if (indices.includes('Richness')) {
+                    dispatch(setSelectedIndices(['Richness']));
+                } else {
+                    // Get the Hurlbert's ES metadata to find the exact resultName values
+                    const hurlbertMetadata = diversityIndices.groups
+                        .flatMap(group => group.indices)
+                        .find(index => index.id === 'hurlbert');
+                    
+                    // Get the exact ES_X values from resultName
+                    const validESKeys = hurlbertMetadata?.resultName || [];
+                    
+                    // Filter indices to only include the exact ES_X values from resultName
+                    const esIndices = indices.filter(index => 
+                        validESKeys.includes(index) && index.startsWith('ES_')
+                    );
+                    
+                    if (esIndices.length > 0) {
+                        // Sort ES indices by sample size (numeric part after ES_)
+                        const sortedESIndices = esIndices.sort((a, b) => {
+                            const aMatch = a.match(/ES_(\d+)$/);
+                            const bMatch = b.match(/ES_(\d+)$/);
+                            const aValue = aMatch ? parseInt(aMatch[1], 10) : Infinity;
+                            const bValue = bMatch ? parseInt(bMatch[1], 10) : Infinity;
+                            return aValue - bValue;
+                        });
+                        
+                        console.log('Setting default index to Hurlbert\'s ES with lowest sample size:', sortedESIndices[0]);
+                        dispatch(setSelectedIndices([sortedESIndices[0]]));
+                    }
+                }
                 
                 handlePanelOpen('visualization');
             } catch (error) {

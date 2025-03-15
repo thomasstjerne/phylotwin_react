@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Box,
@@ -115,6 +115,72 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
     }
   };
 
+  // Get available ES values from GeoJSON data
+  const getAvailableESValues = useCallback(() => {
+    if (!geoJSON?.features?.length) return [];
+    
+    const properties = geoJSON.features[0].properties || {};
+    
+    // Get the Hurlbert's ES metadata to find the exact resultName values
+    const hurlbertMetadata = diversityIndices.groups
+      .flatMap(group => group.indices)
+      .find(index => index.id === 'hurlbert');
+    
+    // Get the exact ES_X values from resultName
+    const validESKeys = hurlbertMetadata?.resultName || [];
+    
+    // Filter properties to only include the exact ES_X values from resultName
+    const esKeys = Object.keys(properties).filter(key => 
+      validESKeys.includes(key) && key.startsWith('ES_')
+    );
+    
+    // Extract numeric values from ES_X keys and sort them numerically
+    return esKeys
+      .map(key => {
+        const match = key.match(/ES_(\d+)$/); // Match only ES_X without any suffix
+        return match ? parseInt(match[1], 10) : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a - b);
+  }, [geoJSON]);
+
+  // State for selected ES value
+  const [selectedESValue, setSelectedESValue] = useState(null);
+
+  // Update selected ES value when available values change or when indices change
+  useEffect(() => {
+    const availableValues = getAvailableESValues();
+    
+    // If Hurlbert's ES is selected
+    if (selectedIndices.length === 1 && selectedIndices[0].startsWith('ES_')) {
+      // Extract current value from selected index
+      const match = selectedIndices[0].match(/ES_(\d+)/);
+      const currentValue = match ? parseInt(match[1], 10) : null;
+      
+      // If current value is valid and available, keep it
+      if (currentValue && availableValues.includes(currentValue)) {
+        setSelectedESValue(currentValue);
+      } 
+      // Otherwise select the lowest available value
+      else if (availableValues.length > 0) {
+        setSelectedESValue(availableValues[0]);
+        dispatch(setSelectedIndices([`ES_${availableValues[0]}`]));
+      }
+    } else {
+      // Reset when Hurlbert's ES is not selected
+      setSelectedESValue(null);
+    }
+  }, [selectedIndices, getAvailableESValues, dispatch]);
+
+  // Handle ES value change
+  const handleESValueChange = (event) => {
+    const value = parseInt(event.target.value, 10);
+    setSelectedESValue(value);
+    
+    // Update selected indices with the new ES value
+    dispatch(setSelectedIndices([`ES_${value}`]));
+  };
+
   // Get index metadata from diversityIndices vocabulary
   const getIndexMetadata = (indexId) => {
     return diversityIndices.groups
@@ -224,6 +290,17 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
 
   // Render index selection menu items
   const renderIndexMenuItems = () => {
+    // Get the hurlbert index metadata from the vocabulary
+    const hurlbertMetadata = diversityIndices.groups
+      .flatMap(group => group.indices)
+      .find(index => index.id === 'hurlbert');
+    
+    // Get the exact ES_X values from resultName
+    const validESKeys = hurlbertMetadata?.resultName || [];
+    
+    // Check if any of the exact ES_X values are present in the computed indices
+    const hasHurlbertES = validESKeys.some(key => computedIndices.includes(key));
+    
     return diversityIndices.groups.map((group) => [
       <ListSubheader key={group.id}>
         <Typography variant="subtitle2">{group.name}</Typography>
@@ -233,6 +310,16 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
           // Special case for CANAPE
           if (index.id === 'canape') {
             return computedIndices.includes('CANAPE');
+          }
+          
+          // Special case for Hurlbert's ES
+          if (index.id === 'hurlbert') {
+            return hasHurlbertES;
+          }
+          
+          // Skip individual ES_X indices as we'll handle them specially
+          if (Array.isArray(index.resultName) && index.resultName.some(name => name.startsWith('ES_'))) {
+            return false;
           }
           
           // Check if the index's resultName (or any of its resultNames if it's an array) is in computedIndices
@@ -245,8 +332,25 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
         })
         .map((index) => {
           // Determine the value to use for the MenuItem
-          // For CANAPE, use 'CANAPE', otherwise use the resultName
-          const indexValue = index.id === 'canape' ? 'CANAPE' : index.resultName;
+          let indexValue;
+          
+          // Special case for CANAPE
+          if (index.id === 'canape') {
+            indexValue = 'CANAPE';
+          } 
+          // Special case for Hurlbert's ES
+          else if (index.id === 'hurlbert') {
+            // Use the first available ES_X value
+            const availableESValues = getAvailableESValues();
+            indexValue = availableESValues.length > 0 ? `ES_${availableESValues[0]}` : null;
+            
+            // If no ES values are available, skip this item
+            if (!indexValue) return null;
+          } 
+          // Normal case
+          else {
+            indexValue = index.resultName;
+          }
           
           return (
             <MenuItem 
@@ -257,7 +361,12 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
               <FormControlLabel
                 control={
                   <Checkbox 
-                    checked={selectedIndices.includes(indexValue)}
+                    checked={
+                      // For Hurlbert's ES, check if any ES_X is selected
+                      index.id === 'hurlbert' 
+                        ? selectedIndices.some(idx => idx.startsWith('ES_'))
+                        : selectedIndices.includes(indexValue)
+                    }
                   />
                 }
                 label={
@@ -272,6 +381,7 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
             </MenuItem>
           );
         })
+        .filter(Boolean) // Remove null items
     ]);
   };
 
@@ -363,7 +473,41 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
         const fontFamily = window.getComputedStyle(map).fontFamily || 'sans-serif';
         context.font = `20px ${fontFamily}`;
         context.fillStyle = 'black';
-        context.fillText(indexId, 0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL);
+        
+        // Get display title for the index
+        let displayTitle = indexId;
+        
+        // Special case for Hurlbert's ES
+        if (indexId.startsWith('ES_')) {
+          const match = indexId.match(/ES_(\d+)/);
+          const sampleSize = match ? match[1] : '';
+          const hurlbertMetadata = diversityIndices.groups
+            .flatMap(group => group.indices)
+            .find(index => index.id === 'hurlbert');
+          
+          if (hurlbertMetadata) {
+            displayTitle = `${hurlbertMetadata.displayName} (n=${sampleSize})`;
+          }
+        } else {
+          // Normal case for other indices
+          const metadata = diversityIndices.groups
+            .flatMap(group => group.indices)
+            .find(index => {
+              if (indexId === 'CANAPE' && index.id === 'canape') {
+                return true;
+              }
+              if (Array.isArray(index.resultName)) {
+                return index.resultName.includes(indexId);
+              }
+              return index.resultName === indexId || index.commandName === indexId;
+            });
+          
+          if (metadata) {
+            displayTitle = metadata.displayName;
+          }
+        }
+        
+        context.fillText(displayTitle, 0, 0, LEGEND_WIDTH - 2 * LEGEND_PADDING_HORIZONTAL);
 
         context.translate(0, LEGEND_LINE_HEIGHT);
 
@@ -558,6 +702,20 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
                 renderValue={(selected) => (
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
                     {selected.map((indexId) => {
+                      // Special case for Hurlbert's ES
+                      if (indexId.startsWith('ES_')) {
+                        const match = indexId.match(/ES_(\d+)/);
+                        const sampleSize = match ? match[1] : '';
+                        const hurlbertMetadata = diversityIndices.groups
+                          .flatMap(group => group.indices)
+                          .find(index => index.id === 'hurlbert');
+                        
+                        return hurlbertMetadata 
+                          ? `${hurlbertMetadata.displayName} (n=${sampleSize})` 
+                          : indexId;
+                      }
+                      
+                      // Normal case for other indices
                       const index = diversityIndices.groups
                         .flatMap(group => group.indices)
                         .find(index => {
@@ -579,6 +737,108 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
             </FormControl>
           </AccordionDetails>
         </Accordion>
+
+        {/* Hurlbert's ES Sample Size Selection */}
+        {selectedIndices.length === 1 && 
+         selectedIndices[0].startsWith('ES_') && 
+         getAvailableESValues().length > 0 && (
+          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                Hurlbert's ES
+              </Typography>
+              <Tooltip 
+                title="Hurlbert's ES estimates the expected number of species in a random sample of n occurrence records"
+                placement="right"
+              >
+                <IconButton size="small" sx={{ ml: 1 }}>
+                  <InfoIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Sample size (n):
+              </Typography>
+            </Box>
+            
+            {/* Custom equally-spaced slider */}
+            <Box sx={{ px: 1, mt: 0, mb: 1, position: 'relative' }}>
+              {/* Track line */}
+              <Box sx={{ 
+                height: 4, 
+                bgcolor: 'grey.300', 
+                borderRadius: 2,
+                position: 'relative',
+                mt: 2,
+                mb: 4
+              }}>
+                {/* Colored track portion */}
+                <Box sx={{ 
+                  height: '100%', 
+                  width: `${(getAvailableESValues().indexOf(selectedESValue) / Math.max(1, getAvailableESValues().length - 1)) * 100}%`, 
+                  bgcolor: 'primary.main',
+                  borderRadius: 2
+                }} />
+              </Box>
+              
+              {/* Dots and labels */}
+              <Box sx={{ 
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 40,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                {getAvailableESValues().map((value) => (
+                  <Box 
+                    key={value} 
+                    sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      mt: -1
+                    }}
+                    onClick={() => handleESValueChange({ target: { value } })}
+                  >
+                    <Box sx={{ 
+                      width: 16, 
+                      height: 16, 
+                      borderRadius: '50%', 
+                      bgcolor: selectedESValue === value ? 'primary.main' : 'grey.300',
+                      border: '2px solid white',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        transform: 'scale(1.2)',
+                        bgcolor: selectedESValue === value ? 'primary.main' : 'grey.400',
+                      },
+                      zIndex: 2
+                    }} />
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                      sx={{ 
+                        mt: 1,
+                        fontSize: '0.75rem'
+                      }}
+                    >
+                      {value}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+            
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mt: 1 }}>
+              Selected: {selectedESValue} occurrence records
+            </Typography>
+          </Box>
+        )}
 
         {/* Binning Toggle */}
         <Box sx={{ px: 2, py: 1.5 }}>
