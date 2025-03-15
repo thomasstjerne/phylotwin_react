@@ -289,6 +289,9 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
         const index = diversityIndices.groups
           .flatMap(group => group.indices)
           .find(index => index.id === id);
+        
+        // Use commandName for backend commands (what to compute)
+        // resultName will be used later to read the results from GeoJSON
         if (index?.module === 'main') {
           mainIndices.push(index.commandName);
         } else if (index?.module === 'biodiverse') {

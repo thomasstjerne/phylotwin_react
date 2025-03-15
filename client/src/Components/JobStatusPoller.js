@@ -1,9 +1,10 @@
-import { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { axiosWithAuth } from '../Auth/userApi';
 import config from '../config';
 import { setPipelineStatus, setIndices, setGeoJSON, setError } from '../store/resultsSlice';
 import { setSelectedIndices } from '../store/visualizationSlice';
+import diversityIndices from '../shared/vocabularies/diversityIndices.json';
 
 const POLL_INTERVAL = 1500; // 1.5 seconds
 
@@ -33,7 +34,27 @@ const JobStatusPoller = ({ handlePanelOpen }) => {
           ![ 'h3_index' ].includes(key)
         );
 
-        console.log('Found indices:', indices);
+        console.log('Found indices in GeoJSON:', indices);
+        
+        // Map GeoJSON property names to indices in the vocabulary
+        const allIndices = diversityIndices.groups.flatMap(group => group.indices);
+        const mappedIndices = indices.map(indexName => {
+          // Try to find a matching index in the vocabulary
+          const matchingIndex = allIndices.find(index => {
+            if (Array.isArray(index.resultName)) {
+              return index.resultName.includes(indexName);
+            }
+            return index.resultName === indexName;
+          });
+          
+          return {
+            name: indexName,
+            mappedTo: matchingIndex ? matchingIndex.id : null,
+            displayName: matchingIndex ? matchingIndex.displayName : indexName
+          };
+        });
+        
+        console.log('Mapped indices to vocabulary:', mappedIndices);
         
         // Update Redux state
         console.log('Updating Redux state with:', {

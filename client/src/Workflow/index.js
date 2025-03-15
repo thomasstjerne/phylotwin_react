@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
 import { Box } from "@mui/material";
 import Form from "../Form";
@@ -19,6 +19,7 @@ import {
 } from "../store/actions";
 import axiosWithAuth from "../utils/axiosWithAuth";
 import config from "../config";
+import diversityIndices from '../shared/vocabularies/diversityIndices.json';
 
 const Workflow = ({ step, setStep, runID, setRunID }) => {
     const params = useParams();
@@ -110,7 +111,27 @@ const Workflow = ({ step, setStep, runID, setRunID }) => {
                     !['h3_index', 'NumRecords', 'Redundancy'].includes(key)
                 );
 
-                console.log('Found indices:', indices);
+                console.log('Found indices in GeoJSON:', indices);
+                
+                // Map GeoJSON property names to indices in the vocabulary
+                const allIndices = diversityIndices.groups.flatMap(group => group.indices);
+                const mappedIndices = indices.map(indexName => {
+                  // Try to find a matching index in the vocabulary
+                  const matchingIndex = allIndices.find(index => {
+                    if (Array.isArray(index.resultName)) {
+                      return index.resultName.includes(indexName);
+                    }
+                    return index.resultName === indexName;
+                  });
+                  
+                  return {
+                    name: indexName,
+                    mappedTo: matchingIndex ? matchingIndex.id : null,
+                    displayName: matchingIndex ? matchingIndex.displayName : indexName
+                  };
+                });
+                
+                console.log('Mapped indices to vocabulary:', mappedIndices);
                 
                 // Update visualization data
                 await Promise.all([

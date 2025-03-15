@@ -119,7 +119,13 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
   const getIndexMetadata = (indexId) => {
     return diversityIndices.groups
       .flatMap(group => group.indices)
-      .find(index => index.commandName === indexId);
+      .find(index => {
+        // Check if indexId matches resultName (string) or is included in resultName (array)
+        if (Array.isArray(index.resultName)) {
+          return index.resultName.includes(indexId);
+        }
+        return index.resultName === indexId || index.commandName === indexId;
+      });
   };
 
   // Handle color palette change
@@ -228,32 +234,44 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
           if (index.id === 'canape') {
             return computedIndices.includes('CANAPE');
           }
+          
+          // Check if the index's resultName (or any of its resultNames if it's an array) is in computedIndices
+          if (Array.isArray(index.resultName)) {
+            return index.resultName.some(name => computedIndices.includes(name));
+          }
+          
           // Normal case for other indices
-          return computedIndices.includes(index.commandName);
+          return computedIndices.includes(index.resultName);
         })
-        .map((index) => (
-          <MenuItem 
-            key={index.id} 
-            value={index.id === 'canape' ? 'CANAPE' : index.commandName}
-            disabled={selectedIndices.length >= 2 && !selectedIndices.includes(index.id === 'canape' ? 'CANAPE' : index.commandName)}
-          >
-            <FormControlLabel
-              control={
-                <Checkbox 
-                  checked={selectedIndices.includes(index.id === 'canape' ? 'CANAPE' : index.commandName)}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2">{index.displayName}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {index.description}
-                  </Typography>
-                </Box>
-              }
-            />
-          </MenuItem>
-        ))
+        .map((index) => {
+          // Determine the value to use for the MenuItem
+          // For CANAPE, use 'CANAPE', otherwise use the resultName
+          const indexValue = index.id === 'canape' ? 'CANAPE' : index.resultName;
+          
+          return (
+            <MenuItem 
+              key={index.id} 
+              value={indexValue}
+              disabled={selectedIndices.length >= 2 && !selectedIndices.includes(indexValue)}
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={selectedIndices.includes(indexValue)}
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2">{index.displayName}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {index.description}
+                    </Typography>
+                  </Box>
+                }
+              />
+            </MenuItem>
+          );
+        })
     ]);
   };
 
@@ -542,7 +560,15 @@ const VisualizationPanel = ({ isOpen, onClose, isCollapsed, handlePanelOpen }) =
                     {selected.map((indexId) => {
                       const index = diversityIndices.groups
                         .flatMap(group => group.indices)
-                        .find(index => index.commandName === indexId);
+                        .find(index => {
+                          if (indexId === 'CANAPE' && index.id === 'canape') {
+                            return true;
+                          }
+                          if (Array.isArray(index.resultName)) {
+                            return index.resultName.includes(indexId);
+                          }
+                          return index.resultName === indexId;
+                        });
                       return index?.displayName || indexId;
                     }).join(', ')}
                   </Box>

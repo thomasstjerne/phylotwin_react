@@ -364,7 +364,15 @@ const MapComponent = () => {
           // Get metadata for the index
           const metadata = diversityIndices.groups
             .flatMap(group => group.indices)
-            .find(index => index.commandName === indexId);
+            .find(index => {
+              if (indexId === 'CANAPE' && index.id === 'canape') {
+                return true;
+              }
+              if (Array.isArray(index.resultName)) {
+                return index.resultName.includes(indexId);
+              }
+              return index.resultName === indexId || index.commandName === indexId;
+            });
           const displayName = metadata ? metadata.displayName : indexId;
           content += `<div class="tooltip-row"><strong>${displayName}:</strong> ${formatValue(value, indexId)}</div>`;
         }
@@ -493,7 +501,15 @@ const MapComponent = () => {
     // Get the appropriate color scale based on the type
     const metadata = diversityIndices.groups
       .flatMap(group => group.indices)
-      .find(index => index.commandName === indexId);
+      .find(index => {
+        if (indexId === 'CANAPE' && index.id === 'canape') {
+          return true;
+        }
+        if (Array.isArray(index.resultName)) {
+          return index.resultName.includes(indexId);
+        }
+        return index.resultName === indexId || index.commandName === indexId;
+      });
     const type = metadata?.colorSchemeType || 'sequential';
 
     let fillColor;
@@ -1056,12 +1072,27 @@ const MapComponent = () => {
               appliedPalette
             );
 
+            // Get index metadata for display name
+            const metadata = diversityIndices.groups
+              .flatMap(group => group.indices)
+              .find(index => {
+                if (indexId === 'CANAPE' && index.id === 'canape') {
+                  return true;
+                }
+                if (Array.isArray(index.resultName)) {
+                  return index.resultName.includes(indexId);
+                }
+                return index.resultName === indexId || index.commandName === indexId;
+              });
+            
+            const displayTitle = metadata?.displayName || indexId;
+
             return (
               <ColorLegend
                 key={indexId}
                 colorScale={scale}
                 domain={[min, max]}
-                title={indexId}
+                title={displayTitle}
                 type={appliedColorSchemeType}
                 isCanape={indexId === 'CANAPE'}
                 onFoldClick={() => setIsLegendFolded(!isLegendFolded)}

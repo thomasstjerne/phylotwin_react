@@ -23,7 +23,13 @@ const getIndexMetadata = (indexId) => {
   // Normal case for other indices
   return diversityIndices.groups
     .flatMap(group => group.indices)
-    .find(index => index.commandName === indexId);
+    .find(index => {
+      // Check if indexId matches resultName (string) or is included in resultName (array)
+      if (Array.isArray(index.resultName)) {
+        return index.resultName.includes(indexId);
+      }
+      return index.resultName === indexId || index.commandName === indexId;
+    });
 };
 
 // Helper function to calculate quantile bins
