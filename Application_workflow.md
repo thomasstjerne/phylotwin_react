@@ -251,3 +251,117 @@ All these directories are created automatically if missing.
 - POST `/auth/logout` - User logout
 - GET `/auth/status` - Check authentication status
 
+
+
+
+## Developer guide
+
+### Diversity metrics
+
+The application uses a vocabulary of diversity indices defined in `shared/vocabularies/diversityIndices.json`.  
+This file organizes metrics into groups like "Basic diversity metrics", "Phylogenetic diversity metrics", "Endemism metrics", etc.
+
+Each metric has several key properties:
+
+```json
+{
+  "id":              "metric_id",
+  "displayName":     "Human-readable name for the GUI",
+  "description":     "Description text to be displayed in the GUI",
+  "commandName":     "Command to estimate metric in the core pipeline",
+  "resultName":      "Name of the variable in the GeoJSON/tabular results",
+  "module":          "Module name responsible for estimating the metric ('main' or 'biodiverse')",
+  "colorSchemeType": "Type of color scheme to use for the metric",
+  "resultProcessor": "optional special handler for the metric"
+}
+```
+
+
+Each metric has several key properties:
+- `id`: Internal identifier used within the application
+- `displayName`: Human-readable name shown in the UI
+- `description`: Explanation of the metric shown in tooltips
+- `commandName`: Serves different purposes depending on the module:
+  - For `module: "main"`: Parameter sent to the core pipeline in order to estimate the metric
+  - For `module: "biodiverse"`: Can be a string or array of Biodiverse modules to activate
+- `resultName`: Identifies the name of the variable in the GeoJSON/tabular results:
+  - Can be a single string: `"resultName": "Richness"`
+  - Or an array for metrics with multiple result columns: `"resultName": ["ES_5", "ES_10", "ES_20"]`
+- `module`: Whether it's calculated in the main pipeline or biodiverse module
+- `colorSchemeType`: The type of color scheme to use (sequential, diverging, etc.)
+
+
+#### Adding a new metric
+
+To add a new diversity metric:
+
+1. **Update the vocabulary file** (`shared/vocabularies/diversityIndices.json`):
+   - Add a new entry to the appropriate group's `indices` array
+   - Include all required fields: `id`, `displayName`, `description`, `commandName`, `resultName`, `module`, and `colorSchemeType`
+
+2. **Ensure the metric support from the core pipeline**:
+   - The pipeline must be capable of calculating this metric
+   - The metric's results must be included in the GeoJSON output with the property name matching the `resultName`
+
+3. **Handle special cases** (if needed):
+   - If the new metric requires special visualization handling (like CANAPE), add appropriate logic in the visualization components
+   - For metrics with multiple result columns (like Hurlbert's ES), specify an array of `resultName` values
+
+#### Examples of different metric types
+
+**Standard metric:**
+```json
+{
+  "id":              "richness",
+  "displayName":     "Species richness",
+  "description":     "Number of unique species in the area",
+  "commandName":     "Richness",
+  "resultName":      "Richness",
+  "module":          "main",
+  "colorSchemeType": "sequential"
+}
+```
+
+**Biodiverse metric with multiple commands:**
+```json
+{
+  "id":              "canape",
+  "displayName":     "CANAPE",
+  "description":     "Categorical analysis of neo- and paleo-endemism",
+  "commandName":     ["calc_pe", "calc_phylo_rpd2", "calc_phylo_rpe2"],
+  "resultName":      "CANAPE",
+  "module":          "biodiverse",
+  "colorSchemeType": "CANAPE",
+  "resultProcessor": "canape"
+}
+```
+
+**Multi-property metric:**
+```json
+{
+  "id":              "hurlbert",
+  "displayName":     "Hurlbert's ES",
+  "description":     "The number of unique species in a random sample of N occurrence records",
+  "commandName":     "calc_hurlbert_es",
+  "resultName":      ["ES_5", "ES_10", "ES_20", "ES_50", "ES_100"],
+  "module":          "biodiverse",
+  "colorSchemeType": "sequential",
+  "resultProcessor": "hurlbert"
+}
+```
+
+### How metrics are used in the application
+
+1. **Selection in settings panel**:
+   - Users select metrics in the Settings Panel before running an analysis
+   - The selected metrics are split by module. Currently, there are two modules - `main` (diversity indices are estimated in R) and `biodiverse` (metrics are estimated using Biodiverse).
+   - For Biodiverse metrics, the application uses `commandName` to determine which modules to activate
+
+2. **Visualization**:
+   - After analysis, users select metrics to visualize in the Visualization panel
+   - The application uses `resultName` to find the appropriate properties in the GeoJSON data
+   - For metrics with multiple result properties (array of `resultName`), the UI should allow selection of specific properties
+   - Color schemes are applied based on the `colorSchemeType`
+   - For diverging indices (like SES metrics), special binning is applied with significance thresholds
+   - For sequential indices, quintile-based binning is used
+
