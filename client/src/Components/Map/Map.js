@@ -9,7 +9,7 @@ import OSM from 'ol/source/OSM';
 import { Draw, Modify, Snap } from 'ol/interaction';
 import { get } from 'ol/proj';
 import GeoJSON from 'ol/format/GeoJSON';
-import { Style, Fill, Stroke } from 'ol/style';
+import { Style, Fill, Stroke, Circle } from 'ol/style';
 import 'ol/ol.css';
 import { updateDrawnItems } from '../../store/mapSlice';
 import { getColorScale } from '../../utils/colorScales';
@@ -23,6 +23,12 @@ import Swipe from 'ol-ext/control/Swipe';
 
 // Import styles for the legend
 import './MapLegend.css';
+
+// Import hypothesis slice
+import { 
+  addReferenceFeature, 
+  addTestFeature 
+} from '../../store/hypothesisSlice';
 
 // Legend component
 const ColorLegend = ({ 
@@ -248,6 +254,12 @@ const MapComponent = () => {
   const dispatch = useDispatch();
   const [isLegendFolded, setIsLegendFolded] = useState(false);
 
+  // Add refs for hypothesis testing
+  const referenceSourceRef = useRef(null);
+  const testSourceRef = useRef(null);
+  const referenceLayerRef = useRef(null);
+  const testLayerRef = useRef(null);
+
   // Get state from Redux
   const selectedIndices = useSelector(state => state.visualization.selectedIndices);
   const areaSelectionMode = useSelector(state => state.map.areaSelectionMode);
@@ -258,6 +270,11 @@ const MapComponent = () => {
   const resultsGeoJSON = useSelector(state => state.results?.geoJSON);
   const drawnItems = useSelector(state => state.map.drawnItems);
   const colorSchemeType = useSelector(selectColorSchemeType);
+
+  // Add selectors for hypothesis testing
+  const hypothesisDrawingMode = useSelector(state => state.hypothesis.drawingMode);
+  const referenceArea = useSelector(state => state.hypothesis.referenceArea);
+  const testArea = useSelector(state => state.hypothesis.testArea);
 
   // Debug logging for tooltip
   useEffect(() => {
@@ -515,6 +532,20 @@ const MapComponent = () => {
     const value = feature.get(indexId);
     const numRecords = feature.get('NumRecords') || 0;
 
+    // Debug logging for first few features
+    const featureId = feature.get('h3_index');
+    if (featureId && featureId.endsWith('0000')) {
+      console.log('Styling feature:', {
+        featureId,
+        indexId,
+        value,
+        numRecords,
+        minRecords,
+        useQuantiles,
+        valueRange
+      });
+    }
+
     // Hide cells with too few records
     if (numRecords < minRecords) {
       return null;
@@ -599,14 +630,16 @@ const MapComponent = () => {
         const colorScale = getColorScale(type, [-absMax, absMax], palette);
         fillColor = colorScale(binValue);
 
-        // Debug final values
-        console.log('Diverging index binning result:', {
-          indexId,
-          value,
-          boundaries,
-          binValue,
-          fillColor
-        });
+        // Debug final values for some features
+        if (featureId && featureId.endsWith('0000')) {
+          console.log('Diverging index binning result:', {
+            indexId,
+            value,
+            boundaries,
+            binValue,
+            fillColor
+          });
+        }
       } else {
         // Original percentile-based binning for non-diverging indices
         // Step 1: Data Collection
@@ -617,11 +650,13 @@ const MapComponent = () => {
         // Sort values once
         const sortedValues = [...validValues].sort((a, b) => a - b);
 
-        // Debug data collection
-        console.log('Data collection:', {
-          totalValues: validValues.length,
-          sortedRange: `${sortedValues[0]} to ${sortedValues[sortedValues.length - 1]}`
-        });
+        // Debug data collection for some features
+        if (featureId && featureId.endsWith('0000')) {
+          console.log('Data collection:', {
+            totalValues: validValues.length,
+            sortedRange: `${sortedValues[0]} to ${sortedValues[sortedValues.length - 1]}`
+          });
+        }
 
         // Step 2: Calculate quintile boundaries (0%, 20%, 40%, 60%, 80%, 100%)
         const boundaries = [];
@@ -630,8 +665,10 @@ const MapComponent = () => {
           boundaries.push(sortedValues[index]);
         }
 
-        // Debug boundaries
-        console.log('Quintile boundaries:', boundaries);
+        // Debug boundaries for some features
+        if (featureId && featureId.endsWith('0000')) {
+          console.log('Quintile boundaries:', boundaries);
+        }
 
         // Step 3: Determine which bin the value falls into and map to evenly distributed colors
         let colorPosition; // Will be 0, 0.25, 0.5, 0.75, or 1
@@ -654,18 +691,32 @@ const MapComponent = () => {
         const mappedValue = min + colorPosition * (max - min);
         fillColor = colorScale(mappedValue);
 
-        // Debug final values
-        console.log('Quantile result:', {
-          value,
-          boundaries,
-          colorPosition,
-          mappedValue,
-          fillColor
-        });
+        // Debug final values for some features
+        if (featureId && featureId.endsWith('0000')) {
+          console.log('Quantile result:', {
+            value,
+            boundaries,
+            colorPosition,
+            mappedValue,
+            fillColor
+          });
+        }
       }
     } else {
       const colorScale = getColorScale(type, [min, max], palette);
       fillColor = colorScale(value);
+      
+      // Debug for some features
+      if (featureId && featureId.endsWith('0000')) {
+        console.log('Regular color scale result:', {
+          indexId,
+          value,
+          min,
+          max,
+          type,
+          fillColor
+        });
+      }
     }
 
     return new Style({
@@ -714,88 +765,106 @@ const MapComponent = () => {
 
   // Initialize map
   useEffect(() => {
-    if (!mapInstanceRef.current) {
-      // Create vector source and layer for drawing
-      vectorSourceRef.current = new VectorSource();
-      const vector = new VectorLayer({
-        source: vectorSourceRef.current,
-        style: {
-          'fill-color': 'rgba(255, 255, 255, 0.2)',
-          'stroke-color': '#ffcc33',
-          'stroke-width': 2,
-          'circle-radius': 7,
-          'circle-fill-color': '#ffcc33',
-        },
-      });
+    if (!mapRef.current) return;
 
-      // Create base map layer
-      const raster = new TileLayer({
-        source: new OSM()
-      });
+    // Create vector source for drawn items
+    vectorSourceRef.current = new VectorSource();
+    
+    // Create vector sources for hypothesis testing
+    referenceSourceRef.current = new VectorSource();
+    testSourceRef.current = new VectorSource();
 
-      // Limit multi-world panning
-      const extent = get('EPSG:3857').getExtent().slice();
-      extent[0] += extent[0];
-      extent[2] += extent[2];
-
-      // Create map instance
-      mapInstanceRef.current = new Map({
-        target: mapRef.current,
-        layers: [raster, vector],
-        view: new View({
-          center: [0, 0],
-          zoom: 2,
-          projection: 'EPSG:3857',
-          extent,
+    // Create vector layer for drawn items
+    const vectorLayer = new VectorLayer({
+      source: vectorSourceRef.current,
+      style: new Style({
+        fill: new Fill({
+          color: 'rgba(255, 255, 255, 0.2)'
+        }),
+        stroke: new Stroke({
+          color: '#ffcc33',
+          width: 2
+        }),
+        image: new Circle({
+          radius: 7,
+          fill: new Fill({
+            color: '#ffcc33'
+          })
         })
-      });
+      }),
+      zIndex: 100 // Highest zIndex to ensure it's above all other layers
+    });
+    
+    // Create vector layers for hypothesis testing
+    referenceLayerRef.current = new VectorLayer({
+      source: referenceSourceRef.current,
+      style: new Style({
+        fill: new Fill({
+          color: 'rgba(0, 0, 255, 0.2)'
+        }),
+        stroke: new Stroke({
+          color: 'blue',
+          width: 2
+        }),
+        image: new Circle({
+          radius: 7,
+          fill: new Fill({
+            color: 'blue'
+          })
+        })
+      }),
+      zIndex: 98 // High zIndex to ensure it's above results but below drawing
+    });
+    
+    testLayerRef.current = new VectorLayer({
+      source: testSourceRef.current,
+      style: new Style({
+        fill: new Fill({
+          color: 'rgba(0, 128, 0, 0.2)'
+        }),
+        stroke: new Stroke({
+          color: 'green',
+          width: 2
+        }),
+        image: new Circle({
+          radius: 7,
+          fill: new Fill({
+            color: 'green'
+          })
+        })
+      }),
+      zIndex: 99 // High zIndex to ensure it's above results but below drawing
+    });
 
-      // Add pointer move handler for tooltips
-      const handlePointerMove = (evt) => {
-        if (evt.dragging) {
-          if (tooltipRef.current) {
-            tooltipRef.current.style.display = 'none';
-          }
-          if (hoveredFeatureRef.current) {
-            hoveredFeatureRef.current = null;
-            resultsLayersRef.current.forEach(layer => layer.changed());
-          }
-          return;
-        }
+    // Create base map layer
+    const raster = new TileLayer({
+      source: new OSM()
+    });
 
-        const pixel = mapInstanceRef.current.getEventPixel(evt.originalEvent);
-        const hit = mapInstanceRef.current.hasFeatureAtPixel(pixel, {
-          layerFilter: layer => resultsLayersRef.current.includes(layer)
-        });
+    // Limit multi-world panning
+    const extent = get('EPSG:3857').getExtent().slice();
+    extent[0] += extent[0];
+    extent[2] += extent[2];
 
-        mapInstanceRef.current.getTargetElement().style.cursor = hit ? 'pointer' : '';
+    // Create map instance
+    mapInstanceRef.current = new Map({
+      target: mapRef.current,
+      layers: [raster, vectorLayer],
+      view: new View({
+        center: [0, 0],
+        zoom: 2,
+        projection: 'EPSG:3857',
+        extent,
+      })
+    });
 
-        // Handle hover effect and tooltip
-        let foundFeature = null;
-        mapInstanceRef.current.forEachFeatureAtPixel(pixel, (feature, layer) => {
-          if (resultsLayersRef.current.includes(layer)) {
-            foundFeature = feature;
-            return true;
-          }
-        }, {
-          layerFilter: layer => resultsLayersRef.current.includes(layer)
-        });
+    // Add the hypothesis testing layers
+    mapInstanceRef.current.addLayer(referenceLayerRef.current);
+    mapInstanceRef.current.addLayer(testLayerRef.current);
 
-        // Update hover effect
-        if (hoveredFeatureRef.current !== foundFeature) {
-          hoveredFeatureRef.current = foundFeature;
-          resultsLayersRef.current.forEach(layer => layer.changed());
-        }
-
-        // Update tooltip using mouse event coordinates
-        updateTooltip([evt.originalEvent.clientX, evt.originalEvent.clientY], foundFeature);
-      };
-
-      // Bind the pointer move handler
-      mapInstanceRef.current.on('pointermove', handlePointerMove);
-
-      // Hide tooltip when leaving the map
-      mapInstanceRef.current.getViewport().addEventListener('mouseout', () => {
+    // Add pointer move handler for tooltips
+    const handlePointerMove = (evt) => {
+      if (evt.dragging) {
         if (tooltipRef.current) {
           tooltipRef.current.style.display = 'none';
         }
@@ -803,8 +872,50 @@ const MapComponent = () => {
           hoveredFeatureRef.current = null;
           resultsLayersRef.current.forEach(layer => layer.changed());
         }
+        return;
+      }
+
+      const pixel = mapInstanceRef.current.getEventPixel(evt.originalEvent);
+      const hit = mapInstanceRef.current.hasFeatureAtPixel(pixel, {
+        layerFilter: layer => resultsLayersRef.current.includes(layer)
       });
-    }
+
+      mapInstanceRef.current.getTargetElement().style.cursor = hit ? 'pointer' : '';
+
+      // Handle hover effect and tooltip
+      let foundFeature = null;
+      mapInstanceRef.current.forEachFeatureAtPixel(pixel, (feature, layer) => {
+        if (resultsLayersRef.current.includes(layer)) {
+          foundFeature = feature;
+          return true;
+        }
+      }, {
+        layerFilter: layer => resultsLayersRef.current.includes(layer)
+      });
+
+      // Update hover effect
+      if (hoveredFeatureRef.current !== foundFeature) {
+        hoveredFeatureRef.current = foundFeature;
+        resultsLayersRef.current.forEach(layer => layer.changed());
+      }
+
+      // Update tooltip using mouse event coordinates
+      updateTooltip([evt.originalEvent.clientX, evt.originalEvent.clientY], foundFeature);
+    };
+
+    // Bind the pointer move handler
+    mapInstanceRef.current.on('pointermove', handlePointerMove);
+
+    // Hide tooltip when leaving the map
+    mapInstanceRef.current.getViewport().addEventListener('mouseout', () => {
+      if (tooltipRef.current) {
+        tooltipRef.current.style.display = 'none';
+      }
+      if (hoveredFeatureRef.current) {
+        hoveredFeatureRef.current = null;
+        resultsLayersRef.current.forEach(layer => layer.changed());
+      }
+    });
 
     return () => {
       if (mapInstanceRef.current) {
@@ -812,60 +923,7 @@ const MapComponent = () => {
         mapInstanceRef.current = null;
       }
     };
-  }, []);  // Empty dependency array as this should only run once
-
-  // Update pointer move handler when selectedIndices changes
-  useEffect(() => {
-    if (mapInstanceRef.current) {
-      const map = mapInstanceRef.current;
-      
-      // Remove existing pointermove listeners
-      const listeners = map.getListeners('pointermove');
-      if (listeners) {
-        listeners.forEach(listener => map.removeEventListener('pointermove', listener));
-      }
-
-      // Add new pointer move handler
-      const handlePointerMove = (evt) => {
-        if (evt.dragging) {
-          if (tooltipRef.current) {
-            tooltipRef.current.style.display = 'none';
-          }
-          if (hoveredFeatureRef.current) {
-            hoveredFeatureRef.current = null;
-            resultsLayersRef.current.forEach(layer => layer.changed());
-          }
-          return;
-        }
-
-        const pixel = map.getEventPixel(evt.originalEvent);
-        const hit = map.hasFeatureAtPixel(pixel, {
-          layerFilter: layer => resultsLayersRef.current.includes(layer)
-        });
-
-        map.getTargetElement().style.cursor = hit ? 'pointer' : '';
-
-        let foundFeature = null;
-        map.forEachFeatureAtPixel(pixel, (feature, layer) => {
-          if (resultsLayersRef.current.includes(layer)) {
-            foundFeature = feature;
-            return true;
-          }
-        }, {
-          layerFilter: layer => resultsLayersRef.current.includes(layer)
-        });
-
-        if (hoveredFeatureRef.current !== foundFeature) {
-          hoveredFeatureRef.current = foundFeature;
-          resultsLayersRef.current.forEach(layer => layer.changed());
-        }
-
-        updateTooltip([evt.originalEvent.clientX, evt.originalEvent.clientY], foundFeature);
-      };
-
-      map.on('pointermove', handlePointerMove);
-    }
-  }, [selectedIndices]); // Re-run when selectedIndices changes
+  }, []);
 
   // Handle drawing interactions
   useEffect(() => {
@@ -950,6 +1008,12 @@ const MapComponent = () => {
 
     if (!map || !resultsGeoJSON) return;
 
+    console.log('Handling results visualization:', {
+      resultsGeoJSON: resultsGeoJSON ? 'present' : 'missing',
+      selectedIndices,
+      features: resultsGeoJSON?.features?.length
+    });
+
     // Reset the view fitting flag when new results are loaded
     if (resultsGeoJSON !== prevResultsGeoJSONRef.current) {
       hasInitiallyFitView.current = false;
@@ -970,11 +1034,15 @@ const MapComponent = () => {
 
     // Create new layers for selected indices
     selectedIndices.forEach((indexId, idx) => {
+      console.log('Creating layer for index:', indexId);
+      
       const source = new VectorSource({
         features: new GeoJSON().readFeatures(resultsGeoJSON, {
           featureProjection: 'EPSG:3857'
         })
       });
+
+      console.log(`Added ${source.getFeatures().length} features to source for index ${indexId}`);
 
       const layer = new VectorLayer({
         source: source,
@@ -988,7 +1056,7 @@ const MapComponent = () => {
           feature === hoveredFeatureRef.current,
           source,
         ),
-        // Ensure layers are above the base map
+        // Ensure layers are above the base map but below hypothesis layers
         zIndex: idx + 1,
         // Important: ensure the layer is updateWhileAnimating and updateWhileInteracting
         updateWhileAnimating: true,
@@ -1090,6 +1158,189 @@ const MapComponent = () => {
       console.error('Error exporting map:', error);
     }
   };
+
+  // Handle hypothesis drawing mode changes
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    
+    // Remove existing interactions
+    if (drawRef.current) {
+      mapInstanceRef.current.removeInteraction(drawRef.current);
+      drawRef.current = null;
+    }
+    if (snapRef.current) {
+      mapInstanceRef.current.removeInteraction(snapRef.current);
+      snapRef.current = null;
+    }
+    if (modifyRef.current) {
+      mapInstanceRef.current.removeInteraction(modifyRef.current);
+      modifyRef.current = null;
+    }
+    
+    // Add new interactions if hypothesis drawing is enabled
+    if (hypothesisDrawingMode) {
+      console.log('Hypothesis drawing mode enabled:', hypothesisDrawingMode);
+      
+      // Determine which source to use based on drawing mode
+      const source = hypothesisDrawingMode === 'reference' 
+        ? referenceSourceRef.current 
+        : testSourceRef.current;
+      
+      // Add modify interaction
+      modifyRef.current = new Modify({ source });
+      mapInstanceRef.current.addInteraction(modifyRef.current);
+      
+      // Add draw interaction
+      drawRef.current = new Draw({
+        source,
+        type: 'Polygon'
+      });
+      mapInstanceRef.current.addInteraction(drawRef.current);
+      
+      // Add snap interaction
+      snapRef.current = new Snap({ source });
+      mapInstanceRef.current.addInteraction(snapRef.current);
+      
+      // Handle draw events
+      drawRef.current.on('drawend', (event) => {
+        console.log('Hypothesis draw ended:', hypothesisDrawingMode);
+        
+        // Convert feature to GeoJSON
+        const format = new GeoJSON();
+        const feature = format.writeFeatureObject(event.feature);
+        
+        // Dispatch to the appropriate action
+        if (hypothesisDrawingMode === 'reference') {
+          dispatch(addReferenceFeature(feature));
+        } else {
+          dispatch(addTestFeature(feature));
+        }
+      });
+      
+      // Handle modify events
+      modifyRef.current.on('modifyend', (event) => {
+        console.log('Hypothesis modify ended:', hypothesisDrawingMode);
+        
+        // Get all features from the source
+        const features = source.getFeatures().map(feature => {
+          const format = new GeoJSON();
+          return format.writeFeatureObject(feature);
+        });
+        
+        // Clear the source and re-add all features
+        if (hypothesisDrawingMode === 'reference') {
+          dispatch({ type: 'hypothesis/clearReferenceArea' });
+          features.forEach(feature => dispatch(addReferenceFeature(feature)));
+        } else {
+          dispatch({ type: 'hypothesis/clearTestArea' });
+          features.forEach(feature => dispatch(addTestFeature(feature)));
+        }
+      });
+    }
+    
+    return () => {
+      if (drawRef.current) {
+        drawRef.current.setActive(false);
+      }
+      if (modifyRef.current) {
+        modifyRef.current.setActive(false);
+      }
+      if (snapRef.current) {
+        snapRef.current.setActive(false);
+      }
+    };
+  }, [hypothesisDrawingMode, dispatch]);
+  
+  // Update reference area on map when it changes in Redux
+  useEffect(() => {
+    if (!referenceSourceRef.current) return;
+    
+    // Clear the source
+    referenceSourceRef.current.clear();
+    
+    // Add features from Redux
+    if (referenceArea.features.length > 0) {
+      const format = new GeoJSON();
+      referenceArea.features.forEach(feature => {
+        const olFeature = format.readFeature(feature, {
+          featureProjection: 'EPSG:3857'
+        });
+        referenceSourceRef.current.addFeature(olFeature);
+      });
+    }
+  }, [referenceArea]);
+  
+  // Update test area on map when it changes in Redux
+  useEffect(() => {
+    if (!testSourceRef.current) return;
+    
+    // Clear the source
+    testSourceRef.current.clear();
+    
+    // Add features from Redux
+    if (testArea.features.length > 0) {
+      const format = new GeoJSON();
+      testArea.features.forEach(feature => {
+        const olFeature = format.readFeature(feature, {
+          featureProjection: 'EPSG:3857'
+        });
+        testSourceRef.current.addFeature(olFeature);
+      });
+    }
+  }, [testArea]);
+
+  // Update pointer move handler when selectedIndices changes
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      const map = mapInstanceRef.current;
+      
+      // Remove existing pointermove listeners
+      const listeners = map.getListeners('pointermove');
+      if (listeners) {
+        listeners.forEach(listener => map.removeEventListener('pointermove', listener));
+      }
+
+      // Add new pointer move handler
+      const handlePointerMove = (evt) => {
+        if (evt.dragging) {
+          if (tooltipRef.current) {
+            tooltipRef.current.style.display = 'none';
+          }
+          if (hoveredFeatureRef.current) {
+            hoveredFeatureRef.current = null;
+            resultsLayersRef.current.forEach(layer => layer.changed());
+          }
+          return;
+        }
+
+        const pixel = map.getEventPixel(evt.originalEvent);
+        const hit = map.hasFeatureAtPixel(pixel, {
+          layerFilter: layer => resultsLayersRef.current.includes(layer)
+        });
+
+        map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+
+        let foundFeature = null;
+        map.forEachFeatureAtPixel(pixel, (feature, layer) => {
+          if (resultsLayersRef.current.includes(layer)) {
+            foundFeature = feature;
+            return true;
+          }
+        }, {
+          layerFilter: layer => resultsLayersRef.current.includes(layer)
+        });
+
+        if (hoveredFeatureRef.current !== foundFeature) {
+          hoveredFeatureRef.current = foundFeature;
+          resultsLayersRef.current.forEach(layer => layer.changed());
+        }
+
+        updateTooltip([evt.originalEvent.clientX, evt.originalEvent.clientY], foundFeature);
+      };
+
+      map.on('pointermove', handlePointerMove);
+    }
+  }, [selectedIndices]); // Re-run when selectedIndices changes
 
   return (
     <div 

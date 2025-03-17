@@ -4,6 +4,7 @@ import mapReducer from './store/mapSlice';
 import authReducer from './store/authSlice';
 import visualizationReducer from './store/visualizationSlice';
 import resultsReducer from './store/resultsSlice';
+import hypothesisReducer from './store/hypothesisSlice';
 
 // Create logger middleware
 const logger = store => next => action => {
@@ -19,7 +20,8 @@ const store = configureStore({
     map: mapReducer,
     auth: authReducer,
     visualization: visualizationReducer,
-    results: resultsReducer
+    results: resultsReducer,
+    hypothesis: hypothesisReducer
   },
   middleware: (getDefaultMiddleware) => 
     getDefaultMiddleware().concat(logger),
