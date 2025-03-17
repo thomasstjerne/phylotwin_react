@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Box,
@@ -14,12 +14,14 @@ import {
   IconButton,
   Divider,
   Alert,
+  Slider,
 } from '@mui/material';
 import {
   InfoOutlined as InfoIcon,
   UploadFile as UploadFileIcon,
   Clear as ClearIcon,
   CompareArrows as CompareArrowsIcon,
+  Opacity as OpacityIcon,
 } from '@mui/icons-material';
 import { axiosWithAuth } from '../Auth/userApi';
 import config from '../config';
@@ -28,6 +30,7 @@ import {
   clearReferenceArea, 
   clearTestArea,
   setTestStatus,
+  setResultsOpacity,
   setError as setHypothesisError
 } from '../store/hypothesisSlice';
 
@@ -55,6 +58,7 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
   const visualizationGeoJSON = useSelector(state => state.visualization.geoJSON);
   const resultsGeoJSON = useSelector(state => state.results.geoJSON);
   const indices = useSelector(state => state.results.indices);
+  const resultsOpacity = useSelector(state => state.hypothesis.resultsOpacity);
   
   // Check if required files exist
   const [filesExist, setFilesExist] = useState(false);
@@ -293,6 +297,18 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
     }
   };
   
+  // Debounced opacity change handler
+  const debouncedOpacityChange = useCallback((newValue) => {
+    dispatch(setResultsOpacity(newValue));
+  }, [dispatch]);
+  
+  // Handle opacity change
+  const handleOpacityChange = (event, newValue) => {
+    // Update local state immediately for responsive UI
+    // The actual dispatch is debounced to avoid excessive re-renders
+    debouncedOpacityChange(newValue);
+  };
+  
   // Check if both areas are defined
   const areBothAreasDefined = (
     (referenceAreaMode === 'upload' && referenceFile) || 
@@ -362,6 +378,52 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
             <Typography variant="body2" color="text.secondary" paragraph>
               Compare biodiversity metrics between two areas within your analyzed region.
             </Typography>
+            
+            {/* Results Opacity Control */}
+            <Box sx={{ mt: 1, mb: 2 }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <OpacityIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
+                Results Layer Opacity
+                <Tooltip 
+                  title={
+                    <Box component="div" sx={{ typography: 'body2' }}>
+                      Adjust the opacity of the H3 cells to better see your test and reference areas. Lower values make the results more transparent.
+                    </Box>
+                  }
+                  placement="right"
+                >
+                  <IconButton size="small" sx={{ ml: 1 }}>
+                    <InfoIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Typography>
+              <Box sx={{ px: 1, mt: 1 }}>
+                <Slider
+                  value={resultsOpacity}
+                  onChange={handleOpacityChange}
+                  aria-labelledby="results-opacity-slider"
+                  step={0.05}
+                  marks={[
+                    { value: 0.1, label: '10%' },
+                    { value: 0.5, label: '50%' },
+                    { value: 1, label: '100%' }
+                  ]}
+                  min={0.1}
+                  max={1}
+                  valueLabelDisplay="auto"
+                  valueLabelFormat={value => `${Math.round(value * 100)}%`}
+                  sx={{ 
+                    color: 'primary.main',
+                    '& .MuiSlider-thumb': {
+                      height: 20,
+                      width: 20,
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+            
+            <Divider />
             
             {error && (
               <Alert severity="error" sx={{ mt: 2 }}>

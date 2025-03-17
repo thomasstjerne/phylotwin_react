@@ -12,7 +12,8 @@ const initialState = {
   },
   testResults: null,
   testStatus: 'idle', // 'idle', 'loading', 'success', 'error'
-  error: null
+  error: null,
+  resultsOpacity: 0.5 // Default opacity for results layers when hypothesis testing is active
 };
 
 const hypothesisSlice = createSlice({
@@ -61,6 +62,9 @@ const hypothesisSlice = createSlice({
       state.error = action.payload;
       state.testStatus = 'error';
     },
+    setResultsOpacity: (state, action) => {
+      state.resultsOpacity = action.payload;
+    },
     resetHypothesis: (state) => {
       return initialState;
     }
@@ -76,6 +80,7 @@ export const {
   setTestResults,
   setTestStatus,
   setError,
+  setResultsOpacity,
   resetHypothesis
 } = hypothesisSlice.actions;
 

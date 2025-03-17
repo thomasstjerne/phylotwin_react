@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useOutletContext } from 'react-router-dom';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -238,6 +239,67 @@ const ColorLegend = ({
   );
 };
 
+// Helper function to apply opacity to a color
+const applyOpacity = (color, opacity) => {
+  // Handle rgba colors
+  if (color.startsWith('rgba')) {
+    return color.replace(/rgba\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/, 
+      (_, r, g, b) => `rgba(${r}, ${g}, ${b}, ${opacity})`);
+  }
+  // Handle rgb colors
+  if (color.startsWith('rgb')) {
+    return color.replace(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/, 
+      (_, r, g, b) => `rgba(${r}, ${g}, ${b}, ${opacity})`);
+  }
+  // Handle hex colors
+  if (color.startsWith('#')) {
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+  return color;
+};
+
+// Debug helper function for polygon features
+const debugFeature = (feature, source) => {
+  try {
+    const geometry = feature.getGeometry();
+    const coordinates = geometry ? geometry.getCoordinates() : 'No geometry';
+    const extent = geometry ? geometry.getExtent() : 'No extent';
+    const properties = feature.getProperties();
+    
+    console.log('Debug feature:', {
+      id: feature.getId() || 'No ID',
+      type: geometry ? geometry.getType() : 'No geometry type',
+      coordinates: coordinates,
+      extent: extent,
+      properties: properties,
+      sourceFeatureCount: source ? source.getFeatures().length : 'No source'
+    });
+    
+    // Check if the feature is valid
+    if (geometry) {
+      console.log('Feature is valid with geometry type:', geometry.getType());
+      
+      // For polygons, check if coordinates are valid
+      if (geometry.getType() === 'Polygon') {
+        const coords = geometry.getCoordinates();
+        if (coords && coords.length > 0 && coords[0].length >= 4) {
+          console.log('Polygon has valid coordinates with', coords[0].length, 'points');
+          console.log('First few coordinates:', coords[0].slice(0, 3));
+        } else {
+          console.warn('Polygon has invalid coordinates:', coords);
+        }
+      }
+    } else {
+      console.warn('Feature has no geometry');
+    }
+  } catch (error) {
+    console.error('Error debugging feature:', error);
+  }
+};
+
 const MapComponent = () => {
   const mapRef = useRef();
   const mapInstanceRef = useRef(null);
@@ -261,20 +323,17 @@ const MapComponent = () => {
   const testLayerRef = useRef(null);
 
   // Get state from Redux
-  const selectedIndices = useSelector(state => state.visualization.selectedIndices);
+  const { selectedIndices, colorPalette, useQuantiles, valueRange, minRecords, geoJSON: visualizationGeoJSON } = useSelector(state => state.visualization);
+  const { geoJSON: resultsGeoJSON } = useSelector(state => state.results);
+  const { referenceArea, testArea, resultsOpacity } = useSelector(state => state.hypothesis);
+  const { activePanel } = useOutletContext() || {};
+  const isHypothesisPanelActive = activePanel === 'hypothesis';
   const areaSelectionMode = useSelector(state => state.map.areaSelectionMode);
-  const colorPalette = useSelector(state => state.visualization?.colorPalette);
-  const useQuantiles = useSelector(state => state.visualization?.useQuantiles);
-  const valueRange = useSelector(state => state.visualization?.valueRange);
-  const minRecords = useSelector(state => state.visualization?.minRecords);
-  const resultsGeoJSON = useSelector(state => state.results?.geoJSON);
   const drawnItems = useSelector(state => state.map.drawnItems);
   const colorSchemeType = useSelector(selectColorSchemeType);
 
   // Add selectors for hypothesis testing
   const hypothesisDrawingMode = useSelector(state => state.hypothesis.drawingMode);
-  const referenceArea = useSelector(state => state.hypothesis.referenceArea);
-  const testArea = useSelector(state => state.hypothesis.testArea);
 
   // Debug logging for tooltip
   useEffect(() => {
@@ -505,25 +564,27 @@ const MapComponent = () => {
   const colorSchemes = {
     sequential: (value, min, max) => {
       const t = (value - min) / (max - min);
-      return `rgba(72, 118, 255, ${0.4 + t * 0.6})`; // Blue with varying opacity from 0.4 to 1.0
+      // Return RGB values without opacity, we'll apply opacity separately
+      return `rgb(72, 118, 255)`;
     },
     diverging: (value, min, max) => {
       const mid = (max + min) / 2;
-      const t = (value - min) / (max - min);
+      // Return RGB values without opacity, we'll apply opacity separately
       if (value < mid) {
-        return `rgba(255, 0, 0, ${0.4 + t * 0.6})`; // Red for negative, opacity 0.4-1.0
+        return `rgb(255, 0, 0)`;
       }
-      return `rgba(72, 118, 255, ${0.4 + t * 0.6})`; // Blue for positive, opacity 0.4-1.0
+      return `rgb(72, 118, 255)`;
     },
     canape: (value) => {
+      // Return RGB values without opacity, we'll apply opacity separately
       const colors = {
-        1: "#FF0000", // Neo-endemism
-        2: "#4876FF", // Paleo-endemism
-        0: "#FAFAD2", // Not significant
-        3: "#CB7FFF", // Mixed endemism
-        4: "#9D00FF"  // Super endemism
+        1: "rgb(255, 0, 0)", // Neo-endemism
+        2: "rgb(72, 118, 255)", // Paleo-endemism
+        0: "rgb(250, 250, 210)", // Not significant
+        3: "rgb(203, 127, 255)", // Mixed endemism
+        4: "rgb(157, 0, 255)"  // Super endemism
       };
-      return colors[value] || "#808080"; // Gray for missing values
+      return colors[value] || "rgb(128, 128, 128)";
     }
   };
 
@@ -542,7 +603,9 @@ const MapComponent = () => {
         numRecords,
         minRecords,
         useQuantiles,
-        valueRange
+        valueRange,
+        isHypothesisPanelActive,
+        resultsOpacity
       });
     }
 
@@ -558,7 +621,19 @@ const MapComponent = () => {
       }
       // Get the appropriate color scale for CANAPE
       const colorScale = getColorScale('CANAPE');
-      const fillColor = colorScale(value);
+      let fillColor = colorScale(value);
+      
+      // Apply opacity based on panel
+      const opacity = isHypothesisPanelActive ? resultsOpacity : 1.0;
+      fillColor = applyOpacity(fillColor, opacity);
+      
+      if (featureId && featureId.endsWith('0000')) {
+        console.log('Applied opacity to CANAPE color:', {
+          value,
+          fillColor,
+          opacity
+        });
+      }
       
       return new Style({
         fill: new Fill({
@@ -629,6 +704,10 @@ const MapComponent = () => {
         const absMax = 3; // Use 3 as the max to ensure proper color scaling
         const colorScale = getColorScale(type, [-absMax, absMax], palette);
         fillColor = colorScale(binValue);
+        
+        // Apply opacity based on panel
+        const opacity = isHypothesisPanelActive ? resultsOpacity : 1.0;
+        fillColor = applyOpacity(fillColor, opacity);
 
         // Debug final values for some features
         if (featureId && featureId.endsWith('0000')) {
@@ -637,7 +716,8 @@ const MapComponent = () => {
             value,
             boundaries,
             binValue,
-            fillColor
+            fillColor,
+            opacity
           });
         }
       } else {
@@ -690,6 +770,10 @@ const MapComponent = () => {
         // Map the color position to the actual value range
         const mappedValue = min + colorPosition * (max - min);
         fillColor = colorScale(mappedValue);
+        
+        // Apply opacity based on panel
+        const opacity = isHypothesisPanelActive ? resultsOpacity : 1.0;
+        fillColor = applyOpacity(fillColor, opacity);
 
         // Debug final values for some features
         if (featureId && featureId.endsWith('0000')) {
@@ -698,7 +782,8 @@ const MapComponent = () => {
             boundaries,
             colorPosition,
             mappedValue,
-            fillColor
+            fillColor,
+            opacity
           });
         }
       }
@@ -706,15 +791,22 @@ const MapComponent = () => {
       const colorScale = getColorScale(type, [min, max], palette);
       fillColor = colorScale(value);
       
+      // Apply opacity based on panel
+      const opacity = isHypothesisPanelActive ? resultsOpacity : 1.0;
+      fillColor = applyOpacity(fillColor, opacity);
+      
       // Debug for some features
       if (featureId && featureId.endsWith('0000')) {
-        console.log('Regular color scale result:', {
+        console.log('Regular color scale result with opacity:', {
           indexId,
           value,
           min,
           max,
           type,
-          fillColor
+          fillColor,
+          isHypothesisPanelActive,
+          resultsOpacity,
+          appliedOpacity: opacity
         });
       }
     }
@@ -800,11 +892,12 @@ const MapComponent = () => {
       source: referenceSourceRef.current,
       style: new Style({
         fill: new Fill({
-          color: 'rgba(0, 0, 255, 0.2)'
+          color: 'rgba(0, 0, 255, 0.2)'  // Semi-transparent blue fill
         }),
         stroke: new Stroke({
-          color: 'blue',
-          width: 2
+          color: 'rgba(0, 0, 255, 0.8)',  // More opaque blue border
+          width: 3,  // Thicker border
+          lineDash: [10, 5]  // Dashed line for better visibility
         }),
         image: new Circle({
           radius: 7,
@@ -813,18 +906,19 @@ const MapComponent = () => {
           })
         })
       }),
-      zIndex: 98 // High zIndex to ensure it's above results but below drawing
+      zIndex: 150  // High zIndex to ensure it's above other layers
     });
     
     testLayerRef.current = new VectorLayer({
       source: testSourceRef.current,
       style: new Style({
         fill: new Fill({
-          color: 'rgba(0, 128, 0, 0.2)'
+          color: 'rgba(0, 128, 0, 0.2)'  // Semi-transparent green fill
         }),
         stroke: new Stroke({
-          color: 'green',
-          width: 2
+          color: 'rgba(0, 128, 0, 0.8)',  // More opaque green border
+          width: 3,  // Thicker border
+          lineDash: [10, 5]  // Dashed line for better visibility
         }),
         image: new Circle({
           radius: 7,
@@ -833,7 +927,7 @@ const MapComponent = () => {
           })
         })
       }),
-      zIndex: 99 // High zIndex to ensure it's above results but below drawing
+      zIndex: 151  // Highest zIndex to ensure it's above all other layers
     });
 
     // Create base map layer
@@ -849,7 +943,7 @@ const MapComponent = () => {
     // Create map instance
     mapInstanceRef.current = new Map({
       target: mapRef.current,
-      layers: [raster, vectorLayer],
+      layers: [raster, vectorLayer, referenceLayerRef.current, testLayerRef.current],
       view: new View({
         center: [0, 0],
         zoom: 2,
@@ -858,9 +952,9 @@ const MapComponent = () => {
       })
     });
 
-    // Add the hypothesis testing layers
-    mapInstanceRef.current.addLayer(referenceLayerRef.current);
-    mapInstanceRef.current.addLayer(testLayerRef.current);
+    // No need to add the hypothesis testing layers again since they're included in the initial layers array
+    // mapInstanceRef.current.addLayer(referenceLayerRef.current);
+    // mapInstanceRef.current.addLayer(testLayerRef.current);
 
     // Add pointer move handler for tooltips
     const handlePointerMove = (evt) => {
@@ -1011,7 +1105,9 @@ const MapComponent = () => {
     console.log('Handling results visualization:', {
       resultsGeoJSON: resultsGeoJSON ? 'present' : 'missing',
       selectedIndices,
-      features: resultsGeoJSON?.features?.length
+      features: resultsGeoJSON?.features?.length,
+      isHypothesisPanelActive,
+      resultsOpacity
     });
 
     // Reset the view fitting flag when new results are loaded
@@ -1057,7 +1153,7 @@ const MapComponent = () => {
           source,
         ),
         // Ensure layers are above the base map but below hypothesis layers
-        zIndex: idx + 1,
+        zIndex: 50 + idx, // Higher than base map (0) but lower than hypothesis layers (150+)
         // Important: ensure the layer is updateWhileAnimating and updateWhileInteracting
         updateWhileAnimating: true,
         updateWhileInteracting: true
@@ -1107,7 +1203,7 @@ const MapComponent = () => {
         swipeControlRef.current = null;
       }
     };
-  }, [resultsGeoJSON, selectedIndices, colorPalette, useQuantiles, valueRange, minRecords, colorSchemeType]);
+  }, [resultsGeoJSON, selectedIndices, colorPalette, useQuantiles, valueRange, minRecords, colorSchemeType, isHypothesisPanelActive, resultsOpacity]);
 
   // Handle map export
   const handleExportMap = async () => {
@@ -1205,9 +1301,30 @@ const MapComponent = () => {
       drawRef.current.on('drawend', (event) => {
         console.log('Hypothesis draw ended:', hypothesisDrawingMode);
         
+        // Get the feature
+        const drawnFeature = event.feature;
+        
+        // Debug the drawn feature
+        console.log('Raw drawn feature:', drawnFeature);
+        debugFeature(drawnFeature, source);
+        
         // Convert feature to GeoJSON
         const format = new GeoJSON();
-        const feature = format.writeFeatureObject(event.feature);
+        const feature = format.writeFeatureObject(drawnFeature, {
+          featureProjection: 'EPSG:3857',
+          dataProjection: 'EPSG:3857' // Keep in the same projection
+        });
+        
+        // Ensure the feature has properties
+        if (!feature.properties) {
+          feature.properties = {};
+        }
+        
+        // Add areaType property and mark as drawn on map
+        feature.properties.areaType = hypothesisDrawingMode;
+        feature.properties.drawnOnMap = true;
+        
+        console.log('Dispatching feature with properties:', feature);
         
         // Dispatch to the appropriate action
         if (hypothesisDrawingMode === 'reference') {
@@ -1255,18 +1372,60 @@ const MapComponent = () => {
   useEffect(() => {
     if (!referenceSourceRef.current) return;
     
+    console.log('Updating reference area on map:', referenceArea);
+    
     // Clear the source
     referenceSourceRef.current.clear();
     
     // Add features from Redux
-    if (referenceArea.features.length > 0) {
+    if (referenceArea.features && referenceArea.features.length > 0) {
+      console.log('Adding reference features to map:', referenceArea.features.length);
       const format = new GeoJSON();
+      
       referenceArea.features.forEach(feature => {
-        const olFeature = format.readFeature(feature, {
-          featureProjection: 'EPSG:3857'
-        });
-        referenceSourceRef.current.addFeature(olFeature);
+        try {
+          // Ensure the feature has a geometry
+          if (!feature.geometry) {
+            console.error('Feature missing geometry:', feature);
+            return;
+          }
+          
+          // Create a deep copy of the feature to avoid reference issues
+          const featureCopy = JSON.parse(JSON.stringify(feature));
+          
+          // Ensure properties exist
+          if (!featureCopy.properties) {
+            featureCopy.properties = { areaType: 'reference' };
+          } else if (!featureCopy.properties.areaType) {
+            featureCopy.properties.areaType = 'reference';
+          }
+          
+          // Check if the feature was drawn on the map or uploaded
+          const wasDrawnOnMap = feature.properties?.drawnOnMap === true;
+          
+          // Read the feature and add it to the source
+          const olFeature = format.readFeature(featureCopy, {
+            featureProjection: 'EPSG:3857',
+            // If the feature was drawn on the map, it's already in EPSG:3857
+            // Otherwise, assume it's in EPSG:4326 (standard GeoJSON)
+            dataProjection: wasDrawnOnMap ? 'EPSG:3857' : 'EPSG:4326'
+          });
+          
+          console.log('Added reference feature to map:', olFeature);
+          referenceSourceRef.current.addFeature(olFeature);
+          
+          // Debug the feature
+          debugFeature(olFeature, referenceSourceRef.current);
+        } catch (error) {
+          console.error('Error adding reference feature to map:', error, feature);
+        }
       });
+      
+      // Force redraw of the layer
+      if (referenceLayerRef.current) {
+        referenceLayerRef.current.changed();
+        console.log('Forced redraw of reference layer');
+      }
     }
   }, [referenceArea]);
   
@@ -1274,18 +1433,60 @@ const MapComponent = () => {
   useEffect(() => {
     if (!testSourceRef.current) return;
     
+    console.log('Updating test area on map:', testArea);
+    
     // Clear the source
     testSourceRef.current.clear();
     
     // Add features from Redux
-    if (testArea.features.length > 0) {
+    if (testArea.features && testArea.features.length > 0) {
+      console.log('Adding test features to map:', testArea.features.length);
       const format = new GeoJSON();
+      
       testArea.features.forEach(feature => {
-        const olFeature = format.readFeature(feature, {
-          featureProjection: 'EPSG:3857'
-        });
-        testSourceRef.current.addFeature(olFeature);
+        try {
+          // Ensure the feature has a geometry
+          if (!feature.geometry) {
+            console.error('Feature missing geometry:', feature);
+            return;
+          }
+          
+          // Create a deep copy of the feature to avoid reference issues
+          const featureCopy = JSON.parse(JSON.stringify(feature));
+          
+          // Ensure properties exist
+          if (!featureCopy.properties) {
+            featureCopy.properties = { areaType: 'test' };
+          } else if (!featureCopy.properties.areaType) {
+            featureCopy.properties.areaType = 'test';
+          }
+          
+          // Check if the feature was drawn on the map or uploaded
+          const wasDrawnOnMap = feature.properties?.drawnOnMap === true;
+          
+          // Read the feature and add it to the source
+          const olFeature = format.readFeature(featureCopy, {
+            featureProjection: 'EPSG:3857',
+            // If the feature was drawn on the map, it's already in EPSG:3857
+            // Otherwise, assume it's in EPSG:4326 (standard GeoJSON)
+            dataProjection: wasDrawnOnMap ? 'EPSG:3857' : 'EPSG:4326'
+          });
+          
+          console.log('Added test feature to map:', olFeature);
+          testSourceRef.current.addFeature(olFeature);
+          
+          // Debug the feature
+          debugFeature(olFeature, testSourceRef.current);
+        } catch (error) {
+          console.error('Error adding test feature to map:', error, feature);
+        }
       });
+      
+      // Force redraw of the layer
+      if (testLayerRef.current) {
+        testLayerRef.current.changed();
+        console.log('Forced redraw of test layer');
+      }
     }
   }, [testArea]);
 
@@ -1341,6 +1542,96 @@ const MapComponent = () => {
       map.on('pointermove', handlePointerMove);
     }
   }, [selectedIndices]); // Re-run when selectedIndices changes
+
+  // Force re-render when active panel changes
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      console.log('Active panel changed, forcing map re-render:', activePanel);
+      mapInstanceRef.current.render();
+      
+      // Force re-render of results layers
+      resultsLayersRef.current.forEach(layer => {
+        layer.changed();
+      });
+    }
+  }, [activePanel]);
+
+  // Force re-render when opacity changes
+  useEffect(() => {
+    if (mapInstanceRef.current && isHypothesisPanelActive) {
+      console.log('Results opacity changed, forcing map re-render:', resultsOpacity);
+      
+      // Force re-render of results layers
+      resultsLayersRef.current.forEach(layer => {
+        layer.changed();
+      });
+      
+      // Force map render
+      mapInstanceRef.current.render();
+    }
+  }, [resultsOpacity, isHypothesisPanelActive]);
+
+  // Handle hypothesis panel activation
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    
+    console.log('Hypothesis panel active state changed:', isHypothesisPanelActive);
+    
+    // When hypothesis panel becomes active, ensure reference and test layers are visible
+    if (isHypothesisPanelActive) {
+      // Make sure the layers are visible
+      if (referenceLayerRef.current) {
+        referenceLayerRef.current.setVisible(true);
+        referenceLayerRef.current.changed();
+      }
+      
+      if (testLayerRef.current) {
+        testLayerRef.current.setVisible(true);
+        testLayerRef.current.changed();
+      }
+      
+      // Fit view to include reference and test areas if they exist
+      const referenceFeatures = referenceSourceRef.current?.getFeatures() || [];
+      const testFeatures = testSourceRef.current?.getFeatures() || [];
+      
+      if (referenceFeatures.length > 0 || testFeatures.length > 0) {
+        // Calculate combined extent
+        let combinedExtent = null;
+        
+        // Add reference features to extent
+        if (referenceFeatures.length > 0) {
+          combinedExtent = referenceSourceRef.current.getExtent();
+        }
+        
+        // Add test features to extent
+        if (testFeatures.length > 0) {
+          const testExtent = testSourceRef.current.getExtent();
+          if (combinedExtent) {
+            // Extend the existing extent
+            for (let i = 0; i < 4; i += 2) {
+              combinedExtent[i] = Math.min(combinedExtent[i], testExtent[i]);
+              combinedExtent[i+1] = Math.max(combinedExtent[i+1], testExtent[i+1]);
+            }
+          } else {
+            combinedExtent = testExtent;
+          }
+        }
+        
+        // Fit view to the combined extent with padding
+        if (combinedExtent) {
+          console.log('Fitting view to hypothesis areas:', combinedExtent);
+          mapInstanceRef.current.getView().fit(combinedExtent, {
+            padding: [50, 50, 50, 50],
+            maxZoom: 12,
+            duration: 1000 // Smooth animation
+          });
+        }
+      }
+      
+      // Force map render
+      mapInstanceRef.current.render();
+    }
+  }, [isHypothesisPanelActive]);
 
   return (
     <div 
