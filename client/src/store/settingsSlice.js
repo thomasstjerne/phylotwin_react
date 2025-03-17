@@ -12,7 +12,7 @@ const initialState = {
     genus: []
   },
   recordFilteringMode: 'specimen',
-  yearRange: [1950, 2024],
+  yearRange: [1950, 2025],
   selectedDiversityIndices: ['richness', 'pd', 'ses.pd'],
   randomizations: 100
 };
