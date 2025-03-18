@@ -56,54 +56,113 @@ const HypothesisResultsDialog = ({ open, onClose, results }) => {
   if (!results) return null;
   
   // Parse the results
-  const parsedResults = {};
+  let parsedData = [];
+  let metadata = {};
+  
   try {
     if (typeof results === 'object') {
-      // Already parsed
-      Object.assign(parsedResults, results);
+      if (results.data && results.metadata) {
+        // New format with data and metadata
+        parsedData = results.data;
+        metadata = results.metadata;
+      }
     } else if (typeof results === 'string') {
-      // Parse tab-delimited string
-      const lines = results.trim().split('\n');
-      const headers = lines[0].split('\t');
-      const values = lines[1].split('\t');
-      
-      headers.forEach((header, index) => {
-        parsedResults[header] = values[index];
-      });
+      try {
+        const jsonResults = JSON.parse(results);
+        if (jsonResults.data && jsonResults.metadata) {
+          parsedData = jsonResults.data;
+          metadata = jsonResults.metadata;
+        }
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        return null;
+      }
     }
   } catch (error) {
-    console.error('Error parsing results:', error);
+    console.error('Error processing results:', error);
+    return null;
   }
+
+  // Validate data structure
+  if (!Array.isArray(parsedData) || parsedData.length === 0) {
+    console.error('Invalid data structure:', parsedData);
+    return null;
+  }
+
+  console.log('Parsed data:', parsedData); // Debug log
   
   // Format numeric values
   const formatValue = (value) => {
-    if (value === undefined || value === null) return 'N/A';
+    if (value === undefined || value === null) return null;
+    
+    // If it's already a string and not a numeric string, return as is
+    if (typeof value === 'string' && isNaN(parseFloat(value))) return value;
     
     // Try to parse as number
     const num = parseFloat(value);
-    if (isNaN(num)) return value;
+    if (isNaN(num)) return null;
     
     // Format based on magnitude
-    if (Math.abs(num) < 0.01) {
+    if (Math.abs(num) < 0.01 && num !== 0) {
       return num.toExponential(2);
+    } else if (Number.isInteger(num)) {
+      return num.toString();
     } else {
-      return num.toFixed(3);
+      return num.toFixed(2);
     }
   };
   
-  // Prepare data for display
-  const tableData = Object.entries(parsedResults)
-    .filter(([key]) => key !== 'rawData') // Exclude raw data
-    .map(([key, value]) => ({
-      metric: key,
-      value: formatValue(value)
-    }));
+  // Extract metrics (excluding Area) and areas
+  const metrics = Object.keys(parsedData[0] || {}).filter(key => key !== 'Area');
+  
+  // Explicitly define the order of areas we want to display
+  const areaOrder = ['Entire area', 'Reference', 'Test'];
+  const areas = areaOrder.filter(area => 
+    parsedData.some(item => item.Area === area)
+  );
+
+  console.log('Areas:', areas); // Debug log
+  
+  // Create table data structure with rows for each metric and columns for areas
+  const tableRows = metrics.map(metric => {
+    const row = {
+      metric,
+      description: metadata[metric]?.description || '',
+    };
+    
+    // Add values for each area
+    areas.forEach(area => {
+      const areaData = parsedData.find(item => item.Area === area);
+      const value = formatValue(areaData?.[metric]);
+      row[area] = value;
+    });
+    
+    return row;
+  });
+
+  console.log('Table rows:', tableRows); // Debug log
+  
+  // Function to determine if a value should be highlighted
+  const shouldHighlight = (metric, value, area) => {
+    if (area === 'Entire area' || !value || value === null) return false;
+    
+    const referenceValue = parseFloat(tableRows.find(row => row.metric === metric)?.['Reference']);
+    const testValue = parseFloat(tableRows.find(row => row.metric === metric)?.['Test']);
+    
+    if (isNaN(referenceValue) || isNaN(testValue)) return false;
+    
+    const currentValue = parseFloat(value);
+    if (isNaN(currentValue)) return false;
+    
+    return Math.abs(currentValue) === Math.max(Math.abs(referenceValue), Math.abs(testValue));
+  };
   
   return (
     <Dialog 
       open={open} 
       onClose={onClose}
-      maxWidth="md"
+      maxWidth="lg"
+      fullWidth
       PaperProps={{
         sx: {
           borderRadius: 2,
@@ -127,21 +186,73 @@ const HypothesisResultsDialog = ({ open, onClose, results }) => {
         <Typography variant="body2" color="text.secondary" paragraph>
           Comparison of biodiversity metrics between reference and test areas.
         </Typography>
-        <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
-          <Table size="small">
+        <TableContainer component={Paper} variant="outlined" sx={{ mt: 2, overflow: 'auto' }}>
+          <Table size="small" sx={{ minWidth: 650 }}>
             <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Metric</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Value</TableCell>
+              <TableRow sx={{ backgroundColor: 'rgba(0, 0, 0, 0.03)' }}>
+                <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Metric</TableCell>
+                {areas.map((area, index) => (
+                  <TableCell 
+                    key={`header-${area}`}
+                    sx={{ 
+                      fontWeight: 'bold',
+                      backgroundColor: index === 0 ? 'rgba(0, 0, 0, 0.03)' : 
+                                     index === 1 ? 'rgba(66, 133, 244, 0.05)' : 
+                                     'rgba(52, 168, 83, 0.05)'
+                    }}
+                  >
+                    {area}
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {tableData.map((row) => (
-                <TableRow key={row.metric}>
-                  <TableCell component="th" scope="row">
-                    {row.metric}
+              {tableRows.map((row, rowIndex) => (
+                <TableRow key={`row-${rowIndex}-${row.metric}`} hover>
+                  <TableCell 
+                    component="th" 
+                    scope="row"
+                    sx={{ 
+                      paddingLeft: 2,
+                      borderLeft: '4px solid transparent'
+                    }}
+                  >
+                    <Tooltip 
+                      title={
+                        <Box sx={{ p: 1 }}>
+                          <Typography variant="body2">
+                            {row.description || 'No description available'}
+                          </Typography>
+                        </Box>
+                      }
+                      placement="right"
+                      arrow
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {row.metric}
+                        <InfoIcon 
+                          fontSize="small" 
+                          sx={{ ml: 1, opacity: 0.6, width: 16, height: 16 }} 
+                        />
+                      </Box>
+                    </Tooltip>
                   </TableCell>
-                  <TableCell>{row.value}</TableCell>
+                  {areas.map((area, columnIndex) => (
+                    <TableCell 
+                      key={`cell-${rowIndex}-${area}`}
+                      sx={{
+                        backgroundColor: columnIndex === 0 ? 'rgba(0, 0, 0, 0.01)' : 
+                                       columnIndex === 1 ? 'rgba(66, 133, 244, 0.03)' : 
+                                       'rgba(52, 168, 83, 0.03)',
+                        fontFamily: 'monospace',
+                        fontWeight: shouldHighlight(row.metric, row[area], area) ? 'bold' : 'normal',
+                        color: shouldHighlight(row.metric, row[area], area) ? 'primary.main' : 'inherit'
+                      }}
+                      align="right"
+                    >
+                      {row[area] === null ? '—' : row[area]}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))}
             </TableBody>
