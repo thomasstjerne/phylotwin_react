@@ -1308,11 +1308,11 @@ const MapComponent = () => {
         console.log('Raw drawn feature:', drawnFeature);
         debugFeature(drawnFeature, source);
         
-        // Convert feature to GeoJSON
+        // Convert feature to GeoJSON, transforming to EPSG:4326
         const format = new GeoJSON();
         const feature = format.writeFeatureObject(drawnFeature, {
-          featureProjection: 'EPSG:3857',
-          dataProjection: 'EPSG:3857' // Keep in the same projection
+          featureProjection: 'EPSG:3857',   // Mercator
+          dataProjection: 'EPSG:4326'       // Transform to WGS84
         });
         
         // Ensure the feature has properties
@@ -1324,7 +1324,7 @@ const MapComponent = () => {
         feature.properties.areaType = hypothesisDrawingMode;
         feature.properties.drawnOnMap = true;
         
-        console.log('Dispatching feature with properties:', feature);
+        console.log('Dispatching feature with transformed coordinates:', feature);
         
         // Dispatch to the appropriate action
         if (hypothesisDrawingMode === 'reference') {
@@ -1338,11 +1338,16 @@ const MapComponent = () => {
       modifyRef.current.on('modifyend', (event) => {
         console.log('Hypothesis modify ended:', hypothesisDrawingMode);
         
-        // Get all features from the source
+        // Get all features from the source and transform them to EPSG:4326
         const features = source.getFeatures().map(feature => {
           const format = new GeoJSON();
-          return format.writeFeatureObject(feature);
+          return format.writeFeatureObject(feature, {
+            featureProjection: 'EPSG:3857',
+            dataProjection: 'EPSG:4326'  // Transform to WGS84
+          });
         });
+        
+        console.log('Modified features with transformed coordinates:', features);
         
         // Clear the source and re-add all features
         if (hypothesisDrawingMode === 'reference') {
@@ -1408,7 +1413,7 @@ const MapComponent = () => {
             featureProjection: 'EPSG:3857',
             // If the feature was drawn on the map, it's already in EPSG:3857
             // Otherwise, assume it's in EPSG:4326 (standard GeoJSON)
-            dataProjection: wasDrawnOnMap ? 'EPSG:3857' : 'EPSG:4326'
+            dataProjection: 'EPSG:4326'  // Always assume WGS84 input
           });
           
           console.log('Added reference feature to map:', olFeature);
@@ -1469,7 +1474,7 @@ const MapComponent = () => {
             featureProjection: 'EPSG:3857',
             // If the feature was drawn on the map, it's already in EPSG:3857
             // Otherwise, assume it's in EPSG:4326 (standard GeoJSON)
-            dataProjection: wasDrawnOnMap ? 'EPSG:3857' : 'EPSG:4326'
+            dataProjection: 'EPSG:4326'  // Always assume WGS84 input
           });
           
           console.log('Added test feature to map:', olFeature);
