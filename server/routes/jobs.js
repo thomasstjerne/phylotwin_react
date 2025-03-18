@@ -272,13 +272,18 @@ router.post("/:jobid/hypothesis-test",
 
       // Check if job exists and belongs to user
       const jobRecord = db.get("runs")
-        .find({ 
-          run: jobId,
-          username: req.user?.userName 
-        })
+        .find(run => 
+          run.run === jobId && 
+          (run.username === req?.user?.userName || run.userName === req?.user?.userName)
+        )
         .value();
 
       if (!jobRecord) {
+        console.error('Job not found or unauthorized:', {
+          jobId,
+          user: req?.user?.userName,
+          foundJob: !!jobRecord
+        });
         return res.status(404).json({ error: 'Job not found or unauthorized' });
       }
 
@@ -385,13 +390,18 @@ router.get("/:jobid/hypothesis-test/results", auth.appendUser(), async (req, res
     
     // Check if job exists and belongs to user
     const jobRecord = db.get("runs")
-      .find({ 
-        run: jobId,
-        username: req.user?.userName 
-      })
+      .find(run => 
+        run.run === jobId && 
+        (run.username === req?.user?.userName || run.userName === req?.user?.userName)
+      )
       .value();
 
     if (!jobRecord) {
+      console.error('Job not found or unauthorized:', {
+        jobId,
+        user: req?.user?.userName,
+        foundJob: !!jobRecord
+      });
       return res.status(404).json({ error: 'Job not found or unauthorized' });
     }
     
@@ -451,13 +461,18 @@ router.get("/:jobid/hypothesis-test/status", auth.appendUser(), async (req, res)
     
     // Check if job exists and belongs to user
     const jobRecord = db.get("runs")
-      .find({ 
-        run: jobId,
-        username: req.user?.userName 
-      })
+      .find(run => 
+        run.run === jobId && 
+        (run.username === req?.user?.userName || run.userName === req?.user?.userName)
+      )
       .value();
 
     if (!jobRecord) {
+      console.error('Job not found or unauthorized:', {
+        jobId,
+        user: req?.user?.userName,
+        foundJob: !!jobRecord
+      });
       return res.status(404).json({ error: 'Job not found or unauthorized' });
     }
     
