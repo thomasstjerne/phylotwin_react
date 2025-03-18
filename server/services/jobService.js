@@ -761,13 +761,13 @@ ${config.PIPELINE_DIR}/bin/hypothesis_test.R \
       // Capture stdout
       process.stdout.on('data', (data) => {
         logStream.write(data);
-        console.log(`[HYPOTHESIS TEST] ${data.toString().trim()}`);
+        // console.log(`[HYPOTHESIS TEST] ${data.toString().trim()}`);   // verbose output of the hypothesis test script
       });
       
       // Capture stderr
       process.stderr.on('data', (data) => {
         logStream.write(`[ERROR] ${data}`);
-        console.error(`[HYPOTHESIS TEST ERROR] ${data.toString().trim()}`);
+        // console.error(`[HYPOTHESIS TEST ERROR] ${data.toString().trim()}`);
       });
       
       // Handle process completion
