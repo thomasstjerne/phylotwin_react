@@ -482,4 +482,60 @@ router.get("/:jobid/hypothesis-test/status", auth.appendUser(), async (req, res)
   }
 });
 
+// Check for existing hypothesis test results
+router.get("/:jobid/hypothesis-test/previous", auth.appendUser(), async (req, res) => {
+  try {
+    const jobId = req.params.jobid;
+    
+    // Check if job exists and belongs to user
+    const jobRecord = db.get("runs")
+      .find(run => 
+        run.run === jobId && 
+        (run.username === req?.user?.userName || run.userName === req?.user?.userName)
+      )
+      .value();
+
+    if (!jobRecord) {
+      return res.status(404).json({ error: 'Job not found or unauthorized' });
+    }
+    
+    // Check for existing files
+    const hypothesisDir = path.join(config.OUTPUT_PATH, jobId, 'output', '03.Hypothesis_tests');
+    const files = {
+      results: path.join(hypothesisDir, 'HypTest_diversity.json'),
+      referencePolygon: path.join(hypothesisDir, 'poly_reference.geojson'),
+      testPolygon: path.join(hypothesisDir, 'poly_test.geojson')
+    };
+    
+    try {
+      // Check if all required files exist
+      await Promise.all(Object.values(files).map(file => 
+        fsPromises.access(file, fs.constants.F_OK)
+      ));
+      
+      // Read the files
+      const [results, referencePolygon, testPolygon] = await Promise.all([
+        fsPromises.readFile(files.results, 'utf8'),
+        fsPromises.readFile(files.referencePolygon, 'utf8'),
+        fsPromises.readFile(files.testPolygon, 'utf8')
+      ]);
+      
+      res.json({
+        exists: true,
+        results: JSON.parse(results),
+        polygons: {
+          reference: JSON.parse(referencePolygon),
+          test: JSON.parse(testPolygon)
+        }
+      });
+    } catch (error) {
+      // If any file is missing, return exists: false
+      res.json({ exists: false });
+    }
+  } catch (error) {
+    console.error('Error checking previous results:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router; 
