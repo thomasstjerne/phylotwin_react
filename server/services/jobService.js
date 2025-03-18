@@ -723,21 +723,25 @@ async function runHypothesisTest(jobId, referencePolygonPath, testPolygonPath) {
     const resolution = jobRecord.params?.resolution || 4;
     
     // Construct Docker command
+    // Notes:
+    // - path to phylowtin scripts should by added to the $PATH INSIDE the container,
+    //   therefore use single quotes, otherwise the $PATH will be interpreted as the path of host machine
+    // - `duckdb_extdir` specifies the path to DuckDB extensions INSIDE the container
+
     const dockerCommand = `docker run --rm \
 -v ${hypothesisDir}:${hypothesisDir} \
 -v ${outputDir}:${outputDir} \
--v ~/.nextflow/assets/vmikk/phylotwin:~/.nextflow/assets/vmikk/phylotwin \
--v /tmp:/tmp \
+-v ${config.PIPELINE_DIR}:${config.PIPELINE_DIR} \
 vmikk/phylotwin:0.6.0 \
-sh -c "export PATH=~/.nextflow/assets/vmikk/phylotwin/bin:\$PATH && \
-~/.nextflow/assets/vmikk/phylotwin/bin/hypothesis_test.R \
+sh -c 'export PATH=${config.PIPELINE_DIR}/bin:\$PATH && \
+${config.PIPELINE_DIR}/bin/hypothesis_test.R \
  --polygons_reference ${hypothesisDir}/poly_reference.geojson \
  --polygons_test ${hypothesisDir}/poly_test.geojson \
  --occurrences ${outputDir}/01.Occurrence_subset/aggregated_counts.parquet \
  --tree ${outputDir}/01.Occurrence_subset/phylogenetic_tree.nex \
  --resolution ${resolution} \
  --results ${hypothesisDir}/HypTest \
- --duckdb_extdir /usr/local/bin/duckdb_ext"`;
+ --duckdb_extdir /usr/local/bin/duckdb_ext'`;
     
     console.log('\n=== RUNNING HYPOTHESIS TEST ===');
     console.log(`Command: ${dockerCommand}`);
