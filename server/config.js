@@ -3,10 +3,11 @@ const fs = require("fs");
 const findExecutable = require('./utils/findExecutable');
 
 const userHomeDir = os.homedir();
-const PhyloTwinTestDataDir = `${userHomeDir}/.nextflow/assets/vmikk/phylotwin/test_data`;
-const PhyloTwinPipelineDataDir = `${userHomeDir}/.nextflow/assets/vmikk/phylotwin/pipeline_data`;
-const OUTPUT_PATH = `${userHomeDir}/phylotwin_data/runs`;
-const PERSISTANT_ACCESS_PATH = `${userHomeDir}/phylotwin_data/persistant`;
+const PhyloTwinTestDataDir     = `${userHomeDir}/.nextflow/assets/vmikk/phylotwin/test_data`;
+const PhyloTwinPipelineDir     = `${userHomeDir}/.nextflow/assets/vmikk/phylotwin`;
+const PhyloTwinPipelineDataDir = `${PhyloTwinPipelineDir}/pipeline_data`;
+const OUTPUT_PATH              = `${userHomeDir}/phylotwin_data/runs`;
+const PERSISTANT_ACCESS_PATH   = `${userHomeDir}/phylotwin_data/persistant`;
 
 const env = process.env.NODE_ENV || 'development';
 
@@ -21,11 +22,12 @@ if (!nextflowPath) {
 // Define configurations
 const configs = {
     development: {
-        INPUT_PATH: `${userHomeDir}/phylotwin_data/preprocessed_occurrences_parquet`,
-        OUTPUT_PATH: OUTPUT_PATH,
-        TEST_DATA: PhyloTwinTestDataDir,
+        INPUT_PATH:    `${userHomeDir}/phylotwin_data/preprocessed_occurrences_parquet`,
+        OUTPUT_PATH:   OUTPUT_PATH,
+        TEST_DATA:     PhyloTwinTestDataDir,
+        PIPELINE_DIR:  PhyloTwinPipelineDir,
         PIPELINE_DATA: PhyloTwinPipelineDataDir,
-        EXPRESS_PORT: 9000,
+        EXPRESS_PORT:  9000,
         NEXTFLOW: nextflowPath || 'nextflow', // Fallback to expecting it in PATH
         GBIF_API: 'https://api.gbif-uat.org/v1/',
         GBIF_REGISTRY_API: 'https://registry-api.gbif-uat.org/',
@@ -35,11 +37,12 @@ const configs = {
         DB_LOCATION: `${userHomeDir}/phylotwin_data/db.json`
     },
     production: {
-        INPUT_PATH: `/mnt/auto/scratch/mblissett/cloud-data/latest/preprocessed_occurrences_parquet`,
-        OUTPUT_PATH: '/opt/phylotwin/runs',
-        TEST_DATA: '/opt/phylotwin/.nextflow/assets/vmikk/phylotwin/test_data',
+        INPUT_PATH:    '/mnt/auto/scratch/mblissett/cloud-data/latest/preprocessed_occurrences_parquet',
+        OUTPUT_PATH:   '/opt/phylotwin/runs',
+        TEST_DATA:     '/opt/phylotwin/.nextflow/assets/vmikk/phylotwin/test_data',
+        PIPELINE_DIR:  '/opt/phylotwin/.nextflow/assets/vmikk/phylotwin',
         PIPELINE_DATA: '/opt/phylotwin/.nextflow/assets/vmikk/phylotwin/pipeline_data',
-        EXPRESS_PORT: 9000,
+        EXPRESS_PORT:   9000,
         NEXTFLOW: process.env.NEXTFLOW_PATH || nextflowPath || '/opt/phylotwin/nextflow',
         GBIF_API: 'https://api.gbif.org/v1/',
         GBIF_REGISTRY_API: 'https://registry-api.gbif.org/',
