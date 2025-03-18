@@ -416,25 +416,20 @@ router.get("/:jobid/hypothesis-test/results", auth.appendUser(), async (req, res
     // Get results file paths
     const hypothesisDir = path.join(config.OUTPUT_PATH, jobId, 'output', '03.Hypothesis_tests');
     const diversityResultsPath = path.join(hypothesisDir, 'HypTest_diversity.txt');
+    const diversityJsonResultsPath = path.join(hypothesisDir, 'HypTest_diversity.json');
     const originalityResultsPath = path.join(hypothesisDir, 'HypTest_species_originalities.txt');
     
     try {
       // Check if results files exist
       await fsPromises.access(diversityResultsPath, fs.constants.F_OK);
+      await fsPromises.access(diversityJsonResultsPath, fs.constants.F_OK);
       await fsPromises.access(originalityResultsPath, fs.constants.F_OK);
       
       // Read diversity results
-      const diversityResults = await fsPromises.readFile(diversityResultsPath, 'utf8');
+      const diversityResults = await fsPromises.readFile(diversityJsonResultsPath, 'utf8');
       
-      // Parse tab-delimited file
-      const lines = diversityResults.trim().split('\n');
-      const headers = lines[0].split('\t');
-      const values = lines[1].split('\t');
-      
-      const parsedResults = {};
-      headers.forEach((header, index) => {
-        parsedResults[header] = values[index];
-      });
+      // Parse JSON results
+      const parsedResults = JSON.parse(diversityResults);
       
       res.json({
         status: 'completed',

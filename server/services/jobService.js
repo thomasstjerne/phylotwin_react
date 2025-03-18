@@ -782,14 +782,16 @@ ${config.PIPELINE_DIR}/bin/hypothesis_test.R \
           
           // Check if result files exist
           const diversityResultsPath = path.join(hypothesisDir, 'HypTest_diversity.txt');
+          const diversityJsonResultsPath = path.join(hypothesisDir, 'HypTest_diversity.json');
           const originalityResultsPath = path.join(hypothesisDir, 'HypTest_species_originalities.txt');
           
           try {
             await fsPromises.access(diversityResultsPath, fs.constants.F_OK);
+            await fsPromises.access(diversityJsonResultsPath, fs.constants.F_OK);
             await fsPromises.access(originalityResultsPath, fs.constants.F_OK);
             
             // Read diversity results
-            const diversityResults = await fsPromises.readFile(diversityResultsPath, 'utf8');
+            const diversityResults = await fsPromises.readFile(diversityJsonResultsPath, 'utf8');
             
             // Parse tab-delimited file
             const results = {
