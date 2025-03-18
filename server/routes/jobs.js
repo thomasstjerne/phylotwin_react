@@ -5,8 +5,29 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const config = require('../config');
 const auth = require('../Auth/auth');
-const { jobs, killJob, removeJobData, collectLogFiles, getSessionId, saveParametersToFile } = require('../services/jobService');
+const { jobs, killJob, removeJobData, collectLogFiles, getSessionId, saveParametersToFile, runHypothesisTest } = require('../services/jobService');
 const path = require('path');
+const multer = require('multer');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: async function (req, file, cb) {
+    const jobDir = path.join(config.OUTPUT_PATH, req.params.jobid, 'temp');
+    try {
+      await fsPromises.mkdir(jobDir, { recursive: true });
+      cb(null, jobDir);
+    } catch (error) {
+      console.error('Error creating temp directory:', error);
+      cb(error);
+    }
+  },
+  filename: function (req, file, cb) {
+    // Use original filename for uploaded files
+    cb(null, file.originalname);
+  }
+});
+
+const upload = multer({ storage });
 
 // Track last logged status for each job to prevent duplicate logs
 const lastLoggedStatus = new Map();
@@ -226,6 +247,227 @@ router.get('/:jobid/logs/:filename', auth.appendUser(), async (req, res) => {
     fileStream.pipe(res);
   } catch (error) {
     console.error('Error retrieving log file:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Hypothesis test endpoint
+router.post("/:jobid/hypothesis-test", 
+  auth.appendUser(),
+  upload.fields([
+    { name: 'referenceFile', maxCount: 1 },
+    { name: 'testFile', maxCount: 1 },
+    { name: 'referenceGeoJSON', maxCount: 1 },
+    { name: 'testGeoJSON', maxCount: 1 }
+  ]),
+  async (req, res) => {
+    try {
+      const jobId = req.params.jobid;
+      console.log('\n=== HYPOTHESIS TEST REQUEST ===');
+      console.log(`Job ID: ${jobId}`);
+      console.log(`Time: ${new Date().toISOString()}`);
+      console.log(`User: ${req.user?.userName}`);
+      console.log('Files:', req.files);
+      console.log('================================\n');
+
+      // Check if job exists and belongs to user
+      const jobRecord = db.get("runs")
+        .find({ 
+          run: jobId,
+          username: req.user?.userName 
+        })
+        .value();
+
+      if (!jobRecord) {
+        return res.status(404).json({ error: 'Job not found or unauthorized' });
+      }
+
+      // Create temp directory for processing files
+      const tempDir = path.join(config.OUTPUT_PATH, jobId, 'temp');
+      await fsPromises.mkdir(tempDir, { recursive: true });
+
+      // Process reference area
+      let referencePolygonPath;
+      if (req.files.referenceFile && req.files.referenceFile[0]) {
+        // Use uploaded file
+        referencePolygonPath = req.files.referenceFile[0].path;
+        console.log('Using uploaded reference file:', referencePolygonPath);
+      } else if (req.files.referenceGeoJSON && req.files.referenceGeoJSON[0]) {
+        // Use GeoJSON from form data
+        referencePolygonPath = req.files.referenceGeoJSON[0].path;
+        console.log('Using reference GeoJSON from form data:', referencePolygonPath);
+      } else {
+        return res.status(400).json({ error: 'Reference area not provided' });
+      }
+
+      // Process test area
+      let testPolygonPath;
+      if (req.files.testFile && req.files.testFile[0]) {
+        // Use uploaded file
+        testPolygonPath = req.files.testFile[0].path;
+        console.log('Using uploaded test file:', testPolygonPath);
+      } else if (req.files.testGeoJSON && req.files.testGeoJSON[0]) {
+        // Use GeoJSON from form data
+        testPolygonPath = req.files.testGeoJSON[0].path;
+        console.log('Using test GeoJSON from form data:', testPolygonPath);
+      } else {
+        return res.status(400).json({ error: 'Test area not provided' });
+      }
+
+      // Run hypothesis test
+      console.log('Running hypothesis test with:');
+      console.log(`Reference polygon: ${referencePolygonPath}`);
+      console.log(`Test polygon: ${testPolygonPath}`);
+
+      // Update job status in database
+      db.get("runs")
+        .find({ run: jobId })
+        .assign({ hypothesisTestStatus: 'running' })
+        .write();
+
+      // Run the hypothesis test asynchronously
+      runHypothesisTest(jobId, referencePolygonPath, testPolygonPath)
+        .then(results => {
+          console.log('\n=== HYPOTHESIS TEST RESULTS ===');
+          console.log(`Job ID: ${jobId}`);
+          console.log('Results available');
+          console.log('==============================\n');
+          
+          // Update job status in database
+          db.get("runs")
+            .find({ run: jobId })
+            .assign({ 
+              hypothesisTestStatus: 'completed',
+              hypothesisTestCompleted: new Date().toISOString()
+            })
+            .write();
+        })
+        .catch(error => {
+          console.error('\n=== HYPOTHESIS TEST ERROR ===');
+          console.error(`Job ID: ${jobId}`);
+          console.error(`Error: ${error.message}`);
+          console.error('============================\n');
+          
+          // Update job status in database
+          db.get("runs")
+            .find({ run: jobId })
+            .assign({ 
+              hypothesisTestStatus: 'error',
+              hypothesisTestError: error.message
+            })
+            .write();
+        })
+        .finally(() => {
+          // Clean up temp files
+          try {
+            fsPromises.rm(tempDir, { recursive: true, force: true });
+          } catch (error) {
+            console.error('Error cleaning up temp files:', error);
+          }
+        });
+
+      // Respond immediately with success
+      res.status(200).json({ 
+        message: 'Hypothesis test started successfully',
+        jobId
+      });
+    } catch (error) {
+      console.error('Error processing hypothesis test request:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Get hypothesis test results
+router.get("/:jobid/hypothesis-test/results", auth.appendUser(), async (req, res) => {
+  try {
+    const jobId = req.params.jobid;
+    
+    // Check if job exists and belongs to user
+    const jobRecord = db.get("runs")
+      .find({ 
+        run: jobId,
+        username: req.user?.userName 
+      })
+      .value();
+
+    if (!jobRecord) {
+      return res.status(404).json({ error: 'Job not found or unauthorized' });
+    }
+    
+    // Check if hypothesis test has been run
+    if (!jobRecord.hypothesisTestStatus || jobRecord.hypothesisTestStatus !== 'completed') {
+      return res.status(404).json({ 
+        error: 'Hypothesis test results not available',
+        status: jobRecord.hypothesisTestStatus || 'not_started'
+      });
+    }
+    
+    // Get results file paths
+    const hypothesisDir = path.join(config.OUTPUT_PATH, jobId, 'output', '03.Hypothesis_tests');
+    const diversityResultsPath = path.join(hypothesisDir, 'HypTest_diversity.txt');
+    const originalityResultsPath = path.join(hypothesisDir, 'HypTest_species_originalities.txt');
+    
+    try {
+      // Check if results files exist
+      await fsPromises.access(diversityResultsPath, fs.constants.F_OK);
+      await fsPromises.access(originalityResultsPath, fs.constants.F_OK);
+      
+      // Read diversity results
+      const diversityResults = await fsPromises.readFile(diversityResultsPath, 'utf8');
+      
+      // Parse tab-delimited file
+      const lines = diversityResults.trim().split('\n');
+      const headers = lines[0].split('\t');
+      const values = lines[1].split('\t');
+      
+      const parsedResults = {};
+      headers.forEach((header, index) => {
+        parsedResults[header] = values[index];
+      });
+      
+      res.json({
+        status: 'completed',
+        results: parsedResults,
+        rawData: diversityResults
+      });
+    } catch (error) {
+      console.error('Error reading hypothesis test results:', error);
+      res.status(404).json({ 
+        error: 'Hypothesis test results files not found',
+        message: error.message
+      });
+    }
+  } catch (error) {
+    console.error('Error getting hypothesis test results:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get hypothesis test status
+router.get("/:jobid/hypothesis-test/status", auth.appendUser(), async (req, res) => {
+  try {
+    const jobId = req.params.jobid;
+    
+    // Check if job exists and belongs to user
+    const jobRecord = db.get("runs")
+      .find({ 
+        run: jobId,
+        username: req.user?.userName 
+      })
+      .value();
+
+    if (!jobRecord) {
+      return res.status(404).json({ error: 'Job not found or unauthorized' });
+    }
+    
+    res.json({
+      status: jobRecord.hypothesisTestStatus || 'not_started',
+      completed: jobRecord.hypothesisTestCompleted,
+      error: jobRecord.hypothesisTestError
+    });
+  } catch (error) {
+    console.error('Error getting hypothesis test status:', error);
     res.status(500).json({ error: error.message });
   }
 });

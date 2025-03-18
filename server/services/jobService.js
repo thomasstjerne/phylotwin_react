@@ -675,6 +675,157 @@ async function cleanupOldWorkDirs() {
 // Run cleanup periodically, in milliseconds
 setInterval(cleanupOldWorkDirs, 7 * 24 * 60 * 60 * 1000);  // once a week
 
+/**
+ * Run hypothesis test for a job
+ * @param {string} jobId - The job ID
+ * @param {string} referencePolygonPath - Path to the reference polygon GeoJSON file
+ * @param {string} testPolygonPath - Path to the test polygon GeoJSON file
+ * @returns {Promise<object>} - Promise resolving to the test results
+ */
+async function runHypothesisTest(jobId, referencePolygonPath, testPolygonPath) {
+  try {
+    console.log('\n=== INITIALIZING HYPOTHESIS TEST ===');
+    console.log(`Job ID: ${jobId}`);
+    console.log(`Time: ${new Date().toISOString()}`);
+    console.log(`Reference polygon: ${referencePolygonPath}`);
+    console.log(`Test polygon: ${testPolygonPath}`);
+    console.log('==================================\n');
+
+    // Get job record from database
+    const jobRecord = db.get("runs")
+      .find({ run: jobId })
+      .value();
+
+    if (!jobRecord) {
+      throw new Error('Job not found');
+    }
+
+    // Create hypothesis test directory
+    const jobDir = path.join(config.OUTPUT_PATH, jobId);
+    const outputDir = path.join(jobDir, 'output');
+    const hypothesisDir = path.join(outputDir, '03.Hypothesis_tests');
+    
+    await fsPromises.mkdir(hypothesisDir, { recursive: true });
+    
+    // Copy polygon files to hypothesis directory
+    const referenceDestPath = path.join(hypothesisDir, 'poly_reference.geojson');
+    const testDestPath = path.join(hypothesisDir, 'poly_test.geojson');
+    
+    await fsPromises.copyFile(referencePolygonPath, referenceDestPath);
+    await fsPromises.copyFile(testPolygonPath, testDestPath);
+    
+    console.log('\n=== COPIED POLYGON FILES ===');
+    console.log(`Reference: ${referencePolygonPath} -> ${referenceDestPath}`);
+    console.log(`Test: ${testPolygonPath} -> ${testDestPath}`);
+    console.log('============================\n');
+    
+    // Get resolution from job parameters
+    const resolution = jobRecord.params?.resolution || 4;
+    
+    // Construct Docker command
+    const dockerCommand = `docker run --rm \
+-v ${hypothesisDir}:${hypothesisDir} \
+-v ${outputDir}:${outputDir} \
+-v ~/.nextflow/assets/vmikk/phylotwin:~/.nextflow/assets/vmikk/phylotwin \
+-v /tmp:/tmp \
+vmikk/phylotwin:0.6.0 \
+sh -c "export PATH=~/.nextflow/assets/vmikk/phylotwin/bin:\$PATH && \
+~/.nextflow/assets/vmikk/phylotwin/bin/hypothesis_test.R \
+ --polygons_reference ${hypothesisDir}/poly_reference.geojson \
+ --polygons_test ${hypothesisDir}/poly_test.geojson \
+ --occurrences ${outputDir}/01.Occurrence_subset/aggregated_counts.parquet \
+ --tree ${outputDir}/01.Occurrence_subset/phylogenetic_tree.nex \
+ --resolution ${resolution} \
+ --results ${hypothesisDir}/HypTest \
+ --duckdb_extdir /usr/local/bin/duckdb_ext"`;
+    
+    console.log('\n=== RUNNING HYPOTHESIS TEST ===');
+    console.log(`Command: ${dockerCommand}`);
+    console.log('===============================\n');
+    
+    // Create log file
+    const logFile = path.join(hypothesisDir, 'hypothesis_test.log');
+    const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+    
+    // Execute command
+    return new Promise((resolve, reject) => {
+      const process = child_process.exec(dockerCommand, {
+        cwd: hypothesisDir,
+        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      });
+      
+      // Capture stdout
+      process.stdout.on('data', (data) => {
+        logStream.write(data);
+        console.log(`[HYPOTHESIS TEST] ${data.toString().trim()}`);
+      });
+      
+      // Capture stderr
+      process.stderr.on('data', (data) => {
+        logStream.write(`[ERROR] ${data}`);
+        console.error(`[HYPOTHESIS TEST ERROR] ${data.toString().trim()}`);
+      });
+      
+      // Handle process completion
+      process.on('close', async (code) => {
+        logStream.end();
+        
+        if (code === 0) {
+          console.log('\n=== HYPOTHESIS TEST COMPLETED ===');
+          console.log(`Job ID: ${jobId}`);
+          console.log(`Time: ${new Date().toISOString()}`);
+          console.log('=================================\n');
+          
+          // Check if result files exist
+          const diversityResultsPath = path.join(hypothesisDir, 'HypTest_diversity.txt');
+          const originalityResultsPath = path.join(hypothesisDir, 'HypTest_species_originalities.txt');
+          
+          try {
+            await fsPromises.access(diversityResultsPath, fs.constants.F_OK);
+            await fsPromises.access(originalityResultsPath, fs.constants.F_OK);
+            
+            // Read diversity results
+            const diversityResults = await fsPromises.readFile(diversityResultsPath, 'utf8');
+            
+            // Parse tab-delimited file
+            const results = {
+              diversity: diversityResults,
+              originalityPath: originalityResultsPath
+            };
+            
+            resolve(results);
+          } catch (error) {
+            reject(new Error(`Hypothesis test completed but result files not found: ${error.message}`));
+          }
+        } else {
+          console.error('\n=== HYPOTHESIS TEST FAILED ===');
+          console.error(`Job ID: ${jobId}`);
+          console.error(`Time: ${new Date().toISOString()}`);
+          console.error(`Exit code: ${code}`);
+          console.error('==============================\n');
+          
+          reject(new Error(`Hypothesis test failed with exit code ${code}`));
+        }
+      });
+      
+      // Handle process error
+      process.on('error', (error) => {
+        logStream.end();
+        console.error('\n=== HYPOTHESIS TEST ERROR ===');
+        console.error(`Job ID: ${jobId}`);
+        console.error(`Time: ${new Date().toISOString()}`);
+        console.error(`Error: ${error.message}`);
+        console.error('============================\n');
+        
+        reject(error);
+      });
+    });
+  } catch (error) {
+    console.error('Error running hypothesis test:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   jobs,
   killJob,
@@ -685,4 +836,5 @@ module.exports = {
   cleanupOldWorkDirs,
   collectLogFiles,
   saveParametersToFile,
+  runHypothesisTest,
 }; 
