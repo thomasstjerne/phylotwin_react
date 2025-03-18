@@ -31,10 +31,131 @@ import {
   clearTestArea,
   setTestStatus,
   setResultsOpacity,
-  setError as setHypothesisError
+  setError as setHypothesisError,
+  setHypothesisTestResults
 } from '../store/hypothesisSlice';
 
+// Add imports for the results dialog
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import CloseIcon from '@mui/icons-material/Close';
+
 const drawerWidth = 340;
+
+// Results dialog component
+const HypothesisResultsDialog = ({ open, onClose, results }) => {
+  if (!results) return null;
+  
+  // Parse the results
+  const parsedResults = {};
+  try {
+    if (typeof results === 'object') {
+      // Already parsed
+      Object.assign(parsedResults, results);
+    } else if (typeof results === 'string') {
+      // Parse tab-delimited string
+      const lines = results.trim().split('\n');
+      const headers = lines[0].split('\t');
+      const values = lines[1].split('\t');
+      
+      headers.forEach((header, index) => {
+        parsedResults[header] = values[index];
+      });
+    }
+  } catch (error) {
+    console.error('Error parsing results:', error);
+  }
+  
+  // Format numeric values
+  const formatValue = (value) => {
+    if (value === undefined || value === null) return 'N/A';
+    
+    // Try to parse as number
+    const num = parseFloat(value);
+    if (isNaN(num)) return value;
+    
+    // Format based on magnitude
+    if (Math.abs(num) < 0.01) {
+      return num.toExponential(2);
+    } else {
+      return num.toFixed(3);
+    }
+  };
+  
+  // Prepare data for display
+  const tableData = Object.entries(parsedResults)
+    .filter(([key]) => key !== 'rawData') // Exclude raw data
+    .map(([key, value]) => ({
+      metric: key,
+      value: formatValue(value)
+    }));
+  
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="md"
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+        }
+      }}
+    >
+      <DialogTitle sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+        pb: 1
+      }}>
+        Hypothesis Test Results
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 2 }}>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Comparison of biodiversity metrics between reference and test areas.
+        </Typography>
+        <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold' }}>Metric</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Value</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {tableData.map((row) => (
+                <TableRow key={row.metric}>
+                  <TableCell component="th" scope="row">
+                    {row.metric}
+                  </TableCell>
+                  <TableCell>{row.value}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} color="primary">
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
 
 // Create a new slice of state for hypothesis testing
 const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
@@ -226,6 +347,85 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
     dispatch(clearTestArea());
   };
   
+  // Add state for results dialog
+  const [resultsDialogOpen, setResultsDialogOpen] = useState(false);
+  const [testResults, setTestResults] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+  
+  // Poll for test results
+  useEffect(() => {
+    let pollTimer;
+    
+    const pollTestStatus = async () => {
+      if (!jobId || !isPolling) return;
+      
+      try {
+        const response = await axiosWithAuth.get(
+          `${config.phylonextWebservice}/api/phylonext/jobs/${jobId}/hypothesis-test/status`
+        );
+        
+        console.log('Hypothesis test status:', response.data);
+        
+        if (response.data.status === 'completed') {
+          // Test completed, fetch results
+          const resultsResponse = await axiosWithAuth.get(
+            `${config.phylonextWebservice}/api/phylonext/jobs/${jobId}/hypothesis-test/results`
+          );
+          
+          console.log('Hypothesis test results:', resultsResponse.data);
+          
+          // Update state
+          setTestResults(resultsResponse.data.results);
+          setIsPolling(false);
+          setSuccess('Hypothesis test completed successfully.');
+          dispatch(setTestStatus('success'));
+          
+          // Store results in Redux
+          dispatch(setHypothesisTestResults(resultsResponse.data.results));
+          
+          // Open results dialog
+          setResultsDialogOpen(true);
+        } else if (response.data.status === 'error') {
+          // Test failed
+          setError(response.data.error || 'Hypothesis test failed');
+          setIsPolling(false);
+          dispatch(setTestStatus('error'));
+        } else if (response.data.status === 'running') {
+          // Test still running, continue polling
+          console.log('Hypothesis test still running, continuing to poll...');
+        } else {
+          // Unknown status
+          console.log('Unknown hypothesis test status:', response.data.status);
+        }
+      } catch (error) {
+        console.error('Error polling hypothesis test status:', error);
+        
+        // Don't stop polling on network errors
+        if (error.code === 'ERR_NETWORK') {
+          console.log('Network error, continuing to poll...');
+          return;
+        }
+        
+        setError(error.message || 'Failed to check hypothesis test status');
+        setIsPolling(false);
+      }
+    };
+    
+    if (isPolling) {
+      // Initial poll
+      pollTestStatus();
+      
+      // Set up polling interval
+      pollTimer = setInterval(pollTestStatus, 3000);
+    }
+    
+    return () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+      }
+    };
+  }, [jobId, isPolling, dispatch]);
+  
   // Handle hypothesis test submission
   const handleTestHypothesis = async () => {
     setIsSubmitting(true);
@@ -284,14 +484,16 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
       
       if (response.status === 200 || response.status === 201) {
         setSuccess('Hypothesis test submitted successfully. Results will be available soon.');
-        dispatch(setTestStatus('success'));
+        
+        // Start polling for results
+        setIsPolling(true);
       } else {
         throw new Error('Failed to submit hypothesis test');
       }
     } catch (error) {
       console.error('Error submitting hypothesis test:', error);
       setError(error.message || 'Failed to submit hypothesis test');
-      dispatch(setHypothesisError(error.message || 'Failed to submit hypothesis test'));
+      dispatch(setTestStatus('error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -319,336 +521,345 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
   );
   
   return (
-    <Drawer
-      variant="persistent"
-      anchor="left"
-      open={isOpen}
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        position: 'relative',
-        height: '100%',
-        '& .MuiDrawer-paper': {
-          width: isCollapsed ? 0 : drawerWidth,
-          boxSizing: 'border-box',
-          position: 'absolute',
+    <>
+      <Drawer
+        variant="persistent"
+        anchor="left"
+        open={isOpen}
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          position: 'relative',
           height: '100%',
-          border: 'none',
-          borderRight: '1px solid rgba(0, 0, 0, 0.12)',
-          top: 0,
-          transition: 'width 0.2s ease-in-out',
-          overflow: 'hidden',
-          zIndex: 1001, // Below header but above map
-        },
-      }}
-    >
-      <Box sx={{ 
-        p: 3, 
-        overflow: 'auto', 
-        height: '100%',
-        width: drawerWidth, // Keep content width fixed
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-      }}>
-        <Typography variant="h6" gutterBottom>
-          Hypothesis Testing
-        </Typography>
-        
-        {!filesExist ? (
-          <Alert severity="warning" sx={{ mt: 2 }}>
-            Required files are not available. Please complete an analysis first.
-            {process.env.NODE_ENV === 'development' && (
-              <Box sx={{ mt: 2 }}>
-                <Button 
-                  variant="outlined" 
-                  size="small" 
-                  onClick={() => {
-                    console.log('Manually enabling hypothesis testing');
-                    setFilesExist(true);
-                  }}
-                >
-                  Debug: Enable Testing
-                </Button>
-              </Box>
-            )}
-          </Alert>
-        ) : (
-          <>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Compare biodiversity metrics between two areas within your analyzed region.
-            </Typography>
-            
-            {/* Results Opacity Control */}
-            <Box sx={{ mt: 1, mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <OpacityIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
-                Results Layer Opacity
-                <Tooltip 
-                  title={
-                    <Box component="div" sx={{ typography: 'body2' }}>
-                      Adjust the opacity of the H3 cells to better see your test and reference areas. Lower values make the results more transparent.
-                    </Box>
-                  }
-                  placement="right"
-                >
-                  <IconButton size="small" sx={{ ml: 1 }}>
-                    <InfoIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+          '& .MuiDrawer-paper': {
+            width: isCollapsed ? 0 : drawerWidth,
+            boxSizing: 'border-box',
+            position: 'absolute',
+            height: '100%',
+            border: 'none',
+            borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+            top: 0,
+            transition: 'width 0.2s ease-in-out',
+            overflow: 'hidden',
+            zIndex: 1001, // Below header but above map
+          },
+        }}
+      >
+        <Box sx={{ 
+          p: 3, 
+          overflow: 'auto', 
+          height: '100%',
+          width: drawerWidth, // Keep content width fixed
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+        }}>
+          <Typography variant="h6" gutterBottom>
+            Hypothesis Testing
+          </Typography>
+          
+          {!filesExist ? (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              Required files are not available. Please complete an analysis first.
+              {process.env.NODE_ENV === 'development' && (
+                <Box sx={{ mt: 2 }}>
+                  <Button 
+                    variant="outlined" 
+                    size="small" 
+                    onClick={() => {
+                      console.log('Manually enabling hypothesis testing');
+                      setFilesExist(true);
+                    }}
+                  >
+                    Debug: Enable Testing
+                  </Button>
+                </Box>
+              )}
+            </Alert>
+          ) : (
+            <>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Compare biodiversity metrics between two areas within your analyzed region.
               </Typography>
-              <Box sx={{ px: 1, mt: 1 }}>
-                <Slider
-                  value={resultsOpacity}
-                  onChange={handleOpacityChange}
-                  aria-labelledby="results-opacity-slider"
-                  step={0.05}
-                  marks={[
-                    { value: 0.1, label: '10%' },
-                    { value: 0.5, label: '50%' },
-                    { value: 1, label: '100%' }
-                  ]}
-                  min={0.1}
-                  max={1}
-                  valueLabelDisplay="auto"
-                  valueLabelFormat={value => `${Math.round(value * 100)}%`}
-                  sx={{ 
-                    color: 'primary.main',
-                    '& .MuiSlider-thumb': {
-                      height: 20,
-                      width: 20,
-                    },
-                  }}
-                />
+              
+              {/* Results Opacity Control */}
+              <Box sx={{ mt: 1, mb: 2 }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                  <OpacityIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
+                  Results Layer Opacity
+                  <Tooltip 
+                    title={
+                      <Box component="div" sx={{ typography: 'body2' }}>
+                        Adjust the opacity of the H3 cells to better see your test and reference areas. Lower values make the results more transparent.
+                      </Box>
+                    }
+                    placement="right"
+                  >
+                    <IconButton size="small" sx={{ ml: 1 }}>
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Typography>
+                <Box sx={{ px: 1, mt: 1 }}>
+                  <Slider
+                    value={resultsOpacity}
+                    onChange={handleOpacityChange}
+                    aria-labelledby="results-opacity-slider"
+                    step={0.05}
+                    marks={[
+                      { value: 0.1, label: '10%' },
+                      { value: 0.5, label: '50%' },
+                      { value: 1, label: '100%' }
+                    ]}
+                    min={0.1}
+                    max={1}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={value => `${Math.round(value * 100)}%`}
+                    sx={{ 
+                      color: 'primary.main',
+                      '& .MuiSlider-thumb': {
+                        height: 20,
+                        width: 20,
+                      },
+                    }}
+                  />
+                </Box>
               </Box>
-            </Box>
-            
-            <Divider />
-            
-            {error && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {error}
-              </Alert>
-            )}
-            
-            {success && (
-              <Alert severity="success" sx={{ mt: 2 }}>
-                {success}
-              </Alert>
-            )}
-            
-            {/* Reference Area Section */}
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Reference Area
-        </Typography>
               
-              <FormControl component="fieldset">
-                <FormLabel>Selection method</FormLabel>
-                <RadioGroup
-                  value={referenceAreaMode || ''}
-                  onChange={(e) => handleReferenceAreaModeChange(e.target.value)}
-                >
-                  {/* Map Selection */}
-                  <FormControlLabel
-                    value="map"
-                    control={<Radio />}
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body2">Draw on map</Typography>
-                        <Tooltip 
-                          title={
-                            <Box component="div" sx={{ typography: 'body2' }}>
-                              Draw a polygon directly on the map. The area will be highlighted in blue.
-                            </Box>
-                          }
-                          placement="right"
-                        >
-                          <IconButton size="small" sx={{ ml: 1 }}>
-                            <InfoIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        {referenceAreaMode === 'map' && referenceArea.features.length > 0 && (
-                          <Tooltip title="Clear reference area">
-                            <IconButton 
-                              size="small" 
-                              sx={{ 
-                                ml: 1,
-                                color: 'error.main',
-                                '&:hover': {
-                                  backgroundColor: 'error.light',
-                                  color: 'error.dark'
-                                }
-                              }}
-                              onClick={handleClearReferenceArea}
-                            >
-                              <ClearIcon fontSize="small" />
+              <Divider />
+              
+              {error && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {error}
+                </Alert>
+              )}
+              
+              {success && (
+                <Alert severity="success" sx={{ mt: 2 }}>
+                  {success}
+                </Alert>
+              )}
+              
+              {/* Reference Area Section */}
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Reference Area
+              </Typography>
+                
+                <FormControl component="fieldset">
+                  <FormLabel>Selection method</FormLabel>
+                  <RadioGroup
+                    value={referenceAreaMode || ''}
+                    onChange={(e) => handleReferenceAreaModeChange(e.target.value)}
+                  >
+                    {/* Map Selection */}
+                    <FormControlLabel
+                      value="map"
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2">Draw on map</Typography>
+                          <Tooltip 
+                            title={
+                              <Box component="div" sx={{ typography: 'body2' }}>
+                                Draw a polygon directly on the map. The area will be highlighted in blue.
+                              </Box>
+                            }
+                            placement="right"
+                          >
+                            <IconButton size="small" sx={{ ml: 1 }}>
+                              <InfoIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                        )}
-                      </Box>
-                    }
-                  />
-                  
-                  {/* Upload */}
-                  <FormControlLabel
-                    value="upload"
-                    control={<Radio />}
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body2">Upload polygon</Typography>
-                        <Tooltip 
-                          title={
-                            <Box component="div" sx={{ typography: 'body2' }}>
-                              Import GeoPackage or GeoJSON file for reference area
-                            </Box>
-                          }
-                          placement="right"
-                        >
-                          <IconButton size="small" sx={{ ml: 1 }}>
-                            <InfoIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    }
-                  />
-                </RadioGroup>
-              </FormControl>
-              
-              {referenceAreaMode === 'upload' && (
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<UploadFileIcon />}
-                  sx={{ ml: 3, mt: 1, mb: 2 }}
-                  size="small"
-                >
-                  {referenceFile ? referenceFile.name : 'Choose file'}
-                  <input
-                    type="file"
-                    hidden
-                    accept=".gpkg,.geojson"
-                    onChange={handleReferenceFileUpload}
-                  />
-                </Button>
-              )}
-            </Box>
-            
-            <Divider />
-            
-            {/* Test Area Section */}
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Test Area
-        </Typography>
-              
-              <FormControl component="fieldset">
-                <FormLabel>Selection method</FormLabel>
-                <RadioGroup
-                  value={testAreaMode || ''}
-                  onChange={(e) => handleTestAreaModeChange(e.target.value)}
-                >
-                  {/* Map Selection */}
-                  <FormControlLabel
-                    value="map"
-                    control={<Radio />}
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body2">Draw on map</Typography>
-                        <Tooltip 
-                          title={
-                            <Box component="div" sx={{ typography: 'body2' }}>
-                              Draw a polygon directly on the map. The area will be highlighted in green.
-                            </Box>
-                          }
-                          placement="right"
-                        >
-                          <IconButton size="small" sx={{ ml: 1 }}>
-                            <InfoIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        {testAreaMode === 'map' && testArea.features.length > 0 && (
-                          <Tooltip title="Clear test area">
-                            <IconButton 
-                              size="small" 
-                              sx={{ 
-                                ml: 1,
-                                color: 'error.main',
-                                '&:hover': {
-                                  backgroundColor: 'error.light',
-                                  color: 'error.dark'
-                                }
-                              }}
-                              onClick={handleClearTestArea}
-                            >
-                              <ClearIcon fontSize="small" />
+                          {referenceAreaMode === 'map' && referenceArea.features.length > 0 && (
+                            <Tooltip title="Clear reference area">
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  ml: 1,
+                                  color: 'error.main',
+                                  '&:hover': {
+                                    backgroundColor: 'error.light',
+                                    color: 'error.dark'
+                                  }
+                                }}
+                                onClick={handleClearReferenceArea}
+                              >
+                                <ClearIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
+                      }
+                    />
+                    
+                    {/* Upload */}
+                    <FormControlLabel
+                      value="upload"
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2">Upload polygon</Typography>
+                          <Tooltip 
+                            title={
+                              <Box component="div" sx={{ typography: 'body2' }}>
+                                Import GeoPackage or GeoJSON file for reference area
+                              </Box>
+                            }
+                            placement="right"
+                          >
+                            <IconButton size="small" sx={{ ml: 1 }}>
+                              <InfoIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                        )}
-                      </Box>
-                    }
-                  />
-                  
-                  {/* Upload */}
-                  <FormControlLabel
-                    value="upload"
-                    control={<Radio />}
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body2">Upload polygon</Typography>
-                        <Tooltip 
-                          title={
-                            <Box component="div" sx={{ typography: 'body2' }}>
-                              Import GeoPackage or GeoJSON file for test area
-                            </Box>
-                          }
-                          placement="right"
-                        >
-                          <IconButton size="small" sx={{ ml: 1 }}>
-                            <InfoIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    }
-                  />
-                </RadioGroup>
-              </FormControl>
+                        </Box>
+                      }
+                    />
+                  </RadioGroup>
+                </FormControl>
+                
+                {referenceAreaMode === 'upload' && (
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<UploadFileIcon />}
+                    sx={{ ml: 3, mt: 1, mb: 2 }}
+                    size="small"
+                  >
+                    {referenceFile ? referenceFile.name : 'Choose file'}
+                    <input
+                      type="file"
+                      hidden
+                      accept=".gpkg,.geojson"
+                      onChange={handleReferenceFileUpload}
+                    />
+                  </Button>
+                )}
+              </Box>
               
-              {testAreaMode === 'upload' && (
+              <Divider />
+              
+              {/* Test Area Section */}
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Test Area
+              </Typography>
+                
+                <FormControl component="fieldset">
+                  <FormLabel>Selection method</FormLabel>
+                  <RadioGroup
+                    value={testAreaMode || ''}
+                    onChange={(e) => handleTestAreaModeChange(e.target.value)}
+                  >
+                    {/* Map Selection */}
+                    <FormControlLabel
+                      value="map"
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2">Draw on map</Typography>
+                          <Tooltip 
+                            title={
+                              <Box component="div" sx={{ typography: 'body2' }}>
+                                Draw a polygon directly on the map. The area will be highlighted in green.
+                              </Box>
+                            }
+                            placement="right"
+                          >
+                            <IconButton size="small" sx={{ ml: 1 }}>
+                              <InfoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          {testAreaMode === 'map' && testArea.features.length > 0 && (
+                            <Tooltip title="Clear test area">
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  ml: 1,
+                                  color: 'error.main',
+                                  '&:hover': {
+                                    backgroundColor: 'error.light',
+                                    color: 'error.dark'
+                                  }
+                                }}
+                                onClick={handleClearTestArea}
+                              >
+                                <ClearIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
+                      }
+                    />
+                    
+                    {/* Upload */}
+                    <FormControlLabel
+                      value="upload"
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2">Upload polygon</Typography>
+                          <Tooltip 
+                            title={
+                              <Box component="div" sx={{ typography: 'body2' }}>
+                                Import GeoPackage or GeoJSON file for test area
+                              </Box>
+                            }
+                            placement="right"
+                          >
+                            <IconButton size="small" sx={{ ml: 1 }}>
+                              <InfoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      }
+                    />
+                  </RadioGroup>
+                </FormControl>
+                
+                {testAreaMode === 'upload' && (
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<UploadFileIcon />}
+                    sx={{ ml: 3, mt: 1, mb: 2 }}
+                    size="small"
+                  >
+                    {testFile ? testFile.name : 'Choose file'}
+                    <input
+                      type="file"
+                      hidden
+                      accept=".gpkg,.geojson"
+                      onChange={handleTestFileUpload}
+                    />
+                  </Button>
+                )}
+              </Box>
+              
+              <Box sx={{ mt: 'auto', pt: 2 }}>
                 <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<UploadFileIcon />}
-                  sx={{ ml: 3, mt: 1, mb: 2 }}
-                  size="small"
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  startIcon={<CompareArrowsIcon />}
+                  disabled={!areBothAreasDefined || isSubmitting}
+                  onClick={handleTestHypothesis}
                 >
-                  {testFile ? testFile.name : 'Choose file'}
-                  <input
-                    type="file"
-                    hidden
-                    accept=".gpkg,.geojson"
-                    onChange={handleTestFileUpload}
-                  />
+                  {isSubmitting ? 'Submitting...' : 'Test Hypothesis'}
                 </Button>
-              )}
-            </Box>
-            
-            <Box sx={{ mt: 'auto', pt: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth
-                startIcon={<CompareArrowsIcon />}
-                disabled={!areBothAreasDefined || isSubmitting}
-                onClick={handleTestHypothesis}
-              >
-                {isSubmitting ? 'Submitting...' : 'Test Hypothesis'}
-              </Button>
-            </Box>
-          </>
-        )}
-      </Box>
-    </Drawer>
+              </Box>
+            </>
+          )}
+        </Box>
+      </Drawer>
+      
+      {/* Results Dialog */}
+      <HypothesisResultsDialog
+        open={resultsDialogOpen}
+        onClose={() => setResultsDialogOpen(false)}
+        results={testResults}
+      />
+    </>
   );
 };
 
