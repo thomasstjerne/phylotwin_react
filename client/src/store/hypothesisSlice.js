@@ -13,7 +13,8 @@ const initialState = {
   testResults: null,
   testStatus: 'idle', // 'idle', 'loading', 'success', 'error'
   error: null,
-  resultsOpacity: 0.5 // Default opacity for results layers when hypothesis testing is active
+  resultsOpacity: 0.5, // Default opacity for results layers when hypothesis testing is active
+  hypothesisTestResults: null // Store the results of the hypothesis test
 };
 
 const hypothesisSlice = createSlice({
@@ -65,6 +66,10 @@ const hypothesisSlice = createSlice({
     setResultsOpacity: (state, action) => {
       state.resultsOpacity = action.payload;
     },
+    setHypothesisTestResults: (state, action) => {
+      state.hypothesisTestResults = action.payload;
+      console.log('Hypothesis test results stored in Redux:', action.payload);
+    },
     resetHypothesis: (state) => {
       return initialState;
     }
@@ -81,6 +86,7 @@ export const {
   setTestStatus,
   setError,
   setResultsOpacity,
+  setHypothesisTestResults,
   resetHypothesis
 } = hypothesisSlice.actions;
 
