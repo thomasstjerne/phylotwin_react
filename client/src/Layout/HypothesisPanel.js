@@ -22,6 +22,7 @@ import {
   Clear as ClearIcon,
   CompareArrows as CompareArrowsIcon,
   Opacity as OpacityIcon,
+  Restore as RestoreIcon,
 } from '@mui/icons-material';
 import { axiosWithAuth } from '../Auth/userApi';
 import config from '../config';
@@ -32,7 +33,9 @@ import {
   setTestStatus,
   setResultsOpacity,
   setError as setHypothesisError,
-  setHypothesisTestResults
+  setHypothesisTestResults,
+  addReferenceFeature,
+  addTestFeature,
 } from '../store/hypothesisSlice';
 
 // Add imports for the results dialog
@@ -281,6 +284,8 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [previousResultsExist, setPreviousResultsExist] = useState(false);
+  const [isLoadingPrevious, setIsLoadingPrevious] = useState(false);
   
   // Get state from Redux
   const drawnItems = useSelector(state => state.map.drawnItems);
@@ -387,6 +392,25 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
       checkFiles();
     }
   }, [isOpen, jobId, status, visualizationGeoJSON, resultsGeoJSON, indices]);
+  
+  // Check for previous results when panel is opened
+  useEffect(() => {
+    if (isOpen && jobId) {
+      const checkPreviousResults = async () => {
+        try {
+          const response = await axiosWithAuth.get(
+            `${config.phylonextWebservice}/api/phylonext/jobs/${jobId}/hypothesis-test/previous`
+          );
+          setPreviousResultsExist(response.data.exists);
+        } catch (error) {
+          console.error('Error checking previous results:', error);
+          setPreviousResultsExist(false);
+        }
+      };
+      
+      checkPreviousResults();
+    }
+  }, [isOpen, jobId]);
   
   // Handle reference area mode change
   const handleReferenceAreaModeChange = (mode) => {
@@ -630,6 +654,46 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
     (testAreaMode === 'upload' && testFile) || 
     (testAreaMode === 'map' && testArea.features.length > 0)
   );
+  
+  // Handle loading previous results
+  const handleLoadPrevious = async () => {
+    setIsLoadingPrevious(true);
+    setError(null);
+    
+    try {
+      const response = await axiosWithAuth.get(
+        `${config.phylonextWebservice}/api/phylonext/jobs/${jobId}/hypothesis-test/previous`
+      );
+      
+      if (response.data.exists) {
+        // Load polygons onto the map
+        if (response.data.polygons.reference) {
+          dispatch({ type: 'hypothesis/clearReferenceArea' });
+          response.data.polygons.reference.features.forEach(feature => {
+            dispatch(addReferenceFeature(feature));
+          });
+        }
+        
+        if (response.data.polygons.test) {
+          dispatch({ type: 'hypothesis/clearTestArea' });
+          response.data.polygons.test.features.forEach(feature => {
+            dispatch(addTestFeature(feature));
+          });
+        }
+        
+        // Store results and show dialog
+        setTestResults(response.data.results);
+        dispatch(setHypothesisTestResults(response.data.results));
+        setResultsDialogOpen(true);
+        setSuccess('Previous results loaded successfully.');
+      }
+    } catch (error) {
+      console.error('Error loading previous results:', error);
+      setError('Failed to load previous results.');
+    } finally {
+      setIsLoadingPrevious(false);
+    }
+  };
   
   return (
     <>
@@ -947,7 +1011,20 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
                 )}
               </Box>
               
-              <Box sx={{ mt: 'auto', pt: 2 }}>
+              <Box sx={{ mt: 'auto', pt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {previousResultsExist && (
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    fullWidth
+                    disabled={isLoadingPrevious}
+                    onClick={handleLoadPrevious}
+                    startIcon={<RestoreIcon />}
+                  >
+                    {isLoadingPrevious ? 'Loading Previous Results...' : 'Load Previous Results'}
+                  </Button>
+                )}
+                
                 <Button
                   variant="contained"
                   color="primary"
