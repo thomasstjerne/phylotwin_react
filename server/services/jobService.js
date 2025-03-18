@@ -705,6 +705,36 @@ async function runHypothesisTest(jobId, referencePolygonPath, testPolygonPath) {
     const outputDir = path.join(jobDir, 'output');
     const hypothesisDir = path.join(outputDir, '03.Hypothesis_tests');
     
+    // Clean up old hypothesis test files if they exist
+    try {
+      console.log('\n=== CLEANING UP OLD FILES ===');
+      const filesToClean = [
+        path.join(hypothesisDir, 'poly_reference.geojson'),
+        path.join(hypothesisDir, 'poly_test.geojson'),
+        path.join(hypothesisDir, 'HypTest_diversity.txt'),
+        path.join(hypothesisDir, 'HypTest_diversity.json'),
+        path.join(hypothesisDir, 'HypTest_species_originalities.txt'),
+        path.join(hypothesisDir, 'hypothesis_test.log')
+      ];
+      
+      for (const file of filesToClean) {
+        try {
+          await fsPromises.unlink(file);
+          console.log(`Removed old file: ${file}`);
+        } catch (error) {
+          if (error.code !== 'ENOENT') {
+            // Log error only if it's not a "file not found" error
+            console.error(`Error removing file ${file}:`, error.message);
+          }
+        }
+      }
+      console.log('============================\n');
+    } catch (error) {
+      console.error('Error cleaning up old files:', error);
+      // Continue with the test even if cleanup fails
+    }
+    
+    // Create hypothesis directory (or recreate if it was deleted)
     await fsPromises.mkdir(hypothesisDir, { recursive: true });
     
     // Copy polygon files to hypothesis directory
@@ -723,11 +753,6 @@ async function runHypothesisTest(jobId, referencePolygonPath, testPolygonPath) {
     const resolution = jobRecord.params?.resolution || 4;
     
     // Construct Docker command
-    // Notes:
-    // - path to phylowtin scripts should by added to the $PATH INSIDE the container,
-    //   therefore use single quotes, otherwise the $PATH will be interpreted as the path of host machine
-    // - `duckdb_extdir` specifies the path to DuckDB extensions INSIDE the container
-
     const dockerCommand = `docker run --rm \
 -v ${hypothesisDir}:${hypothesisDir} \
 -v ${outputDir}:${outputDir} \
@@ -749,7 +774,7 @@ ${config.PIPELINE_DIR}/bin/hypothesis_test.R \
     
     // Create log file
     const logFile = path.join(hypothesisDir, 'hypothesis_test.log');
-    const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+    const logStream = fs.createWriteStream(logFile, { flags: 'w' }); // Use 'w' to overwrite
     
     // Execute command
     return new Promise((resolve, reject) => {
@@ -761,13 +786,11 @@ ${config.PIPELINE_DIR}/bin/hypothesis_test.R \
       // Capture stdout
       process.stdout.on('data', (data) => {
         logStream.write(data);
-        // console.log(`[HYPOTHESIS TEST] ${data.toString().trim()}`);   // verbose output of the hypothesis test script
       });
       
       // Capture stderr
       process.stderr.on('data', (data) => {
         logStream.write(`[ERROR] ${data}`);
-        // console.error(`[HYPOTHESIS TEST ERROR] ${data.toString().trim()}`);
       });
       
       // Handle process completion
@@ -793,7 +816,7 @@ ${config.PIPELINE_DIR}/bin/hypothesis_test.R \
             // Read diversity results
             const diversityResults = await fsPromises.readFile(diversityJsonResultsPath, 'utf8');
             
-            // Parse tab-delimited file
+            // Parse JSON results
             const results = {
               diversity: diversityResults,
               originalityPath: originalityResultsPath
