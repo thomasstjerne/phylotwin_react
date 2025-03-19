@@ -147,7 +147,8 @@ const HypothesisResultsDialog = ({ open, onClose, results }) => {
   
   // Function to determine if a value should be highlighted
   const shouldHighlight = (metric, value, area) => {
-    if (area === 'Entire area' || !value || value === null) return false;
+    // Don't highlight if it's the entire area, null value, or SES PD metric
+    if (area === 'Entire area' || !value || value === null || metric === 'SES PD') return false;
     
     const referenceValue = parseFloat(tableRows.find(row => row.metric === metric)?.['Reference']);
     const testValue = parseFloat(tableRows.find(row => row.metric === metric)?.['Test']);
