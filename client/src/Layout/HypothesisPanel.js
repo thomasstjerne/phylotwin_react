@@ -518,6 +518,9 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
           // Store results in Redux
           dispatch(setHypothesisTestResults(resultsResponse.data.results));
           
+          // Set previousResultsExist to true since we now have results
+          setPreviousResultsExist(true);
+          
           // Open results dialog
           setResultsDialogOpen(true);
         } else if (response.data.status === 'error') {
