@@ -35,6 +35,28 @@ const StyledCard = styled(Card)`
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 24px;
+  
+  // Text size for all content within cards
+  .ant-card-head-title {
+    font-size: 20px;
+  }
+  
+  .ant-typography {
+    font-size: 14px;
+  }
+  
+  // Style the bullet points
+  ul {
+    padding-left: 20px;
+    
+    li {
+      margin-bottom: 8px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
 `;
 
 function App() {
