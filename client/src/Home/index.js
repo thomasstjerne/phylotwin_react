@@ -121,12 +121,21 @@ function App() {
       </StyledCard>
 
       <StyledCard title="Resources" style={{ marginTop: 24 }}>
-        <Space direction="vertical">
-          <Text>
-            Publication:{' '}
-            <Link href="https://doi.org/10.3897/rio.10.e124988" target="_blank">
-              Mikryukov V, Abarenkov K, Jeppesen TS, Schigel D, Frøslev T (2024) Prototype Biodiversity Digital Twin: Phylogenetic Diversity. Research Ideas and Outcomes 10: e124988.
-            </Link>
+        <Space direction="vertical" size="large">
+          <Text style={{ fontSize: '16px' }}>
+            Publications:
+            <ul style={{ marginTop: '8px', marginBottom: '8px' }}>
+              <li>
+                <Link href="https://riojournal.com/article/124988/" target="_blank">
+                  Mikryukov V, Abarenkov K, Jeppesen TS, Schigel D, Frøslev T (2024) Prototype Biodiversity Digital Twin: Phylogenetic Diversity. Research Ideas and Outcomes 10: e124988. DOI:10.3897/rio.10.e124988
+                </Link>
+              </li>
+              <li>
+                <Link href="https://bmcecolevol.biomedcentral.com/articles/10.1186/s12862-024-02256-9" target="_blank">
+                Mikryukov V, Abarenkov K, Laffan S, Robertson T, McTavish EJ, Jeppesen TS, Waller J, Blissett M, Kõljalg U, Miller JT (2024). PhyloNext: A pipeline for phylogenetic diversity analysis of GBIF-mediated data. BMC Ecology and Evolution, 24(1), 76. DOI:10.1186/s12862-024-02256-9
+                </Link>
+              </li>
+            </ul>
           </Text>
         </Space>
       </StyledCard>
