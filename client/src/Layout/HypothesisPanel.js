@@ -821,9 +821,19 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
               
               {/* Reference Area Section */}
               <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                   Reference Area
-              </Typography>
+                  <Box 
+                    sx={{ 
+                      ml: 1.5,
+                      width: 14,
+                      height: 14,
+                      backgroundColor: 'rgba(66, 133, 244, 0.3)',
+                      border: '1px solid rgba(66, 133, 244, 0.6)',
+                      borderRadius: 0.6,
+                    }} 
+                  />
+                </Typography>
                 
                 <FormControl component="fieldset">
                   <FormLabel>Selection method</FormLabel>
@@ -920,9 +930,19 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
               
               {/* Test Area Section */}
               <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                   Test Area
-              </Typography>
+                  <Box 
+                    sx={{ 
+                      ml: 1.5,
+                      width: 14,
+                      height: 14,
+                      backgroundColor: 'rgba(52, 168, 83, 0.3)',
+                      border: '1px solid rgba(52, 168, 83, 0.6)',
+                      borderRadius: 0.6,
+                    }} 
+                  />
+                </Typography>
                 
                 <FormControl component="fieldset">
                   <FormLabel>Selection method</FormLabel>
