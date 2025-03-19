@@ -201,8 +201,8 @@ const HypothesisResultsDialog = ({ open, onClose, results }) => {
                     sx={{ 
                       fontWeight: 'bold',
                       backgroundColor: index === 0 ? 'rgba(0, 0, 0, 0.03)' : 
-                                     index === 1 ? 'rgba(66, 133, 244, 0.05)' : 
-                                     'rgba(52, 168, 83, 0.05)'
+                                     index === 1 ? 'rgba(66, 133, 244, 0.15)' : 
+                                     'rgba(52, 168, 83, 0.15)'
                     }}
                   >
                     {area}
