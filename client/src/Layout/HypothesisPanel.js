@@ -218,7 +218,8 @@ const HypothesisResultsDialog = ({ open, onClose, results }) => {
                     scope="row"
                     sx={{ 
                       paddingLeft: 2,
-                      borderLeft: '4px solid transparent'
+                      borderLeft: '4px solid transparent',
+                      maxWidth: '250px'
                     }}
                   >
                     <Tooltip 
@@ -232,11 +233,30 @@ const HypothesisResultsDialog = ({ open, onClose, results }) => {
                       placement="right"
                       arrow
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {row.metric}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'flex-start',
+                      }}>
+                        <Typography 
+                          sx={{ 
+                            pr: 1,
+                            wordBreak: 'break-word',
+                            display: 'inline',
+                            lineHeight: 1.4
+                          }}
+                        >
+                          {row.metric}
+                        </Typography>
                         <InfoIcon 
                           fontSize="small" 
-                          sx={{ ml: 1, opacity: 0.6, width: 16, height: 16 }} 
+                          sx={{ 
+                            ml: 'auto',
+                            mt: '2px',
+                            opacity: 0.6,
+                            width: 16,
+                            height: 16,
+                            flexShrink: 0
+                          }} 
                         />
                       </Box>
                     </Tooltip>
