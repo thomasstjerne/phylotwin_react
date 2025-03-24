@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
-import { Layout as AntLayout, Button, theme, Spin, Dropdown, Tooltip, message } from 'antd';
+import { Layout as AntLayout, Button, theme, Spin, Dropdown, Tooltip, message, Tour } from 'antd';
 import { useSelector } from 'react-redux';
 import {
   MenuFoldOutlined,
@@ -26,6 +26,7 @@ const Layout = ({ step, setStep }) => {
   const [activePanel, setActivePanel] = useState('settings');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [isTourActive, setIsTourActive] = useState(false);
+  const [currentTourStep, setCurrentTourStep] = useState(0);
   const location = useLocation();
   const { id: runId } = useParams();
   const { status } = useSelector(state => state.results);
@@ -78,35 +79,114 @@ const Layout = ({ step, setStep }) => {
     });
   }, [activePanel, status, runId, isWorkflowPage]);
 
+  // Separate function for programmatic panel switching - MOVED BEFORE IT'S USED
+  const handlePanelOpen = useCallback((key) => {
+    console.log('Opening panel:', key, {
+      currentPanel: activePanel,
+      currentStatus: status,
+      runId,
+      isHistoricalRun: !!runId
+    });
+    
+    // Prevent unnecessary state updates
+    if (key === activePanel) {
+      console.log('Panel already active:', key);
+      return;
+    }
+
+    // For historical runs (when runId exists), allow switching between panels freely
+    if (runId) {
+      console.log('Historical run - allowing panel switch to:', key);
+      setActivePanel(key);
+      setIsPanelCollapsed(false);
+      return;
+    }
+
+    // For active sessions, validate panel transitions
+    if (key === 'settings' && status === 'running') {
+      console.log('Cannot switch to settings while analysis is running');
+      return;
+    }
+
+    console.log('Active session - allowing panel switch to:', key);
+    setActivePanel(key);
+    setIsPanelCollapsed(false);
+  }, [activePanel, status, runId]);
+
+  // Function to expand accordion based on tour step
+  const expandAccordionForStep = useCallback((step) => {
+    if (!isWorkflowPage) return;
+    
+    // Get all accordions
+    const accordions = document.querySelectorAll('.MuiAccordion-root');
+    if (!accordions.length) return;
+    
+    // Map step to accordion index
+    let accordionIndex = -1;
+    if (step === 1) accordionIndex = 0; // Spatial Filters
+    if (step === 2) accordionIndex = 1; // Taxonomic Filters
+    if (step === 3) accordionIndex = 2; // Data Selection
+    if (step === 4) accordionIndex = 3; // Diversity Estimation
+    
+    // Expand the target accordion and collapse others
+    if (accordionIndex >= 0 && accordionIndex < accordions.length) {
+      accordions.forEach((accordion, index) => {
+        const expanded = index === accordionIndex;
+        const summaryButton = accordion.querySelector('.MuiAccordionSummary-root');
+        
+        // Only toggle if current state doesn't match desired state
+        const isCurrentlyExpanded = accordion.classList.contains('Mui-expanded');
+        if (expanded !== isCurrentlyExpanded && summaryButton) {
+          summaryButton.click();
+        }
+      });
+    }
+  }, [isWorkflowPage]);
+
+  // Handle tour step change
+  const handleTourChange = useCallback((current) => {
+    console.log('Tour step changed to:', current);
+    setCurrentTourStep(current);
+    
+    // Add a small delay to ensure DOM elements are ready
+    setTimeout(() => {
+      expandAccordionForStep(current);
+    }, 300);
+  }, [expandAccordionForStep]);
+
+  // Handle tour close
+  const handleTourClose = useCallback(() => {
+    setIsTourActive(false);
+    message.success('Tour completed! You can click the question mark icon anytime to restart the tour.');
+    console.log('Tour completed');
+  }, []);
+
   // Effect to handle tour state changes
   useEffect(() => {
     if (isTourActive && user) {
       console.log('Starting application tour...');
-      // TODO: initialize and start the app tour
- 
+      // Make sure settings panel is open
+      if (activePanel !== 'settings') {
+        handlePanelOpen('settings');
+      }
       
-      // Show a message to the user
-      const hideMessage = message.loading('Starting guided tour...', 0);
+      // Make sure panel is not collapsed
+      setIsPanelCollapsed(false);
       
-      // For now, we'll just log and reset the state after a delay
-      const timer = setTimeout(() => {
-        hideMessage();
-        message.success('Tour completed! You can click the question mark icon anytime to restart the tour.');
-        console.log('Tour completed');
-        setIsTourActive(false);
-      }, 2000);
+      // Reset tour step
+      setCurrentTourStep(0);
       
-      return () => {
-        clearTimeout(timer);
-        hideMessage();
-      };
+      // Initial accordion setup with a slight delay to ensure DOM is ready
+      setTimeout(() => {
+        expandAccordionForStep(1); // Expand first accordion for Spatial Filters
+      }, 300);
     } else if (isTourActive && !user) {
       // If somehow the tour is activated without a user, reset it
       setIsTourActive(false);
     }
-  }, [isTourActive, user]);
+  }, [isTourActive, user, activePanel, handlePanelOpen, expandAccordionForStep]);
 
-  const handleMenuClick = (key) => {
+  const handleMenuClick = useCallback((key) => {
     console.log('Menu click:', {
       key,
       currentPanel: activePanel,
@@ -148,47 +228,66 @@ const Layout = ({ step, setStep }) => {
     console.log('Active session - allowing panel switch to:', key);
     setActivePanel(key);
     setIsPanelCollapsed(false);
-  };
-
-  // Separate function for programmatic panel switching
-  const handlePanelOpen = useCallback((key) => {
-    console.log('Opening panel:', key, {
-      currentPanel: activePanel,
-      currentStatus: status,
-      runId,
-      isHistoricalRun: !!runId
-    });
-    
-    // Prevent unnecessary state updates
-    if (key === activePanel) {
-      console.log('Panel already active:', key);
-      return;
-    }
-
-    // For historical runs (when runId exists), allow switching between panels freely
-    if (runId) {
-      console.log('Historical run - allowing panel switch to:', key);
-      setActivePanel(key);
-      setIsPanelCollapsed(false);
-      return;
-    }
-
-    // For active sessions, validate panel transitions
-    if (key === 'settings' && status === 'running') {
-      console.log('Cannot switch to settings while analysis is running');
-      return;
-    }
-
-    console.log('Active session - allowing panel switch to:', key);
-    setActivePanel(key);
-    setIsPanelCollapsed(false);
   }, [activePanel, status, runId]);
 
   useEffect(() => {
     if (status === 'completed') {
       handlePanelOpen('visualization');
     }
-  }, [status]);
+  }, [status, handlePanelOpen]);
+
+  // Simple tour steps
+  const tourSteps = [
+    {
+      title: 'Welcome to PhyloNext',
+      description: 'This guided tour will help you understand the key features of PhyloNext. Let\'s start with the Settings panel, which is where you configure your biodiversity analysis.',
+      target: null,
+      placement: 'center',
+    },
+    {
+      title: 'Spatial filters',
+      description: 'Here you can set the spatial resolution of your analysis and select the geographic area of interest. You can draw polygons on the map, select countries, or upload your own spatial files.',
+      target: () => document.querySelector('.MuiAccordion-root:nth-child(1)'),
+      placement: 'right',
+    },
+    {
+      title: 'Taxonomic filters',
+      description: 'Choose a phylogenetic tree and filter by taxonomic groups. Then, you may adjust the selection by including specific taxa at different ranks (Phylum, Class, Order, Family, Genus) or upload your own custom species list.',
+      target: () => document.querySelector('.MuiAccordion-root:nth-child(2)'),
+      placement: 'right',
+    },
+    {
+      title: 'Data selection criteria',
+      description: 'Refine your analysis by controlling species occurrence types and time period. Set the sensitivity for outlier removal and specify a year range for occurrence records.',
+      target: () => document.querySelector('.MuiAccordion-root:nth-child(3)'),
+      placement: 'right',
+    },
+    {
+      title: 'Diversity estimation',
+      description: 'Select the biodiversity indices you want to calculate. Multiple indices can be selected to compare different aspects of diversity simultaneously.',
+      target: () => document.querySelector('.MuiAccordion-root:nth-child(4)'),
+      placement: 'right',
+    },
+    {
+      title: 'Start analysis',
+      description: 'Once you\'ve configured all settings, click this button to start the analysis. Your results will be displayed in the Visualization panel when ready.',
+      target: () => document.querySelector('.MuiDrawer-paper button[type="submit"]') || 
+                  document.querySelector('.MuiDrawer-paper button:last-child'),
+      placement: 'top',
+    },
+    {
+      title: 'Navigation menu',
+      description: 'Use this menu to switch between different panels: Settings, Visualization, and Tests. The Visualization panel will show your results, and the Tests panel allows you to compare diversities of two areas.',
+      target: () => document.querySelector('.ant-dropdown-trigger'),
+      placement: 'bottomLeft',
+    },
+    {
+      title: 'Tour complete',
+      description: 'You can start the tour again at any time by clicking the question mark icon in the top right corner. Happy exploring!',
+      target: null,
+      placement: 'center',
+    }
+  ];
 
   // Get panel title based on active panel
   const getPanelTitle = () => {
@@ -415,6 +514,29 @@ const Layout = ({ step, setStep }) => {
           onClose={() => setActivePanel(null)}
           isCollapsed={isPanelCollapsed}
         />
+        
+        {/* Tour component */}
+        {isWorkflowPage && (
+          <Tour
+            open={isTourActive}
+            onClose={handleTourClose}
+            steps={tourSteps}
+            current={currentTourStep}
+            onChange={handleTourChange}
+            arrow={true}
+            placement="right"
+            mask={{
+              style: {
+                backgroundColor: 'rgba(0, 0, 0, 0.2)'
+              },
+              color: 'rgba(0, 0, 0, 0.2)'
+            }}
+            type="primary"
+            scrollIntoViewOptions={true}
+            zIndex={1050}
+            disabledInteraction={false}
+          />
+        )}
       </Content>
     </AntLayout>
   );
