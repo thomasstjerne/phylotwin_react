@@ -146,12 +146,16 @@ const Layout = ({ step, setStep }) => {
   // Handle tour step change
   const handleTourChange = useCallback((current) => {
     console.log('Tour step changed to:', current);
-    setCurrentTourStep(current);
     
-    // Add a small delay to ensure DOM elements are ready
+    // First expand the accordions with a small delay to ensure DOM is ready
     setTimeout(() => {
       expandAccordionForStep(current);
-    }, 300);
+      
+      // Then update the tour step after accordion expansion is complete
+      setTimeout(() => {
+        setCurrentTourStep(current);
+      }, 300);
+    }, 50);
   }, [expandAccordionForStep]);
 
   // Handle tour close
@@ -173,12 +177,15 @@ const Layout = ({ step, setStep }) => {
       // Make sure panel is not collapsed
       setIsPanelCollapsed(false);
       
-      // Reset tour step
-      setCurrentTourStep(0);
-      
-      // Initial accordion setup with a slight delay to ensure DOM is ready
+      // Initial accordion setup with a delay to ensure DOM is ready
+      // We need this to happen before setting the first tour step
       setTimeout(() => {
         expandAccordionForStep(1); // Expand first accordion for Spatial Filters
+        
+        // Set tour step after accordion is expanded
+        setTimeout(() => {
+          setCurrentTourStep(0); // Start with welcome screen
+        }, 300);
       }, 300);
     } else if (isTourActive && !user) {
       // If somehow the tour is activated without a user, reset it
