@@ -11,3 +11,21 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Simple tour styles - keep minimal to prevent layout issues */
+.ant-tour .ant-tour-inner {
+  width: 320px;
+  max-width: 100%;
+}
+
+.ant-tour .ant-tour-content {
+  padding: 12px 16px;
+}
+
+.ant-tour .ant-tour-title {
+  font-weight: 600;
+}
+
+.ant-tour .ant-tour-description {
+  margin-top: 8px;
+} 
