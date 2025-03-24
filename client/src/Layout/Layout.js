@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { Layout as AntLayout, Button, theme, Spin, Dropdown, Tooltip, message, Tour } from 'antd';
 import { useSelector } from 'react-redux';
@@ -35,6 +35,9 @@ const Layout = ({ step, setStep }) => {
   const {
     token: { colorBgContainer },
   } = theme.useToken();
+
+  // Add ref to track previous status
+  const prevStatusRef = useRef(status);
 
   // Only show the navigation and settings panel on the workflow page
   const isWorkflowPage = location.pathname === '/run' || location.pathname.startsWith('/run/');
@@ -238,9 +241,12 @@ const Layout = ({ step, setStep }) => {
   }, [activePanel, status, runId]);
 
   useEffect(() => {
-    if (status === 'completed') {
+    // Only switch to visualization when status changes from something else to 'completed'
+    if (status === 'completed' && prevStatusRef.current !== 'completed') {
       handlePanelOpen('visualization');
     }
+    // Update the ref
+    prevStatusRef.current = status;
   }, [status, handlePanelOpen]);
 
   // Simple tour steps
