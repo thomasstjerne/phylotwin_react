@@ -278,8 +278,18 @@ const Layout = ({ step, setStep }) => {
     {
       title: 'Start analysis',
       description: 'Once you\'ve configured all settings, click this button to start the analysis. Your results will be displayed in the Visualization panel when ready.',
-      target: () => document.querySelector('.MuiDrawer-paper button[type="submit"]') || 
-                  document.querySelector('.MuiDrawer-paper button:last-child'),
+      target: () => {
+        // Get all buttons in the drawer
+        const allButtons = document.querySelectorAll('.MuiDrawer-paper button');
+        // Find the button with text "Start Analysis"
+        for (let i = 0; i < allButtons.length; i++) {
+          if (allButtons[i].textContent.includes('Start Analysis')) {
+            return allButtons[i];
+          }
+        }
+        // Fallback to position-based selector if text search fails
+        return document.querySelector('.MuiDrawer-paper > div > div:last-of-type button');
+      },
       placement: 'top',
     },
     {
