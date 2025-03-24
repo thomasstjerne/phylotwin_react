@@ -305,6 +305,12 @@ const Layout = ({ step, setStep }) => {
       placement: 'bottomLeft',
     },
     {
+      title: 'User menu',
+      description: 'Click your username to access the user menu. From here, you can start a new analysis and view your analysis history. In the `Run history` section, you can download the results as a zip file, or delete them.',
+      target: () => document.querySelector('span[style*="cursor: pointer"]'),
+      placement: 'bottomRight',
+    },
+    {
       title: 'Tour complete',
       description: 'You can start the tour again at any time by clicking the question mark icon in the top right corner. Happy exploring!',
       target: null,
