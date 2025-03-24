@@ -66,7 +66,19 @@ const getMissingRequiredParams = (selectedPhyloTree, areaSelectionMode) => {
   return missing;
 };
 
-const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelOpen }) => {
+const SettingsPanel = ({ 
+  isOpen, 
+  onClose, 
+  isCollapsed, 
+  activePanel, 
+  handlePanelOpen,
+  setStep,
+  spatialFiltersRef,
+  taxonomicFiltersRef,
+  dataSelectionRef,
+  diversityEstimationRef,
+  startButtonRef
+}) => {
   const dispatch = useDispatch();
   const appContext = React.useContext(AppContext);
   
@@ -480,7 +492,7 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pb: 2 }}>
               {/* Spatial Filters */}
-              <Accordion defaultExpanded>
+              <Accordion defaultExpanded ref={spatialFiltersRef}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography>Spatial filters</Typography>
                 </AccordionSummary>
@@ -718,7 +730,7 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
               </Accordion>
 
               {/* Taxonomic Filters */}
-              <Accordion>
+              <Accordion ref={taxonomicFiltersRef}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography>Taxonomic filters</Typography>
                 </AccordionSummary>
@@ -861,7 +873,7 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
               </Accordion>
 
               {/* Data Selection Criteria */}
-              <Accordion>
+              <Accordion ref={dataSelectionRef}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography>Data selection criteria</Typography>
                 </AccordionSummary>
@@ -946,7 +958,7 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
               </Accordion>
 
               {/* Diversity Estimation */}
-              <Accordion>
+              <Accordion ref={diversityEstimationRef}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography>Diversity estimation</Typography>
                 </AccordionSummary>
@@ -1098,6 +1110,7 @@ const SettingsPanel = ({ isOpen, onClose, isCollapsed, activePanel, handlePanelO
             >
               <span>
                 <Button
+                  ref={startButtonRef}
                   variant="contained"
                   color="primary"
                   fullWidth
