@@ -869,21 +869,25 @@ const MapComponent = () => {
     // Create vector layer for drawn items
     const vectorLayer = new VectorLayer({
       source: vectorSourceRef.current,
-      style: new Style({
-        fill: new Fill({
-          color: 'rgba(255, 255, 255, 0.2)'
-        }),
-        stroke: new Stroke({
-          color: '#ffcc33',
-          width: 2
-        }),
-        image: new Circle({
-          radius: 7,
+      style: (feature) => {
+        // Both hand-drawn and uploaded polygons should have the same style
+        return new Style({
           fill: new Fill({
-            color: '#ffcc33'
+            color: 'rgba(159, 197, 232, 0.2)'  // Semi-transparent blue fill
+          }),
+          stroke: new Stroke({
+            color: 'rgba(0, 0, 255, 0.1)',     // Blue border
+            width: 2,
+            lineDash: [5, 5]                     // Dashed line for better visibility
+          }),
+          image: new Circle({
+            radius: 7,
+            fill: new Fill({
+              color: 'blue'
+            })
           })
-        })
-      }),
+        });
+      },
       zIndex: 100 // Highest zIndex to ensure it's above all other layers
     });
     
@@ -896,8 +900,8 @@ const MapComponent = () => {
         }),
         stroke: new Stroke({
           color: 'rgba(0, 0, 255, 0.8)',  // More opaque blue border
-          width: 3,  // Thicker border
-          lineDash: [10, 5]  // Dashed line for better visibility
+          width: 3,                         // Thicker border
+          lineDash: [10, 5]                 // Dashed line for better visibility
         }),
         image: new Circle({
           radius: 7,
@@ -917,8 +921,8 @@ const MapComponent = () => {
         }),
         stroke: new Stroke({
           color: 'rgba(0, 128, 0, 0.8)',  // More opaque green border
-          width: 3,  // Thicker border
-          lineDash: [10, 5]  // Dashed line for better visibility
+          width: 3,                         // Thicker border
+          lineDash: [10, 5]                 // Dashed line for better visibility
         }),
         image: new Circle({
           radius: 7,
@@ -1095,6 +1099,97 @@ const MapComponent = () => {
       }
     };
   }, [areaSelectionMode, dispatch]);
+
+  // Handle uploaded polygons
+  useEffect(() => {
+    if (!mapInstanceRef.current || !vectorSourceRef.current) return;
+
+    // Only clear and process if we're in upload mode
+    if (areaSelectionMode === 'upload') {
+      // Clear existing features
+      vectorSourceRef.current.clear();
+      
+      // Process uploaded features if available
+      if (drawnItems?.features?.length > 0) {
+        console.log('Processing uploaded polygon features:', drawnItems.features.length);
+        
+        try {
+          // Create a GeoJSON format reader
+          const format = new GeoJSON();
+          
+          // Add each feature to the vector source
+          drawnItems.features.forEach(feature => {
+            try {
+              // Skip features without geometry
+              if (!feature.geometry) {
+                console.error('Feature missing geometry:', feature);
+                return;
+              }
+              
+              // Create a deep copy to avoid reference issues
+              const featureCopy = JSON.parse(JSON.stringify(feature));
+              
+              // Read and add the feature to the source
+              const olFeature = format.readFeature(featureCopy, {
+                featureProjection: 'EPSG:3857',
+                dataProjection: 'EPSG:4326'  // Assume WGS84 input for uploaded files
+              });
+              
+              console.log('Added uploaded feature to map:', olFeature);
+              vectorSourceRef.current.addFeature(olFeature);
+            } catch (error) {
+              console.error('Error adding uploaded feature to map:', error, feature);
+            }
+          });
+          
+          // Zoom to the extent of the features
+          const extent = vectorSourceRef.current.getExtent();
+          if (extent && !isEmptyExtent(extent)) {
+            mapInstanceRef.current.getView().fit(extent, {
+              padding: [50, 50, 50, 50],
+              maxZoom: 12
+            });
+          }
+        } catch (error) {
+          console.error('Error processing uploaded features:', error);
+        }
+      }
+    } else if (areaSelectionMode === 'map') {
+      // For map mode, sync with drawn items from redux if needed
+      if (drawnItems?.features?.length > 0 && vectorSourceRef.current.getFeatures().length === 0) {
+        console.log('Syncing map-drawn features from Redux:', drawnItems.features.length);
+        
+        try {
+          const format = new GeoJSON();
+          drawnItems.features.forEach(feature => {
+            try {
+              if (!feature.geometry) return;
+              
+              const olFeature = format.readFeature(feature, {
+                featureProjection: 'EPSG:3857',
+                dataProjection: 'EPSG:4326'
+              });
+              
+              vectorSourceRef.current.addFeature(olFeature);
+            } catch (error) {
+              console.error('Error syncing map-drawn feature:', error);
+            }
+          });
+        } catch (error) {
+          console.error('Error syncing map-drawn features:', error);
+        }
+      }
+    } else {
+      // For other modes (like country selection), clear the vector source
+      vectorSourceRef.current.clear();
+    }
+  }, [drawnItems, areaSelectionMode]);
+
+  // Helper function to check if an extent is empty or invalid
+  const isEmptyExtent = (extent) => {
+    return extent[0] >= extent[2] || extent[1] >= extent[3] ||
+           extent.some(val => val === Infinity || val === -Infinity || isNaN(val));
+  };
 
   // Handle results visualization
   useEffect(() => {
