@@ -480,6 +480,64 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
     const file = event.target.files[0];
     if (file) {
       setReferenceFile(file);
+      
+      // Read and parse the file
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          // Parse the GeoJSON content
+          const fileContent = e.target.result;
+          
+          if (file.name.endsWith('.geojson')) {
+            const geoJSON = JSON.parse(fileContent);
+            
+            // Validate that it's a valid GeoJSON FeatureCollection
+            if (!geoJSON.type || geoJSON.type !== 'FeatureCollection' || !geoJSON.features) {
+              throw new Error('Invalid GeoJSON format. Expected a FeatureCollection.');
+            }
+            
+            console.log('Parsed reference GeoJSON:', geoJSON);
+            
+            // Clear existing reference area
+            dispatch(clearReferenceArea());
+            
+            // Add each feature to the reference area
+            geoJSON.features.forEach(feature => {
+              // Add properties to identify this as a reference area feature
+              const enrichedFeature = {
+                ...feature,
+                properties: {
+                  ...(feature.properties || {}),
+                  areaType: 'reference',
+                  uploadedFile: true
+                }
+              };
+              
+              dispatch(addReferenceFeature(enrichedFeature));
+            });
+            
+            setError(null);
+            setSuccess('Reference area uploaded successfully');
+          } else {
+            throw new Error('Unsupported file format. Please upload a GeoJSON file.');
+          }
+        } catch (error) {
+          console.error('Error processing reference file:', error);
+          setError(`Failed to process reference file: ${error.message}`);
+        }
+      };
+      
+      reader.onerror = () => {
+        console.error('Error reading reference file');
+        setError('Failed to read reference file');
+      };
+      
+      // Read the file as text
+      if (file.name.endsWith('.geojson')) {
+        reader.readAsText(file);
+      } else {
+        setError('Unsupported file format. Please upload a GeoJSON file.');
+      }
     }
   };
   
@@ -488,6 +546,64 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
     const file = event.target.files[0];
     if (file) {
       setTestFile(file);
+      
+      // Read and parse the file
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          // Parse the GeoJSON content
+          const fileContent = e.target.result;
+          
+          if (file.name.endsWith('.geojson')) {
+            const geoJSON = JSON.parse(fileContent);
+            
+            // Validate that it's a valid GeoJSON FeatureCollection
+            if (!geoJSON.type || geoJSON.type !== 'FeatureCollection' || !geoJSON.features) {
+              throw new Error('Invalid GeoJSON format. Expected a FeatureCollection.');
+            }
+            
+            console.log('Parsed test GeoJSON:', geoJSON);
+            
+            // Clear existing test area
+            dispatch(clearTestArea());
+            
+            // Add each feature to the test area
+            geoJSON.features.forEach(feature => {
+              // Add properties to identify this as a test area feature
+              const enrichedFeature = {
+                ...feature,
+                properties: {
+                  ...(feature.properties || {}),
+                  areaType: 'test',
+                  uploadedFile: true
+                }
+              };
+              
+              dispatch(addTestFeature(enrichedFeature));
+            });
+            
+            setError(null);
+            setSuccess('Test area uploaded successfully');
+          } else {
+            throw new Error('Unsupported file format. Please upload a GeoJSON file.');
+          }
+        } catch (error) {
+          console.error('Error processing test file:', error);
+          setError(`Failed to process test file: ${error.message}`);
+        }
+      };
+      
+      reader.onerror = () => {
+        console.error('Error reading test file');
+        setError('Failed to read test file');
+      };
+      
+      // Read the file as text
+      if (file.name.endsWith('.geojson')) {
+        reader.readAsText(file);
+      } else {
+        setError('Unsupported file format. Please upload a GeoJSON file.');
+      }
     }
   };
   
