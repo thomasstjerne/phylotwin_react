@@ -54,7 +54,8 @@ import {
 } from '../store/settingsSlice';
 import {
   setAreaSelectionMode,
-  clearDrawnItems
+  clearDrawnItems,
+  updateDrawnItems
 } from '../store/mapSlice';
 
 const drawerWidth = 340;
@@ -207,6 +208,105 @@ const SettingsPanel = ({
       if (type === 'polygon') {
         setUploadedFile(file);
         dispatch(setAreaSelectionMode('upload'));
+        
+        // Read and process the file
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const fileContent = e.target.result;
+            let geoJSON;
+            
+            // Handle GeoJSON files
+            if (file.name.endsWith('.geojson')) {
+              geoJSON = JSON.parse(fileContent);
+              
+              // Validate that it's a valid GeoJSON FeatureCollection
+              if (!geoJSON.type || geoJSON.type !== 'FeatureCollection' || !geoJSON.features) {
+                throw new Error('Invalid GeoJSON format. Expected a FeatureCollection.');
+              }
+              
+              // Add uploaded flag to properties
+              geoJSON.features = geoJSON.features.map(feature => ({
+                ...feature,
+                properties: {
+                  ...(feature.properties || {}),
+                  uploadedFile: true
+                }
+              }));
+              
+              console.log('Parsed GeoJSON:', geoJSON);
+              dispatch(updateDrawnItems(geoJSON));
+            } 
+            // Handle GeoPackage files
+            else if (file.name.endsWith('.gpkg')) {
+              // Check if the server endpoint is configured correctly
+              if (!config.phylonextWebservice) {
+                throw new Error('Server configuration is missing. Please use GeoJSON format instead.');
+              }
+              
+              // Show a more informative message about GPKG support
+              setError('GeoPackage files require server-side processing. This feature might not be fully implemented yet. Please consider using GeoJSON format instead.');
+              
+              // This code would be used if the server supports GPKG conversion
+              /*
+              const formData = new FormData();
+              formData.append('file', file);
+              
+              setInternalLoading(true);
+              axiosWithAuth.post(`${config.phylonextWebservice}/api/convert/gpkg-to-geojson`, formData)
+                .then(response => {
+                  const geoJSON = response.data;
+                  // Add uploaded flag to properties
+                  geoJSON.features = geoJSON.features.map(feature => ({
+                    ...feature,
+                    properties: {
+                      ...(feature.properties || {}),
+                      uploadedFile: true
+                    }
+                  }));
+                  
+                  console.log('Converted GeoJSON from GPKG:', geoJSON);
+                  dispatch(updateDrawnItems(geoJSON));
+                  setError(null);
+                })
+                .catch(error => {
+                  console.error('Error converting GPKG file:', error);
+                  setError(`Failed to process GeoPackage file: ${error.message}`);
+                })
+                .finally(() => {
+                  setInternalLoading(false);
+                });
+              */
+            } else {
+              throw new Error('Unsupported file format. Please upload a GeoJSON or GeoPackage file.');
+            }
+          } catch (error) {
+            console.error('Error processing file:', error);
+            setError(`Failed to process file: ${error.message}`);
+          }
+        };
+        
+        reader.onerror = () => {
+          console.error('Error reading file');
+          setError('Failed to read file');
+        };
+        
+        // For GeoJSON, read as text
+        if (file.name.endsWith('.geojson')) {
+          reader.readAsText(file);
+        } 
+        // For GeoPackage, handle in the AJAX request
+        else if (file.name.endsWith('.gpkg')) {
+          // Don't read the file here, the form data will be sent directly
+          // Placeholder for simple validation
+          if (file.size > 10 * 1024 * 1024) { // 10MB limit
+            setError('File is too large. Maximum size is 10MB.');
+            setUploadedFile(null);
+          }
+        } else {
+          setError('Unsupported file format. Please upload a GeoJSON or GeoPackage file.');
+          setUploadedFile(null);
+        }
       }
       // Handle other file types if needed
     }
@@ -332,8 +432,19 @@ const SettingsPanel = ({
       };
 
       // Add spatial filters
-      if (areaSelectionMode === 'map' && drawnItems?.features?.length > 0) {
-        console.log('Adding map polygon to params:', drawnItems);
+      if ((areaSelectionMode === 'map' || areaSelectionMode === 'upload') && drawnItems?.features?.length > 0) {
+        console.log(`Adding ${areaSelectionMode} polygon to params:`, drawnItems);
+        
+        // Logging for debugging
+        if (areaSelectionMode === 'upload') {
+          console.log('Uploaded polygon details:', {
+            featureCount: drawnItems.features.length,
+            geometryTypes: drawnItems.features.map(f => f.geometry.type),
+            properties: drawnItems.features.map(f => f.properties)
+          });
+        }
+        
+        // For both map and upload modes, set polygon data the same way
         params.polygon = drawnItems;
       } else if (areaSelectionMode === 'country' && selectedCountries.length > 0) {
         params.selectedCountries = selectedCountries;  // Already in ISO A2 format
@@ -613,20 +724,80 @@ const SettingsPanel = ({
                           }
                         />
                         {areaSelectionMode === 'upload' && (
-                          <Button
-                            variant="outlined"
-                            component="label"
-                            startIcon={<UploadFileIcon />}
-                            sx={{ ml: 3, mt: 1 }}
-                          >
-                            {uploadedFile ? uploadedFile.name : 'Choose file'}
-                            <input
-                              type="file"
-                              hidden
-                              accept=".gpkg,.geojson"
-                              onChange={(e) => handleFileUpload(e, 'polygon')}
-                            />
-                          </Button>
+                          <Box sx={{ ml: 3, mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Button
+                              variant="outlined"
+                              component="label"
+                              startIcon={internalLoading ? <Spin size="small" /> : <UploadFileIcon />}
+                              sx={{ mb: 0.5 }}
+                              disabled={internalLoading}
+                            >
+                              {internalLoading 
+                                ? 'Processing...' 
+                                : uploadedFile 
+                                  ? `Selected: ${uploadedFile.name}` 
+                                  : 'Choose file'}
+                              <input
+                                type="file"
+                                hidden
+                                accept=".gpkg,.geojson"
+                                onChange={(e) => handleFileUpload(e, 'polygon')}
+                                disabled={internalLoading}
+                              />
+                            </Button>
+                            
+                            {/* Display status or error messages */}
+                            {error && (
+                              <Typography 
+                                variant="caption" 
+                                color="error" 
+                                sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: 0.5,
+                                  ml: 0.5
+                                }}
+                              >
+                                <span>Error: {error}</span>
+                              </Typography>
+                            )}
+                            
+                            {/* Show clear button if file is uploaded */}
+                            {uploadedFile && !internalLoading && drawnItems?.features?.length > 0 && (
+                              <Button
+                                size="small"
+                                variant="text"
+                                color="error"
+                                startIcon={<ClearIcon fontSize="small" />}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setUploadedFile(null);
+                                  dispatch(clearDrawnItems());
+                                  setError(null);
+                                }}
+                                sx={{ justifyContent: 'flex-start' }}
+                              >
+                                Clear selection
+                              </Button>
+                            )}
+                            
+                            {/* Show success info if file is uploaded and features loaded */}
+                            {!error && uploadedFile && drawnItems?.features?.length > 0 && !internalLoading && (
+                              <Typography 
+                                variant="caption" 
+                                color="success.main" 
+                                sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: 0.5,
+                                  ml: 0.5
+                                }}
+                              >
+                                <span>Loaded {drawnItems.features.length} polygon(s) successfully</span>
+                              </Typography>
+                            )}
+                          </Box>
                         )}
 
                         {/* Country Selection */}
