@@ -316,10 +316,13 @@ const SettingsPanel = ({
     const newMode = mode === areaSelectionMode ? null : mode;
     dispatch(setAreaSelectionMode(newMode));
     
-    if (newMode !== 'map') {
+    // Clear drawn items only when switching to country mode or away from both map/upload modes
+    // This preserves the polygon data when switching between map and upload modes
+    if (newMode === 'country' || (newMode === null && areaSelectionMode !== null)) {
       dispatch(clearDrawnItems());
     }
     
+    // Clear uploaded file reference when not in upload mode
     if (newMode !== 'upload') {
       setUploadedFile(null);
     }
