@@ -212,6 +212,17 @@ const MyRuns = () => {
             );
         }
 
+        // Add outlier removal setting
+        const outlierSensitivity = item.params?.outlierSensitivity || item.outlierSensitivity;
+        if (outlierSensitivity) {
+            const text = `Outlier removal: ${outlierSensitivity}`;
+            parts.push(
+                <Tooltip title={text} key="outlier">
+                    <Tag color="volcano">{text}</Tag>
+                </Tooltip>
+            );
+        }
+
         // Add taxonomic filters
         const taxonomicRanks = ['phylum', 'classs', 'order', 'family', 'genus'];
         taxonomicRanks.forEach(rank => {
