@@ -1007,7 +1007,13 @@ const SettingsPanel = ({
                             })}
                           </Box>
                         )}
-                        sx={{ minWidth: 200 }}
+                        sx={{ 
+                          minWidth: 200,
+                          '& .MuiMenuItem-root': {
+                            whiteSpace: 'normal',
+                            padding: '8px 16px'
+                          }
+                        }}
                       >
                         {diversityIndices.groups.map((group) => [
                           <ListSubheader key={group.id}>
@@ -1031,11 +1037,25 @@ const SettingsPanel = ({
                             <MenuItem 
                               key={index.id} 
                               value={index.id}
-                              sx={{ pl: 4 }}
+                              sx={{ 
+                                pl: 4,
+                                '& .MuiBox-root': {
+                                  width: '100%'
+                                }
+                              }}
                             >
                               <Box>
                                 <Typography variant="body2">{index.displayName}</Typography>
-                                <Typography variant="caption" color="text.secondary" display="block">
+                                <Typography 
+                                  variant="caption" 
+                                  color="text.secondary" 
+                                  display="block"
+                                  sx={{
+                                    whiteSpace: 'pre-wrap',
+                                    maxWidth: '500px',
+                                    mt: 0.5
+                                  }}
+                                >
                                   {index.description}
                                 </Typography>
                               </Box>
