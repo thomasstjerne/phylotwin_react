@@ -30,6 +30,8 @@ async function saveGeoJSONToFile(geojson, outputDir) {
     console.log('Output directory:', outputDir);
     console.log('Target filepath:', filepath);
     console.log('Number of polygons:', geojson.features.length);
+    console.log('Geometry types:', geojson.features.map(f => f.geometry.type).join(', '));
+    console.log('Properties present:', geojson.features.map(f => Object.keys(f.properties || {}).join(',')).join('; '));
     
     try {
         // Verify directory exists
@@ -183,8 +185,8 @@ router.post('/',
             let polygonPath = null;
 
             // Handle map-drawn polygons
-            if (body.areaSelectionMode === 'map' && body.polygon?.features?.length > 0) {
-                console.log('\n=== HANDLING MAP POLYGON ===');
+            if ((body.areaSelectionMode === 'map' || body.areaSelectionMode === 'upload') && body.polygon?.features?.length > 0) {
+                console.log(`\n=== HANDLING ${body.areaSelectionMode.toUpperCase()} POLYGON ===`);
                 try {
                     polygonPath = await saveGeoJSONToFile(body.polygon, outputDir);
                     console.log('Polygon saved successfully to:', polygonPath);
@@ -251,10 +253,10 @@ const processParams = (body, outputDir) => {
         // Handle area selection based on mode
         if (body.areaSelectionMode === 'country' && body.selectedCountries?.length > 0) {
             params.country = body.selectedCountries;
-        } else if (body.areaSelectionMode === 'map' && body.polygon) {
+        } else if ((body.areaSelectionMode === 'map' || body.areaSelectionMode === 'upload') && body.polygon) {
             // Construct the full path to the polygon file
             params.polygon = path.join(outputDir, body.polygon);
-            console.log('Setting polygon path:', params.polygon);
+            console.log(`Setting polygon path for ${body.areaSelectionMode} mode:`, params.polygon);
         }
 
         // Process phylogenetic tree selection
