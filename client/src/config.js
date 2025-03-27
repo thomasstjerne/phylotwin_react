@@ -3,7 +3,7 @@ const dev = {
     taxonSearchUrl : 'https://api.gbif.org/v1/species/search',
     gbifBackboneKey: 'd7dddbf4-2cf0-4f39-9b2a-bb099caae36c',
     phylonextWebservice: 'http://localhost:9000',
-    authWebservice: 'http://localhost:9000/auth'
+    authWebservice: 'http://localhost:9000/api/auth'
 };
 
 // Add debug logging for config
@@ -21,6 +21,6 @@ const prod = {
 };
 
 // Default to dev in development, unless explicitly set to production
-const config = process.env.NODE_ENV === 'production' ? prod : dev;
+const config =  process.env.NODE_ENV === 'production' ? prod : dev;
 
 export default config;

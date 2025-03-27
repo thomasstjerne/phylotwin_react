@@ -12,6 +12,7 @@ export const axiosWithAuth = axios.create({
   withCredentials: true
 });
 
+
 // Decode JWT token
 const decode = (jwt) => {
   try {
@@ -50,7 +51,7 @@ axiosWithAuth.interceptors.request.use(
 // Authentication functions
 export const authenticate = async (username, password) => {
   // In development mode, return mock response
-  if (process.env.REACT_APP_DEV_MODE === 'true') {
+ /*  if (process.env.REACT_APP_DEV_MODE === 'true') {
     const mockResponse = {
       token: process.env.REACT_APP_DEV_TOKEN || 'dev_token',
       user: {
@@ -58,7 +59,7 @@ export const authenticate = async (username, password) => {
       }
     };
     return Promise.resolve(mockResponse);
-  }
+  } */
 
   // In production, make real API call
   const response = await axios.post(`${config.authWebservice}/login`, {}, {
@@ -68,7 +69,9 @@ export const authenticate = async (username, password) => {
   });
 
   const { token, user } = response.data;
-  
+  if(token){
+    axiosWithAuth.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  }
   // Store token
   localStorage.setItem(JWT_STORAGE_NAME, token);
   sessionStorage.setItem(JWT_STORAGE_NAME, token);

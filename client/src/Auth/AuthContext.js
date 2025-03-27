@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setUser as setUserAction, setToken as setTokenAction } from '../store/authSlice';
-
+import {authenticate} from './userApi';
 const AuthContext = createContext(null);
 
 const DEV_USER = {
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
   }, [user, dispatch]);
 
   const login = async (credentials) => {
-    if (process.env.REACT_APP_DEV_MODE === 'true') {
+    if (process.env.REACT_APP_DEV_MODE === true) {
       // In dev mode, simulate successful login
       setUser(DEV_USER);
       return Promise.resolve(DEV_USER);
@@ -40,10 +40,7 @@ export const AuthProvider = ({ children }) => {
     // In production, this would make a real API call
     try {
       // TODO: Replace with actual API call
-      const response = await Promise.resolve({
-        userName: credentials.username,
-        token: 'sample_token'
-      });
+      const response = await authenticate(credentials.username, credentials.password);
       setUser(response);
       return response;
     } catch (error) {
