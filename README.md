@@ -107,6 +107,15 @@ In the server terminal, one may find detailed logs about:
 - Nextflow command being executed
 - Process output and errors
 
+## Update instructions
+
+```bash
+# Update the current repository
+git pull   
+
+# Update the core pipeline
+nextflow pull vmikk/phylotwin
+```
 
 
 ## Previous version of the GUI
