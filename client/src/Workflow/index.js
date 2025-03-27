@@ -18,7 +18,7 @@ import {
     updateMapZoom
 } from "../store/actions";
 import { setSelectedIndices } from "../store/visualizationSlice";
-import axiosWithAuth from "../utils/axiosWithAuth";
+import {axiosWithAuth} from "../Auth/userApi";
 import config from "../config";
 import diversityIndices from '../shared/vocabularies/diversityIndices.json';
 

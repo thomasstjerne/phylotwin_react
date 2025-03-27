@@ -8,16 +8,16 @@ module.exports = {
 };
 
 async function login(auth) {
+    console.log('auth', auth);
     try {
-        const response = await axios({
-            url: `${config.GBIF_API}user/login`,
-            method: 'GET',
+        const response = await axios(`${config.GBIF_REGISTRY_API}user/login`, {
             headers: {
                 authorization: auth
             }
         });
         return response.data;
     } catch (error) {
+        console.log(error);
         throw error.response?.data || error;
     }
 }
