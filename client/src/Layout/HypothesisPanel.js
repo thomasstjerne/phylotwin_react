@@ -181,7 +181,7 @@ const HypothesisResultsDialog = ({ open, onClose, results }) => {
         borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
         pb: 1
       }}>
-        Hypothesis Test Results
+        Comparison results
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
@@ -870,7 +870,7 @@ const HypothesisPanel = ({ isOpen, onClose, isCollapsed }) => {
           gap: 2,
         }}>
           <Typography variant="h6" gutterBottom>
-            Hypothesis Testing
+            Comparative analysis
           </Typography>
           
           {!filesExist ? (
