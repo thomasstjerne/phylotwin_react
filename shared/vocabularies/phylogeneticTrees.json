@@ -9,73 +9,85 @@
           "id": "seed_plants_2023",
           "displayName": "Seed plants",
           "fileName": "Tietje_2023_Seed_plants_TACT.nex.gz",
-          "description": "Tietje et al. (2023), DOI:10.1111/nph.19151; Smith & Brown (2018), DOI:10.1002/ajb2.1019"
+          "description": "Tietje et al. (2023), DOI:10.1111/nph.19151; Smith & Brown (2018), DOI:10.1002/ajb2.1019",
+          "enabled": true
         },
         {
           "id": "ferns_2022",
           "displayName": "Ferns (FTOL)",
           "fileName": "Ferns_FTOL_1-7-0.nex.gz",
-          "description": "The Fern Tree of Life (FTOL), Nitta et al. (2022), DOI:10.3389/fpls.2022.909768"
+          "description": "The Fern Tree of Life (FTOL), Nitta et al. (2022), DOI:10.3389/fpls.2022.909768",
+          "enabled": true
         },
         {
           "id": "mushrooms_2019",
           "displayName": "Mushroom-forming fungi",
           "fileName": "Varga_2019_Mushrooms.nex.gz",
-          "description": "Varga et al. (2019), DOI:10.1038/s41559-019-0834-1"
+          "description": "Varga et al. (2019), DOI:10.1038/s41559-019-0834-1",
+          "enabled": true
         },
         {
           "id": "gtdb_bacteria",
           "displayName": "Bacteria (GTDB, r220)",
           "fileName": "GTDB_bacteria_r220.nex.gz",
-          "description": "Parks et al. (2021), DOI:10.1093/nar/gkab776"
+          "description": "Parks et al. (2021), DOI:10.1093/nar/gkab776",
+          "enabled": false
         },
         {
           "id": "gtdb_archaea",
           "displayName": "Archaea (GTDB, r220)",
           "fileName": "GTDB_archaea_r220.nex.gz",
-          "description": "Parks et al. (2021), DOI:10.1093/nar/gkab776"
+          "description": "Parks et al. (2021), DOI:10.1093/nar/gkab776",
+          "enabled": false
         },
         {
           "id": "mammals_2019",
           "displayName": "Mammals (VertLife)",
           "fileName": "VertLife_Mammals.nex.gz",
-          "description": "VertLife - Upham et al. (2019), DOI:10.1371/journal.pbio.3000494"
+          "description": "VertLife - Upham et al. (2019), DOI:10.1371/journal.pbio.3000494",
+          "enabled": true
         },
         {
           "id": "birds_2012",
           "displayName": "Birds (VertLife)",
           "fileName": "VertLife_Birds.nex.gz",
-          "description": "VertLife - Jetz et al. (2012), DOI:10.1038/nature11631"
+          "description": "VertLife - Jetz et al. (2012), DOI:10.1038/nature11631",
+          "enabled": true
         },
         {
           "id": "squamates_2016",
           "displayName": "Squamates (VertLife)",
           "fileName": "VertLife_Squamates.nex.gz",
-          "description": "VertLife - Tonini et al. (2016), DOI:10.1016/j.biocon.2016.03.039"
+          "description": "VertLife - Tonini et al. (2016), DOI:10.1016/j.biocon.2016.03.039",
+          "enabled": true
         },
         {
           "id": "amphibians_2018",
           "displayName": "Amphibians (VertLife)",
           "fileName": "VertLife_Amphibians.nex.gz",
-          "description": "VertLife - Jetz & Pyron (2018), DOI:10.1038/s41559-018-0515-5"
+          "description": "VertLife - Jetz & Pyron (2018), DOI:10.1038/s41559-018-0515-5",
+          "enabled": true
         },
         {
           "id": "ray_finned_fishes_2018",
           "displayName": "Ray-finned fishes (FishTree)",
           "fileName": "FishTree.nex.gz",
-          "description": "The Fish Tree of Life - Rabosky et al. (2018), DOI:10.1038/s41586-018-0273-1"
+          "description": "The Fish Tree of Life - Rabosky et al. (2018), DOI:10.1038/s41586-018-0273-1",
+          "enabled": true
         },
         {
           "id": "butterflies_2023",
           "displayName": "Butterflies",
           "fileName": "Kawahara_2023_Butterflies.nex.gz",
-          "description": "Kawahara et al. (2023), DOI:10.1093/bioinformatics/btac031"
+          "description": "Kawahara et al. (2023), DOI:10.1093/bioinformatics/btac031",
+          "enabled": true
         },
         {
           "id": "bees_2024",
           "displayName": "Bees (BeeTree)",
           "fileName": "Henriquez-Piskulich_2024_BeetreeOfLife.nex.gz",
-          "description": "Henríquez-Piskulich et al. (2024), DOI:10.1016/j.ympev.2023.107963"
+          "description": "Henríquez-Piskulich et al. (2024), DOI:10.1016/j.ympev.2023.107963",
+          "enabled": true
         }
       ]
     },
@@ -89,55 +101,64 @@
           "id": "otl_aves",
           "displayName": "Aves (OTL)",
           "fileName": "OTL_Aves-1.3.nex.gz",
-          "description": "Synthetic tree from Open Tree of Life, covering birds (DOI:10.1101/2024.05.20.595017)"
+          "description": "Synthetic tree from Open Tree of Life, covering birds (DOI:10.1101/2024.05.20.595017)",
+          "enabled": true
         },
         {
           "id": "otl_chordata",
           "displayName": "Chordata (OTL)",
           "fileName": "OTT_v15.1__Chordata.nex.gz",
-          "description": "Synthetic tree from Open Tree of Life, covering chordates"
+          "description": "Synthetic tree from Open Tree of Life, covering chordates",
+          "enabled": true
         },
         {
           "id": "otl_arthropoda",
           "displayName": "Arthropoda (OTL)",
           "fileName": "OTT_v15.1__Arthropoda.nex.gz",
-          "description": "Synthetic tree from Open Tree of Life, covering arthropods"
+          "description": "Synthetic tree from Open Tree of Life, covering arthropods",
+          "enabled": true
         },
         {
           "id": "otl_annelida",
           "displayName": "Annelida (OTL)",
           "fileName": "OTT_v15.1__Annelida.nex.gz",
-          "description": "Synthetic tree from Open Tree of Life, covering annelids"
+          "description": "Synthetic tree from Open Tree of Life, covering annelids",
+          "enabled": true
         },
         {
           "id": "otl_mollusca",
           "displayName": "Mollusca (OTL)",
           "fileName": "OTT_v15.1__Mollusca.nex.gz",
-          "description": "Synthetic tree from Open Tree of Life, covering molluscs"
+          "description": "Synthetic tree from Open Tree of Life, covering molluscs",
+          "enabled": true
         },
         {
           "id": "otl_nematoda",
           "displayName": "Nematoda (OTL)",
           "fileName": "OTT_v15.1__Nematoda.nex.gz",
-          "description": "Synthetic tree from Open Tree of Life, covering nematodes"
+          "description": "Synthetic tree from Open Tree of Life, covering nematodes",
+          "enabled": true
         },
         {
           "id": "otl_cnidaria",
           "displayName": "Cnidaria (OTL)",
           "fileName": "OTT_v15.1__Cnidaria.nex.gz",
-          "description": "Synthetic tree from Open Tree of Life, covering cnidarians"
+          "description": "Synthetic tree from Open Tree of Life, covering cnidarians",
+          "enabled": true
         },
         {
           "id": "otl_bryophyta",
           "displayName": "Bryophyta (OTL)",
           "fileName": "OTT_v15.1__Bryophyta.nex.gz",
-          "description": "Synthetic tree from Open Tree of Life, covering bryophytes"
+          "description": "Synthetic tree from Open Tree of Life, covering bryophytes",
+          "enabled": true
         },
         {
           "id": "otl_fungi",
           "displayName": "Fungi (OTL)",
           "fileName": "OTT_v15.1__Fungi.nex.gz",
-          "description": "Synthetic tree from Open Tree of Life, covering fungi"
+          "description": "Synthetic tree from Open Tree of Life, covering fungi",
+          "enabled": true
         }
  
       ]
