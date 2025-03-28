@@ -952,16 +952,18 @@ const SettingsPanel = ({
                               </Typography>
                             </Box>
                           </ListSubheader>,
-                          ...group.trees.map((tree) => (
-                            <MenuItem key={tree.id} value={tree.id} sx={{ pl: 4 }}>
-                              <Box>
-                                <Typography variant="body1">{tree.displayName}</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {tree.description}
-                                </Typography>
-                              </Box>
-                            </MenuItem>
-                          ))
+                          ...group.trees
+                            .filter(tree => tree.enabled !== false)  // Only show enabled trees
+                            .map((tree) => (
+                              <MenuItem key={tree.id} value={tree.id} sx={{ pl: 4 }}>
+                                <Box>
+                                  <Typography variant="body1">{tree.displayName}</Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {tree.description}
+                                  </Typography>
+                                </Box>
+                              </MenuItem>
+                            ))
                         ])}
                       </Select>
                     </FormControl>
