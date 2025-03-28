@@ -300,7 +300,7 @@ const Layout = ({ step, setStep }) => {
     },
     {
       title: 'Navigation menu',
-      description: 'Use this menu to switch between different panels: Settings, Visualization, and Tests. The Visualization panel will show your results, and the Tests panel allows you to compare diversities of two areas.',
+      description: 'Use this menu to switch between different panels: Settings, Visualization, and Comparisons. The Visualization panel will show your results, and the Comparisons panel allows you to compare diversities of two areas.',
       target: () => document.querySelector('.ant-dropdown-trigger'),
       placement: 'bottomLeft',
     },
@@ -326,7 +326,7 @@ const Layout = ({ step, setStep }) => {
       case 'visualization':
         return 'Visualization';
       case 'hypothesis':
-        return 'Tests';
+        return 'Comparative analysis';
       default:
         return '';
     }
@@ -352,7 +352,7 @@ const Layout = ({ step, setStep }) => {
       {
         key: 'hypothesis',
         icon: <ExperimentOutlined />,
-        label: 'Tests',
+        label: 'Comparisons',
         // Enable hypothesis for historical runs or when analysis is completed
         disabled: !runId && status !== 'completed'
       },
