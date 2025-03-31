@@ -93,7 +93,13 @@ const UserMenu = () => {
       setLoginError(null);
       navigate('/run', { replace: true });
     } catch (err) {
-      setLoginError(err.message);
+      console.error("Login error:", err);
+      if(err.status === 401 || err.status === 403) {
+        setLoginError("Invalid username or password");
+      } else {
+        setLoginError(err.message);
+
+      }
     }
   };
 
@@ -117,7 +123,7 @@ const UserMenu = () => {
             <Button 
               htmlType="button" 
               type="link" 
-              onClick={() => handleLogin({ username: 'dev_user', password: 'dev_password' })}
+              onClick={() => handleLogin({ username: 'dev_user', password: 'dev_password', isDevUser: true })}
               style={{ marginLeft: 8 }}
             >
               Dev Login

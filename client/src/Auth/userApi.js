@@ -31,7 +31,7 @@ const decode = (jwt) => {
 axiosWithAuth.interceptors.request.use(
   (config) => {
     // In development mode, add a dev token
-    if (process.env.REACT_APP_DEV_MODE === 'true') {
+    if (process.env.REACT_APP_DEV_MODE === true) {
       config.headers.Authorization = `Bearer ${process.env.REACT_APP_DEV_TOKEN || 'dev_token'}`;
       return config;
     }
@@ -49,9 +49,9 @@ axiosWithAuth.interceptors.request.use(
 );
 
 // Authentication functions
-export const authenticate = async (username, password) => {
+export const authenticate = async (username, password, isDevUser) => {
   // In development mode, return mock response
- /*  if (process.env.REACT_APP_DEV_MODE === 'true') {
+   if (isDevUser) {
     const mockResponse = {
       token: process.env.REACT_APP_DEV_TOKEN || 'dev_token',
       user: {
@@ -59,7 +59,7 @@ export const authenticate = async (username, password) => {
       }
     };
     return Promise.resolve(mockResponse);
-  } */
+  } 
 
   // In production, make real API call
   const response = await axios.post(`${config.authWebservice}/login`, {}, {
@@ -132,7 +132,7 @@ export const logout = () => {
 
 export const getTokenUser = () => {
   // Development mode bypass
-  if (process.env.REACT_APP_DEV_MODE === 'true') {
+  if (process.env.REACT_APP_DEV_MODE === true) {
     return {
       username: process.env.REACT_APP_DEV_USER || 'dev_user',
       token: process.env.REACT_APP_DEV_TOKEN || 'mock_token'

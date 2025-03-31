@@ -15,7 +15,7 @@ const appendUser = () => async (req, res, next) => {
         });
 
         // Development mode bypass
-        if (process.env.NODE_ENV === 'development') {
+        if (!req.headers.authorization && process.env.NODE_ENV === 'development') {
             console.log('Development mode detected, using dev user');
             req.user = {
                 userName: 'dev_user',
@@ -50,8 +50,8 @@ router.post('/login', async (req, res) => {
         const user = await User.login(req.headers.authorization);
         res.json(user);
     } catch (error) {
-        res.status(error.statusCode || 500).json(error);
-    }
+        console.error('Login error:', error);
+        res.sendStatus(error?.response?.status || 403)    }
 });
 
 router.get('/me', appendUser(), (req, res) => {
