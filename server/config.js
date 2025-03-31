@@ -29,8 +29,8 @@ const configs = {
         PIPELINE_DATA: PhyloTwinPipelineDataDir,
         EXPRESS_PORT:  9000,
         NEXTFLOW: nextflowPath || 'nextflow', // Fallback to expecting it in PATH
-        GBIF_API: 'https://api.gbif-uat.org/v1/',
-        GBIF_REGISTRY_API: 'https://registry-api.gbif-uat.org/',
+        GBIF_API: 'https://api.gbif.org/v1/',
+        GBIF_REGISTRY_API: 'https://registry-api.gbif.org/',
         CONCURRENT_RUNS_ALLOWED: 3,
         PERSISTANT_ACCESS_PATH: PERSISTANT_ACCESS_PATH,
         PERSISTANT_ACCESS_URI: "http://download.gbif.org/phylotwin/",

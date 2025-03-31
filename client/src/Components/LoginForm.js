@@ -10,7 +10,7 @@ const LoginForm = ({ onLogin, invalid }) => {
   };
 
   const handleDevLogin = () => {
-    onLogin({ username: 'dev_user', password: 'dev_password' });
+    onLogin({ username: 'dev_user', password: 'dev_password', isDevUser: true });
   };
 
   return (
