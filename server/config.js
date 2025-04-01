@@ -37,7 +37,7 @@ const configs = {
         DB_LOCATION: `${userHomeDir}/phylotwin_data/db.json`
     },
     production: {
-        INPUT_PATH:    '/mnt/auto/scratch/mblissett/cloud-data/latest/preprocessed_occurrences_parquet',
+        INPUT_PATH:    '/mnt/auto/scratch/tsjeppesen/phylotwin_data/preprocessed_occurrences_parquet',
         OUTPUT_PATH:   '/opt/phylotwin/runs',
         TEST_DATA:     '/opt/phylotwin/.nextflow/assets/vmikk/phylotwin/test_data',
         PIPELINE_DIR:  '/opt/phylotwin/.nextflow/assets/vmikk/phylotwin',
