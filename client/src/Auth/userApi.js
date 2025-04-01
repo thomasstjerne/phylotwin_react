@@ -106,15 +106,15 @@ export const checkAuthStatus = async () => {
       return null;
     }
 
-    const response = await axios.get(`${config.authWebservice}/check`, {
+    const response = await axios.get(`${config.authWebservice}/me`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
     });
 
     // Update Redux store with user data
-    setUserInRedux(response.data.user);
-    setTokenInRedux(token);
+    setUserInRedux(response.data);
+    setTokenInRedux(response.data.token);
 
     return response.data;
   } catch (error) {

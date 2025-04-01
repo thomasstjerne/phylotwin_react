@@ -17,7 +17,7 @@ const prod = {
     taxonSearchUrl : 'https://api.gbif.org/v1/species/search',
     gbifBackboneKey: 'd7dddbf4-2cf0-4f39-9b2a-bb099caae36c',
     phylonextWebservice:  'https://phylonext.gbif.org/service', 
-    authWebservice: 'https://phylonext.gbif.org/service/auth'
+    authWebservice: 'https://phylonext.gbif.org/service/api/auth'
 };
 
 // Default to dev in development, unless explicitly set to production
