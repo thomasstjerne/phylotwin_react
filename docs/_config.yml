@@ -1,0 +1,26 @@
+title: "PhyloNext"
+description: "PhyloNext v2 web-GUI documentation"
+
+baseurl: "/phylonext_v2"
+url: "https://vmikk.github.io"
+
+# Exclude unnecessary files and directories
+exclude:
+  - Gemfile.lock
+  - node_modules
+  - package.json
+  - yarn.lock
+  - README.md
+  - Dockerfile
+
+# Enable AsciiDoc processing
+asciidoc: {}
+asciidoctor:
+  safe: unsafe
+  attributes:
+    icons: font
+    idseparator: _
+    source-highlighter: rouge
+
+plugins:
+  - jekyll-asciidoc
