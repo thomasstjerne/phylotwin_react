@@ -6,7 +6,7 @@ description: Overview and usage instructions for PhyloNext v2
 
 # PhyloNext v2 web-GUI documentation
 
-![PhyloTwin React UI screenshot](images/MainUI.webp)
+![PhyloTwin React UI screenshot]({{ site.baseurl }}/images/MainUI.webp)
 
 ## Overview
 
@@ -21,19 +21,19 @@ PhyloNext is a user interface for the PhyloTwin biodiversity analysis pipeline. 
 
 ## Workflow
 
-![System workflow diagram](images/Workflow.webp)
+![System workflow diagram]({{ site.baseurl }}/images/Workflow.webp)
 
 ## Results Visualization
 
-![Results visualization](images/Results_visualization.webp)
+![Results visualization]({{ site.baseurl }}/images/Results_visualization.webp)
 
 ## Comparative Analysis
 
-![Comparative analysis](images/Comparative_analysis.webp)
+![Comparative analysis]({{ site.baseurl }}/images/Comparative_analysis.webp)
 
 ## Analysis History
 
-![Analysis history](images/Analysis_history.webp)
+![Analysis history]({{ site.baseurl }}/images/Analysis_history.webp)
 
 ## License
 
