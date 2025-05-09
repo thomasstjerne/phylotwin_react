@@ -24,3 +24,4 @@ asciidoctor:
 
 plugins:
   - jekyll-asciidoc
+  - jekyll-seo-tag
