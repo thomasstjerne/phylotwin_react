@@ -13,20 +13,7 @@
       background-color: #f8f9fa;
       color: #212529;
       line-height: 1.6;
-      padding-top: 0; /* Remove default padding */
-    }
-    .header {
-      background-color: #343a40;
-      padding: 1rem 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .header .menu-text a {
-      color: #ffffff;
-      font-size: 1.5rem;
-      font-weight: 600;
-    }
-    .header .menu-text a:hover {
-      color: #e9ecef;
+      padding-top: 0;
     }
     .main-content {
       padding: 2rem 0;
@@ -37,6 +24,7 @@
       border-radius: 8px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.05);
       margin-bottom: 2rem;
+      margin-top: 2rem;
     }
     h1, h2, h3, h4, h5, h6 {
       font-weight: 600;
@@ -44,16 +32,16 @@
     }
     code {
       background-color: #e9ecef;
-      padding: 0.2em 0.5em; /* Adjusted padding */
-      border-radius: 4px; /* Softer radius */
+      padding: 0.2em 0.5em;
+      border-radius: 4px;
       font-size: 0.9em;
-      color: #000; /* Ensure code text is dark for contrast */
+      color: #000;
     }
     img {
       max-width: 100%;
       height: auto;
-      border-radius: 4px; /* Slight radius for images */
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow for images */
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     .grid-container img {
       display: block;
@@ -62,8 +50,8 @@
     .listingblock pre {
       background-color: #212529; /* Dark background for code blocks */
       color: #f8f9fa; /* Light text for contrast */
-      padding: 1.5rem; /* Increased padding */
-      border-radius: 6px; /* Softer radius */
+      padding: 1.5rem;
+      border-radius: 6px;
       overflow-x: auto; /* Ensure horizontal scroll for long lines */
     }
     a {
@@ -82,18 +70,6 @@
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="grid-container">
-      <div class="top-bar">
-        <div class="top-bar-left">
-          <ul class="menu">
-            <li class="menu-text"><a href="{{ site.baseurl | prepend: site.url }}">{{ site.title }}</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </header>
-
   <main class="main-content">
     <div class="grid-container">
       <div class="grid-x grid-margin-x">
