@@ -6,6 +6,7 @@ url: "https://vmikk.github.io"
 
 # Exclude unnecessary files and directories
 exclude:
+  - Gemfile
   - Gemfile.lock
   - node_modules
   - package.json
@@ -13,15 +14,7 @@ exclude:
   - README.md
   - Dockerfile
 
-# Enable AsciiDoc processing
-asciidoc: {}
-asciidoctor:
-  safe: unsafe
-  attributes:
-    icons: font
-    idseparator: _
-    source-highlighter: rouge
-
+# Theme settings
+theme: minima
 plugins:
-  - jekyll-asciidoc
   - jekyll-seo-tag
