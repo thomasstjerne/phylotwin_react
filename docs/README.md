@@ -1,6 +1,6 @@
 # PhyloNext v2 web-GUI documentation
 
-The documentation is published to GitHub Pages at https://vmikk.github.io/phylonext2
+The documentation is published to GitHub Pages at https://vmikk.github.io/PhyloNext2
 
 ## Documentation Structure
 
