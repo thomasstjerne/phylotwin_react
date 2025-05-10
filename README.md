@@ -1,8 +1,8 @@
 
 ## PhyloTwin-GUI - GUI for GBIF occurrence data processing pipeline
 
-The GUI is hosted at GBIF.org: [https://phylonext.gbif.org/](https://phylonext.gbif.org/). 
-A GBIF.org user account is required: [Create account](https://www.gbif.org/user/profile).
+The GUI is hosted at GBIF.org: **[https://phylonext.gbif.org/](https://phylonext.gbif.org/)**  
+(a GBIF.org user account is required: [Create account](https://www.gbif.org/user/profile))  
 
 User documentation: [https://vmikk.github.io/PhyloNext2/](https://vmikk.github.io/PhyloNext2/)
 
