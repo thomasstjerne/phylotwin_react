@@ -1,5 +1,7 @@
 
 ## PhyloTwin-GUI - GUI for GBIF occurrence data processing pipeline
+PhyloNext v2 is part of the [BioDT prototype Digital Twins](https://biodt.eu/use-cases/phylogenetic-diversity) <img src='docs/images/BioDT_logo.png' align="right" height="80" />
+
 
 #### Other components of the workflow:
  - https://github.com/vmikk/phylotwin-preprocessor
