@@ -1,5 +1,11 @@
 
 ## PhyloTwin-GUI - GUI for GBIF occurrence data processing pipeline
+
+The GUI is hosted at GBIF.org: [https://phylonext.gbif.org/](https://phylonext.gbif.org/). 
+A GBIF.org user account is required: [Create account](https://www.gbif.org/user/profile).
+
+User documentation: [https://vmikk.github.io/PhyloNext2/](https://vmikk.github.io/PhyloNext2/)
+
 PhyloNext v2 is part of the [BioDT prototype Digital Twins](https://biodt.eu/use-cases/phylogenetic-diversity) <a href="https://biodt.eu/"> <img src='docs/images/BioDT_logo.svg' align="right" height="75" /> </a>
 
 
