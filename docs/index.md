@@ -14,7 +14,7 @@ Traditional biodiversity measures often rely on taxonomic richness (species coun
 
 The PhyloNext interface leverages global species occurrence database provided by the Global Biodiversity Information Facility (GBIF) and synthetic phylogenetic trees from the Open Tree of Life (OToL).
 
-The GUI is hosted at GBIF.org: [https://phylonext.gbif.org/](https://phylonext.gbif.org/)
+The GUI is hosted at GBIF.org: [https://phylonext.gbif.org/](https://phylonext.gbif.org/)  
 A GBIF.org user account is required: [Create account](https://www.gbif.org/user/profile).
 
 ![PhyloNext React UI screenshot]({{ site.baseurl }}/images/MainUI.webp)
