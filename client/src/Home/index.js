@@ -162,7 +162,7 @@ function App() {
         </Space>
       </StyledCard>
 
-      <StyledCard title="Involved Partners" style={{ marginTop: 24 }}>
+      <StyledCard title="Involved partners" style={{ marginTop: 24 }}>
         <Row gutter={[48, 24]} justify="center" align="middle">
           <Col>
             <Link href="https://gbif.org" target="_blank">
@@ -185,6 +185,22 @@ function App() {
             </Link>
           </Col>
         </Row>
+      </StyledCard>
+      <StyledCard title="Learn more" style={{ marginTop: 24 }}>
+        <Space direction="vertical" size="large">
+          <Text style={{ fontSize: '16px' }}>
+            User documentation:{" "}
+            <Link href="https://vmikk.github.io/PhyloNext2/" target="_blank">
+              https://vmikk.github.io/PhyloNext2/
+            </Link>
+          </Text>
+          <Text style={{ fontSize: '16px' }}>
+            PhyloNext v2 is part of the BioDT prototype Digital Twins. Learn more at{" "}
+            <Link href="https://biodt.eu/use-cases/phylogenetic-diversity" target="_blank">
+              https://biodt.eu/use-cases/phylogenetic-diversity
+            </Link>
+          </Text>
+        </Space>
       </StyledCard>
     </PageContent>
   );
