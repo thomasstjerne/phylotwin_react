@@ -102,11 +102,13 @@ function App() {
     <PageContent>
       <Row gutter={[24, 24]} align="middle" style={{ marginBottom: 48 }}>
         <Col>
-        <Image
-            width={300}
-            src="/assets/logo_BioDT.svg"
-            preview={false}
-          />
+          <Link href="https://biodt.eu" target="_blank">
+            <Image
+              width={300}
+              src="/assets/logo_BioDT.svg"
+              preview={false}
+            />
+          </Link>
           <Image
             width={100}
             src="/assets/PhyloDiv_Icon.png"
