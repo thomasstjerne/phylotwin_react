@@ -61,6 +61,13 @@ const LoginForm = ({ onLogin, invalid }) => {
           </Button>
         </Form.Item>
       )}
+      <Form.Item>
+        <Alert
+          type="info"
+          showIcon
+          description="To use PhyloNext, you need a password for your GBIF account. If you signed up with GitHub or Google, click 'Forgot password' to set one up."
+        />
+      </Form.Item>
     </Form>
   );
 };

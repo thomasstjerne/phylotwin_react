@@ -115,11 +115,19 @@ class UserMenu extends PureComponent {
     return (
       <React.Fragment>
         {!user && (
-          <span style={{ padding: "0 10px" }}>
-            <Button htmlType="button" type="primary" onClick={this.showLogin}>
-              Login
-            </Button>
-          </span>
+          <React.Fragment>
+            <span style={{ padding: "0 10px" }}>
+              <Button htmlType="button" type="primary" onClick={this.showLogin}>
+                Login
+              </Button>
+            </span>
+            <span style={{ padding: "0 10px" }}>
+              Or <a href={`https://www.gbif.org/user/profile`}>register at gbif.org now.</a>
+            </span>
+            <span style={{ padding: "0 10px" }}>
+              <a className="login-form-forgot" href={`https://www.gbif.org/user/profile`}>Forgot password?</a>
+            </span>
+          </React.Fragment>
         )}
         {user && (
           <Dropdown overlay={<MenuContent logout={logout}/>} trigger={["click"]}>

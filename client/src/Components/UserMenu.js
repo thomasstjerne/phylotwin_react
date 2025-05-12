@@ -115,21 +115,29 @@ const UserMenu = () => {
   return (
     <React.Fragment>
       {!user && (
-        <span style={{ padding: "0 10px" }}>
-          <Button htmlType="button" type="primary" onClick={() => setLoginModalVisible(true)}>
-            Login
-          </Button>
-          {process.env.REACT_APP_DEV_MODE === 'true' && (
-            <Button 
-              htmlType="button" 
-              type="link" 
-              onClick={() => handleLogin({ username: 'dev_user', password: 'dev_password', isDevUser: true })}
-              style={{ marginLeft: 8 }}
-            >
-              Dev Login
+        <React.Fragment>
+          <span style={{ padding: "0 10px" }}>
+            <Button htmlType="button" type="primary" onClick={() => setLoginModalVisible(true)}>
+              Login
             </Button>
-          )}
-        </span>
+            {process.env.REACT_APP_DEV_MODE === 'true' && (
+              <Button 
+                htmlType="button" 
+                type="link" 
+                onClick={() => handleLogin({ username: 'dev_user', password: 'dev_password', isDevUser: true })}
+                style={{ marginLeft: 8 }}
+              >
+                Dev Login
+              </Button>
+            )}
+          </span>
+          <span style={{ padding: "0 10px" }}>
+            Or <a href="https://www.gbif.org/user/profile">register at gbif.org now.</a>
+          </span>
+          <span style={{ padding: "0 10px" }}>
+            <a className="login-form-forgot" href="https://www.gbif.org/user/profile">Forgot password?</a>
+          </span>
+        </React.Fragment>
       )}
       {user && (
         <Dropdown overlay={<MenuContent />} trigger={["click"]}>
