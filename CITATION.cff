@@ -11,7 +11,7 @@ authors:
   given-names: "Thomas"
 - family-names: "Guldberg Frøslev"
   given-names: "Tobias"
-doi: 
+doi: 10.5281/zenodo.15716479
 url: "https://github.com/vmikk/PhyloNext2"
 repository-code: "https://github.com/vmikk/PhyloNext2"
 license: MIT
