@@ -3,7 +3,7 @@ import axios from "axios"
 import { useNavigate } from "react-router-dom";
 import PageContent from "../Layout/PageContent";
 import { marked } from "marked"
-import { Image, Row, Col, Typography, Space, Card, Button } from "antd";
+import { Image, Row, Col, Typography, Space, Card, Button, Alert } from "antd";
 import styled from '@emotion/styled';
 import { useAuth } from '../Auth/AuthContext';
 import { useDispatch } from 'react-redux';
@@ -61,23 +61,28 @@ const StyledCard = styled(Card)`
 
 function App() {
   const [markdown, setMarkdown] = useState(null);
+  const [markdownFigure, setMarkdownFigure] = useState(null);
   const [error, setError] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useAuth();
 
   useEffect(() => {
-    const getAbout = async () => {
+    const loadAbout = async () => {
       try {
-        const res = await axios(`/ABOUT.md`);
-        setMarkdown(res.data);
+        const [mainRes, figureRes] = await Promise.all([
+          axios(`/ABOUT.md`),
+          axios(`/ABOUT_figure.md`).catch(() => null)
+        ]);
+        setMarkdown(mainRes.data);
+        setMarkdownFigure(figureRes ? figureRes.data : null);
         setError(false);
       } catch (error) {
         console.log(error);
         setError(true);
       }
-    }
-    getAbout();
+    };
+    loadAbout();
   }, []);
   
   const handleStartNewAnalysis = () => {
@@ -100,6 +105,21 @@ function App() {
   
   return (
     <PageContent>
+      {!user && (
+        <Alert
+          banner
+          showIcon
+          type="info"
+          message={
+            <div style={{ width: '100%', textAlign: 'right' }}>
+              <span style={{ fontSize: 16, fontWeight: 600 }}>
+                Use GBIF login to access PhyloNext!
+              </span>
+            </div>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      )}
       <Row gutter={[24, 24]} align="middle" style={{ marginBottom: 48 }}>
         <Col>
           <Link href="https://biodt.eu" target="_blank">
@@ -135,11 +155,30 @@ function App() {
           </div>
         ) : (
           markdown && (
-            <span
-              dangerouslySetInnerHTML={{
-                __html: marked(markdown),
-              }}
-            />
+            <>
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: marked(markdown),
+                }}
+              />
+              <div style={{ textAlign: 'center', marginTop: 16 }}>
+                <Image
+                  src="https://vmikk.github.io/PhyloNext2/images/Comparative_analysis.webp"
+                  alt="PhyloNext comparative analysis screenshot"
+                  preview={false}
+                  style={{ width: '70%' }}
+                />
+              </div>
+              {markdownFigure && (
+                <div style={{ marginTop: 16 }}>
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: marked(markdownFigure),
+                    }}
+                  />
+                </div>
+              )}
+            </>
           )
         )}
       </StyledCard>
