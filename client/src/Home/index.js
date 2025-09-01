@@ -203,31 +203,77 @@ function App() {
         </Space>
       </StyledCard>
 
-      <StyledCard title="Involved partners" style={{ marginTop: 24 }}>
-        <Row gutter={[48, 24]} justify="center" align="middle">
-          <Col>
-            <Link href="https://gbif.org" target="_blank">
-              <PartnerLogo
-                preview={false}
-                width={300}
-                src="/assets/logo_GBIF.png"
-                alt="GBIF"
-              />
-            </Link>
-          </Col>
-          <Col>
-            <Link href="https://ut.ee" target="_blank">
-              <PartnerLogo
-                preview={false}
-                width={190}
-                src="/assets/logo_UniversityOfTartu.png"
-                alt="University of Tartu"
-              />
-            </Link>
-          </Col>
-        </Row>
-      </StyledCard>
-      <StyledCard title="Learn more" style={{ marginTop: 24 }}>
+      {/* Two-column layout */}
+      <Row gutter={[24, 24]} style={{ marginTop: 24, display: 'flex' }}>
+        {/* Left column - Acknowledgments and Contributors */}
+        <Col xs={24} lg={16} style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <StyledCard title="Acknowledgments" style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                This project has received funding from the European Union's Horizon Europe research and innovation programme under grant agreement No 101057437 (BioDT project,{" "}
+                <Link href="https://doi.org/10.3030/101057437" target="_blank">
+                  https://doi.org/10.3030/101057437
+                </Link>).
+              </Text>
+              <br /><br />
+              <Text style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                We acknowledge the EuroHPC Joint Undertaking and CSC - IT Center for Science, Finland for awarding this project access to the EuroHPC supercomputer LUMI, hosted by CSC – IT Center for Science and the LUMI consortium, through Development Access calls.
+              </Text>
+            </StyledCard>
+
+            <StyledCard title="Contributors" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                  <Text style={{ fontSize: '14px' }}>
+                    <span style={{ fontWeight: 600 }}>Vladimir Mikryukov</span> - Institute of Ecology and Earth Sciences, University of Tartu, Tartu, Estonia
+                  </Text>
+                  
+                  <Text style={{ fontSize: '14px' }}>
+                    <span style={{ fontWeight: 600 }}>Tobias G. Frøslev and Thomas S. Jeppesen</span> - GBIF Secretariat Universitetsparken, 15 DK-2100, Copenhagen Ø, Denmark
+                  </Text>
+                  
+                  <Text style={{ fontSize: '14px' }}>
+                    <span style={{ fontWeight: 600 }}>Filipp Ivanov</span> - University of Tartu Natural History Museum and Botanical Garden, Tartu, Estonia
+                  </Text>
+                </Space>
+              </div>
+            </StyledCard>
+          </div>
+        </Col>
+
+        {/* Right column - Involved partners */}
+        <Col xs={24} lg={8} style={{ display: 'flex' }}>
+          <StyledCard title="Involved partners" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Space direction="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
+                <div>
+                  <Link href="https://gbif.org" target="_blank">
+                    <PartnerLogo
+                      preview={false}
+                      width={260}
+                      src="/assets/logo_GBIF.png"
+                      alt="GBIF"
+                      style={{ marginBottom: '6px' }}
+                    />
+                  </Link>
+                </div>
+                <div>
+                  <Link href="https://ut.ee" target="_blank">
+                    <PartnerLogo
+                      preview={false}
+                      width={190}
+                      src="/assets/logo_UniversityOfTartu.png"
+                      alt="University of Tartu"
+                    />
+                  </Link>
+                </div>
+              </Space>
+            </div>
+          </StyledCard>
+        </Col>
+      </Row>
+
+      <StyledCard title="Learn more" style={{ marginTop: 12 }}>
         <Space direction="vertical" size="large">
           <Text style={{ fontSize: '16px' }}>
             User documentation:{" "}
