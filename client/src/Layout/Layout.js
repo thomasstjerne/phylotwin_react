@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
-import { Layout as AntLayout, Button, theme, Spin, Dropdown, Tooltip, message, Tour } from 'antd';
+import { Layout as AntLayout, Typography as AntTypography, Button, theme, Spin, Dropdown, Tooltip, message, Tour, Row, Col } from 'antd';
 import { useSelector } from 'react-redux';
 import {
   MenuFoldOutlined,
@@ -19,9 +19,9 @@ import HypothesisPanel from './HypothesisPanel';
 import UserMenu from '../Components/UserMenu';
 import JobStatusPoller from '../Components/JobStatusPoller';
 import Logo from './Logo';
-
+import Footer from './Footer';
 const { Header, Content } = AntLayout;
-
+const { Text, Link } = AntTypography;
 const Layout = ({ step, setStep }) => {
   const [activePanel, setActivePanel] = useState('settings');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
@@ -399,6 +399,7 @@ const Layout = ({ step, setStep }) => {
         <Content style={{ margin: '0 16px' }}>
           <Outlet />
         </Content>
+                <Footer />
       </AntLayout>
     );
   }

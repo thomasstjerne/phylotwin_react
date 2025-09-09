@@ -21,7 +21,6 @@ import { setSelectedIndices } from "../store/visualizationSlice";
 import {axiosWithAuth} from "../Auth/userApi";
 import config from "../config";
 import diversityIndices from '../shared/vocabularies/diversityIndices.json';
-
 const Workflow = ({ step, setStep, runID, setRunID }) => {
     const params = useParams();
     const { handlePanelOpen } = useOutletContext();
@@ -216,6 +215,7 @@ const Workflow = ({ step, setStep, runID, setRunID }) => {
     return (
         <Box sx={{ width: '100%', height: '100%' }}>
             {renderWorkflowContent()}
+            
         </Box>
     );
 };

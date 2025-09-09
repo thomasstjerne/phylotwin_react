@@ -7,7 +7,7 @@ import withContext from "../Components/hoc/withContext";
 import { Box } from "@mui/material";
 import MapComponent from "../Components/Map/Map";
 import logger from "../utils/logger";
-
+import Footer from "../Layout/Footer";
 const PhyloNextForm = ({ setStep, user }) => {
   const navigate = useNavigate();
 
@@ -17,16 +17,19 @@ const PhyloNextForm = ({ setStep, user }) => {
   }, []);
 
   return (
-    <Box sx={{ 
+   <> <Box sx={{ 
       width: '100%',
-      height: '100%',
+      height: '90%',
       bgcolor: '#f5f5f5',
       position: 'absolute',
       top: 0,
       left: 0
     }}>
       <MapComponent />
+       <Footer align="right" />
     </Box>
+   
+    </>
   );
 };
 
